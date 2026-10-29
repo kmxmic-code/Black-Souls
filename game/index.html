@@ -15930,6 +15930,10 @@ onmessage = e => { const m = e.data; try {
   // stage songs: Al Namas and the underground pit
   const songs = { namas: new Audio('alnamas_song.mp3'), pit: new Audio('pit_song.mp3'), title: new Audio('main_theme.mp3') };   // title = the main theme (title, select, VS), levelled to match the game's own music
   for (const a of Object.values(songs)) { a.loop = true; a.preload = 'auto'; }
+  // each map's own fight music (music/<map>.mp3), loaded only when that map comes up; maps without one keep the synth track
+  const STAGE_SONGS = new Set(["agra", "amsterdam", "bali", "bangkok", "bavaria", "diriyah", "fjord", "giza", "greatwall", "harbor", "istanbul", "kyoto", "london", "marrakech", "mexico", "moscow", "newyork", "paris", "riyadh", "roof", "santorini", "seoul", "sevilla", "venice"]);
+  const stageSong = id => { const k = 'stage:' + id; if (!songs[k]) { const a = songs[k] = new Audio('music/' + id + '.mp3'); a.loop = true; a.preload = 'auto'; a.stageId = id; } return k; };
+  let fightMusic = false;
   let song = songs.namas;
   // browsers only start audio after the player touches the page: start the waiting song on the first click or key
   const kick = () => { if (songOn && song.paused) song.play().catch(() => {}); };
@@ -15951,6 +15955,8 @@ onmessage = e => { const m = e.data; try {
       extra,
     };
     env.music = n => {
+      fightMusic = n === 'fight';
+      if (n === 'fight' && game && STAGE_SONGS.has(game.stage)) n = stageSong(game.stage);
       if (songs[n]) { if (songOn && song === songs[n]) return; sound.music(null); song.pause(); song = songs[n]; song.currentTime = 0; songOn = true; applyVolumes(); song.play().catch(() => {}); }
       else { songOn = false; song.pause(); sound.music(n); }
     };
@@ -15996,6 +16002,8 @@ onmessage = e => { const m = e.data; try {
       if (devAssign && devAssign[0] && devAssign[0].startsWith('pad:')) { const p = pads.find(q => 'pad:' + q.index === devAssign[0]); if (p) window.PAD_STYLE = isPS(p) ? 'ps' : 'xbox'; }
       if (asking) { newKeys = []; rawPads = []; for (const k in touchLatch) delete touchLatch[k]; view.alpha = 1; view.render(ctx, real); view.drawDeviceAsk(ctx, devAsk, devName); sound.tick(); requestAnimationFrame(frame); return; }
       inputs = playerInputs(pads);
+      // a wall break carried the fight to another map (or the guest learned the map late): switch to that map's music
+      if (fightMusic && ['intro', 'fight', 'roundEnd'].includes(game.phase)) { const want = STAGE_SONGS.has(game.stage) ? game.stage : null, cur = songOn && song.stageId || null; if (want !== cur) env.music('fight'); }
       for (const k in touchKeys) if (touchKeys[k] || touchLatch[k]) inputs[0][k] = true;
       if (net.isOpen) { net.navTick(pads); inputs[0] = blank(); inputs[1] = blank(); }
       net.selectTick(); net.ffa.tick();

@@ -11,8 +11,8 @@
    "size": 271934
   },
   "alnamas_song.mp3": {
-   "sha": "06c583296bb61c586ee91b3b9ab09b878b74be2cab7e61ed635ed11372ba57ee",
-   "size": 6414708
+   "sha": "e11417937442719c36c7204712850aefc9fefc38e5ab2939948ca350e6e0df06",
+   "size": 6334460
   },
   "bfxmask0.png": {
    "sha": "09ea85eab80b31c1a13d27548fdd192d341cf4a94dcc6a420af93407c586ea9b",
@@ -123,8 +123,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "f9afc1f1b142603089688ce71e052a6cb27e19d56b5c34b9e00813733bb55587",
-   "size": 1540354
+   "sha": "eb32f96b33c839e46d7934f6c4d0ea7308f56342bc6c8616a170b67e5067a814",
+   "size": 1541440
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
@@ -133,6 +133,102 @@
   "main_theme.mp3": {
    "sha": "d3bdbba6d86d5fe8e54c63ccad5202ad6cfeabdd7a3616722c79da461bf111ea",
    "size": 5473187
+  },
+  "music/agra.mp3": {
+   "sha": "a60aefe3d3d905fe57a5f410ab917481e936c9306c5334971a042a88c313e3f9",
+   "size": 3632506
+  },
+  "music/amsterdam.mp3": {
+   "sha": "1f8c1bd3eb7152aebc8e20ab980b4dc8ea864fac9c337ce7a0275a20d1e445bf",
+   "size": 2479233
+  },
+  "music/bali.mp3": {
+   "sha": "6a29e1fe22bf4d8631a3231875d1657a3ca00879a1c570a4e310578d110cb67a",
+   "size": 3721595
+  },
+  "music/bangkok.mp3": {
+   "sha": "92b04a356a7033c91b64ea8f4ed4b8ce5d6e51ea29b5f89e8798ab94a5bf6cc4",
+   "size": 2197841
+  },
+  "music/bavaria.mp3": {
+   "sha": "bc57fc5e08c1d1dbbd3aa0989867015d6f0db5cf03967f0dd68612f5c1f2ea64",
+   "size": 3121857
+  },
+  "music/diriyah.mp3": {
+   "sha": "8e0230ea6db098eb4b3ab5bf10fcec5efa6d25a981d402d7bd69f76e28b0b23e",
+   "size": 2316092
+  },
+  "music/fjord.mp3": {
+   "sha": "3bd3aa26ab0173c86d1cbf3e9565e3c1d800a115bb0ed13393bad96c022ef4b5",
+   "size": 3030810
+  },
+  "music/giza.mp3": {
+   "sha": "aaad266ff6dc0d12d2dc4bae16f8720a8257a0db8680043e26ab3fa756f3dd3f",
+   "size": 2772025
+  },
+  "music/greatwall.mp3": {
+   "sha": "718547bd0e90c119903db222e2c24806882d3493759e9b104bb6c2942f1a3066",
+   "size": 3267520
+  },
+  "music/harbor.mp3": {
+   "sha": "a96a5c5ddfa922f068806924dd2a8d5d4c11e853d02a0e3d10ca5a41185ac669",
+   "size": 3236247
+  },
+  "music/istanbul.mp3": {
+   "sha": "1c57e148cbedde1c78da4ba964780664bcd5af1f879f92a3abab26e4b90b52bf",
+   "size": 2560847
+  },
+  "music/kyoto.mp3": {
+   "sha": "5afa6717b86101ef93c325e0c54593c04928faee08a3ca96428e118a59c2cd9b",
+   "size": 3070695
+  },
+  "music/london.mp3": {
+   "sha": "a3534e1bbe67bea41180308a92661a632401c0084b5064842dc64d731602dbad",
+   "size": 1574499
+  },
+  "music/marrakech.mp3": {
+   "sha": "7eb909387882b44ef3726c90b291c89034b3aba733b013307c93327bce73cc19",
+   "size": 3376213
+  },
+  "music/mexico.mp3": {
+   "sha": "c6fc100cff3c4d6c2718d8f796c9f3a1fc5825d2be1f80802b69006bad1f1895",
+   "size": 2128836
+  },
+  "music/moscow.mp3": {
+   "sha": "5485a4702ec909b60dd8f769b4a5e2b6c758d8389dc8a8ca21bbb0cc6a923af4",
+   "size": 2913300
+  },
+  "music/newyork.mp3": {
+   "sha": "d2c86bd624eec360e2ef7c40ba3d88b69842b04eed1576e2a2685de3723c87c5",
+   "size": 2627501
+  },
+  "music/paris.mp3": {
+   "sha": "d73880b950af73201a5c80ee70b3b3f28637bc01f09b3c129601b50626fd2484",
+   "size": 2732046
+  },
+  "music/riyadh.mp3": {
+   "sha": "55d79ec4b39c56811954d184fd4f7e4e64e6e71039543ea17335560a72bf14dc",
+   "size": 1761373
+  },
+  "music/roof.mp3": {
+   "sha": "eafb29c615907d5d3884baea2ec8d6d6009f0936ad2f15f244d7c1ea0b6fa6b8",
+   "size": 3578394
+  },
+  "music/santorini.mp3": {
+   "sha": "7ab85d18b03d73873bc2b973a9a750b9a4c7c3c3e94675759a8db2c11f98b9b6",
+   "size": 2410708
+  },
+  "music/seoul.mp3": {
+   "sha": "d62576d12a746d864b108c0cea896b8c42a539ebecf5f5a41a25ef762dfa5412",
+   "size": 2273932
+  },
+  "music/sevilla.mp3": {
+   "sha": "86a1364d37d43fd603e0c22e00d1242c4374e92f52ccc138e8fc2886cb05e554",
+   "size": 1662351
+  },
+  "music/venice.mp3": {
+   "sha": "f28c3f0e9de6618c9c57acf60964e66e48ac479d3135357776e5af4faccb4ac3",
+   "size": 3297291
   },
   "pit.jpg": {
    "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",
