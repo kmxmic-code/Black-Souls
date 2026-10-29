@@ -15659,7 +15659,7 @@ onmessage = e => { const m = e.data; try {
     setTimeout(() => window.addEventListener('keydown', key, true), 250);
     (box.querySelector('a.dl') || box.querySelector('.x')).focus();
   }
-  function flash(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, 2200); }
+  function flash(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, /^Game error/.test(msg) ? 9000 : 2200); }
   window.addEventListener('gamepaddisconnected', e => { seen.delete(e.gamepad.index); flash('Controller disconnected'); });
 
   function rumble(id, strong, weak, ms) {
@@ -15728,7 +15728,19 @@ onmessage = e => { const m = e.data; try {
     let last = performance.now(), acc = 0; const STEP = 1000 / 60;
     const pauseBtn = document.getElementById('pausebtn');
     pauseBtn.addEventListener('click', e => { e.preventDefault(); pauseBtn.blur(); game.requestPause(); });
+    // a bug in one frame must never freeze the game: report it on screen, keep running
+    let lastErrAt = -1e9;
     function frame(now) {
+      try { frameBody(now); }
+      catch (err) {
+        console.error(err);
+        const t = performance.now();
+        if (t - lastErrAt > 4000) { lastErrAt = t; flash('Game error: ' + String(err && err.message || err).slice(0, 90) + ' (screenshot this for support)'); }
+        try { const g = game; window.__lastErr = { msg: String(err && err.stack || err), phase: g && g.phase, mode: g && g.mode, online: g && g.online, ffa: !!(net && net.ffa && net.ffa.active), at: Date.now() }; } catch (e) {}
+        requestAnimationFrame(frame);
+      }
+    }
+    function frameBody(now) {
       const real = Math.min(100, now - last); acc += real; last = now;
       const pads = padList();
       pads.forEach(p => { if (!seen.has(p.index)) { seen.add(p.index); flash(`${isPS(p) ? 'PlayStation controller' : 'Controller'} ${seen.size} connected`); wake(); } });

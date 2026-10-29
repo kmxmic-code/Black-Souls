@@ -1,6 +1,13 @@
 {
- "version": "1.4.0",
+ "version": "1.4.1",
  "notes": [
+  {
+   "v": "1.4.1",
+   "date": "2026-10-29",
+   "items": [
+    "The game no longer freezes if something goes wrong \u2014 it keeps running and shows the error on screen"
+   ]
+  },
   {
    "v": "1.4.0",
    "date": "2026-10-29",
@@ -213,8 +220,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "05263e6eeb5ee8127c0855ae4c9b3405f6e58a4bcb22567fdf6b36c207c27d93",
-   "size": 1517260
+   "sha": "65984f763e9e5de3b3f587ead1c43f38da0bcf43a6b3cb13e3d5763230c3fa0b",
+   "size": 1517992
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
