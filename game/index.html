@@ -1123,7 +1123,8 @@ class Game {
         { label: 'MOVE LIST', hint: 'Every move and how to do it', act: () => g.openMenu('movelist') },
         { label: 'BUTTON GUIDE', hint: 'Which button does what, on your keyboard or controller', act: () => g.openMenu('guide') },
         { label: 'RECORDS', hint: 'Your wins, clears and best combos', act: () => g.openMenu('records') },
-        { label: 'OPTIONS', hint: 'Difficulty, sound, controls', act: () => g.openMenu('options') }].concat(g.env.installApp ? [{ label: 'INSTALL APP (.EXE)', hint: 'Windows launcher: auto-updates, direct P2P online', act: () => g.env.installApp() }] : []) };
+        { label: 'OPTIONS', hint: 'Difficulty, sound, controls', act: () => g.openMenu('options') }].concat(g.env.installApp ? [{ label: 'INSTALL APP (.EXE)', hint: 'Windows launcher: auto-updates, direct P2P online', act: () => g.env.installApp() }] : [])
+        .concat(g.env.quit ? [{ label: 'QUIT GAME', hint: 'Close the game and go back to the launcher', act: () => g.env.quit() }] : []) };
       case 'options': return { title: 'OPTIONS', items: [
         { label: 'CPU LEVEL', val: () => S.difficulty.toUpperCase(), adj: d => set('difficulty', cyc(DIFFS, S.difficulty, d)) },
         { label: 'MATCH', val: () => `BEST OF ${S.rounds * 2 - 1}`, adj: d => set('rounds', cyc([1, 2, 3], S.rounds, d)) },
@@ -15235,7 +15236,7 @@ onmessage = e => { const m = e.data; try {
     const imgs = all.slice(0, MANIFEST.sheets.length); sheetImgs = imgs; if (!skinW) warmIndexes(); else setTimeout(() => warmSkinWorker(imgs), 1500);
     await fonts;
     const env = {
-      manifest: MANIFEST, store, sheets: imgs, makeCanvas, recolor, recolorAsync, installApp: isDesktopApp ? null : installApp,
+      manifest: MANIFEST, store, sheets: imgs, makeCanvas, recolor, recolorAsync, installApp: isDesktopApp ? null : installApp, quit: isDesktopApp ? () => { sound.music && sound.music(null); window.close(); } : null,
       sfx: n => {
         // Big Rusty's swearing uses the real censor beep recording
         if (n === 'bleep' && bleepSrc) { if (muted || !game) return; const b = bleepSrc.cloneNode(); b.volume = Math.min(1, game.settings.sfx / 10 * 0.55); b.play().catch(() => {}); return; }

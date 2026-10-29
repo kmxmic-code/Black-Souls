@@ -1,6 +1,13 @@
 {
- "version": "1.2.4",
+ "version": "1.2.5",
  "notes": [
+  {
+   "v": "1.2.5",
+   "date": "2026-10-29",
+   "items": [
+    "Main menu: QUIT GAME (closes the game and returns to the launcher)"
+   ]
+  },
   {
    "v": "1.2.4",
    "date": "2026-10-29",
@@ -178,8 +185,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "9bf3736c32cbd46e34e00e2040153eb71756d2db1b4d0d90ffa182284fcd64a5",
-   "size": 1477861
+   "sha": "c741bc506c2cff375dfcd61374ee091b4b895c93315d281be1a8c2f5a016dde6",
+   "size": 1478087
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
