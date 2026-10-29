@@ -792,10 +792,10 @@ class Fighter {
       default: return [a.key, a.fi];
     }
   }
-  hurtbox() {
+  hurtbox(raw) {
     if (this.hidden || this.ko || ['knock', 'down', 'getup', 'koair', 'special', 'carried', 'wallfly', 'transform', 'untransform'].includes(this.state)) return null;
     if (this.state === 'hita' && this.juggle >= 3) return null;   // juggle limit
-    if (this.state === 'dash' && this.dodge) return null;   // dodging: untouchable for the whole (faster) dodge
+    if (this.state === 'dash' && this.dodge && !raw) return null;   // dodging: untouchable for the whole (faster) dodge
     const k = this.state === 'airkick' ? 'airkick' : !this.grounded ? 'air' : this.isCrouching ? 'crouch' : 'stand';
     const own = HURT_BY && HURT_BY[this.ch === 'rusty' && this.feral ? 'feral' : this.ch], b = (own && own[k === 'airkick' ? 'air' : k]) || HURT[k];
     return this.box(b, this.h + (this.plat || 0));
@@ -1697,7 +1697,7 @@ class Game {
     if (f.ch === 'y4nk' && f.peek('car') && f.meter >= CAR_COST && !(this.cars || []).some(c => c.owner === f)) { f.consume('car'); return this.startCar(f); }
     const atk = f.consume('lp', 'hp', 'lk', 'hk');
     if (atk) return this.startMove(f, f.mv(down ? ((atk === 'lp' || atk === 'hp') ? 'clp' : 'sweep') : atk));
-    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; this.env.sfx('whoosh'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
+    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; f._evaded = false; this.env.sfx('whoosh'); this.fx.push({ kind: 'dodge', x: f.x, y: GROUND - 110 - (f.h || 0) - (f.plat || 0), t: 0, life: 360, mirror: f.dir < 0, pal: f.pal }); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
     if (f.backTaps.length >= 2 || (f.back() && f.peek('dash'))) { f.consume('dash'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
     if (f.consume('dash') || f.fwdTaps.length >= 2) { f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
     if (up) { f.jdir = f.fwd() ? 1 : f.back() ? -1 : 0; f.airUsed = false; return f.setState('prejump', 'jump_pre'); }
@@ -2377,7 +2377,7 @@ class Game {
     return m.hits.map((h, i) => ({ h, i })).filter(({ h, i }) => !f.hitDone.has(this.hitKey(i, o)) && fi >= h.f && fi <= (h.fEnd ?? h.f));
   }
   resolveHits(f, o, isClone = false) {
-    const hb = o.hurtbox(); if (!hb) return;
+    const hb = o.hurtbox(); if (!hb) { if (o.state === 'dash' && o.dodge && !o._evaded) this.checkEvade(f, o); return; }
     for (const { h, i } of this.activeHits(f, o)) {
       const r = f.box(h.box, (f.h || 0) + (f.plat || 0));
       if (r[0] > hb[1] || r[1] < hb[0] || r[2] > hb[3] || r[3] < hb[2]) continue;
@@ -2386,6 +2386,18 @@ class Game {
       const cy = GROUND - (Math.max(r[2], hb[2]) + Math.min(r[3], hb[3])) / 2;
       this.applyHit(f, o, h, cx, cy, isClone);
       if (!o.hurtbox()) break;
+    }
+  }
+  // an attack that passes through a dodge: EVADE! pop, a flash of afterimages and a whoosh (once per dodge)
+  checkEvade(f, o) {
+    const hb = o.hurtbox(true); if (!hb) return;
+    for (const { h } of this.activeHits(f, o)) {
+      const r = f.box(h.box, (f.h || 0) + (f.plat || 0));
+      if (r[0] > hb[1] || r[1] < hb[0] || r[2] > hb[3] || r[3] < hb[2]) continue;
+      o._evaded = true;
+      this.fx.push({ kind: 'evade', x: o.x, y: GROUND - 120 - (o.h || 0) - (o.plat || 0), t: 0, life: 520, mirror: o.dir < 0, pal: o.pal });
+      this.texts.push({ text: 'EVADE!', x: o.x, y: GROUND - 280 - (o.plat || 0), t: 0, life: 700, color: 'cyan', small: true });
+      this.env.sfx('whooshH'); return;
     }
   }
   isBlocking(o, att, h) {
@@ -13009,7 +13021,12 @@ class View {
       const shakeX = a.hitShake > 0 ? ((Math.floor(t / 33) % 2) ? 4 : -4) : 0;
       const opts = clone ? { tint: palCss(pal, 0.38), alpha: 0.9, dx: 0 } : { dx: shakeX, actor: a.id };
       if (a.state === 'dash' && a.bdash && a.ch !== 'cowboy') opts.fxDir = -a.dir;
-      if (!clone && a.state === 'dash' && a.dodge) { opts.alpha = 0.4 + 0.12 * Math.sin(t / 30); opts.tint = palCss(pal, 0.35); }   // (Blitzy's back dash has its own effect art)   // dash dust trails behind the way he actually moves
+      if (!clone && a.state === 'dash' && a.dodge) { opts.alpha = 0.4 + 0.12 * Math.sin(t / 30); opts.tint = palCss(pal, 0.35); }
+      if (!clone && a.state === 'dash' && a.dodge && !(g.superFlash && g.superFlash.owner === a)) {   // dodge afterimages: two coloured ghosts sliding out behind and snapping back
+        const ph = Math.min(1, a.anim.fi / Math.max(1, a.anim.durs.length - 1)), sp = Math.sin(ph * Math.PI);
+        const [R0, G0, B0] = PALX(pal).rgb, ghost = `rgba(${Math.min(255, R0 + 110)},${Math.min(255, G0 + 110)},${Math.min(255, B0 + 110)},0.92)`;
+        for (const [k, al] of [[2, 0.32], [1, 0.5]]) this.drawSprite(ctx, pal, n, i, ix, ih, a.dir, { dx: (opts.dx || 0) - a.dir * Math.round(k * 26 * sp / 4) * 4, alpha: al * (0.45 + 0.55 * sp), tint: ghost });
+      }   // (Blitzy's back dash has its own effect art)   // dash dust trails behind the way he actually moves
       if (g.superFlash && g.superFlash.owner === a) opts.tint = `rgba(255,224,170,${0.25 + 0.2 * Math.sin(t / 40)})`;
       if (!clone && a.special && (a.special.phase === 'trip' || a.special.phase === 'catch')) { this.drawCarry(ctx, a, ix + (opts.dx || 0), a.dir); continue; }
       // soft blend: the previous frame fades out under the new one for a few ms
@@ -13272,6 +13289,34 @@ class View {
         ctx.fillStyle = `rgba(${Math.min(255, R + 60)},${Math.min(255, G + 60)},${Math.min(255, B + 60)},${a * k})`;
         for (let y = -r; y <= r; y += 4) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y)) / 4) * 4; ctx.fillRect(cx - w, cy + y, w * 2, 4); }
       }
+      ctx.restore(); return;
+    }
+    if (e.kind === 'dodge') {
+      // dodge: wind streaks whip backwards off the body and a ring of air puffs out at the feet
+      const k = e.t / e.life, P = PALETTES[e.pal] || { rgb: [200, 235, 255] }, [R, G, B] = P.rgb, cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4, back = e.mirror ? 1 : -1;
+      const light = `rgba(${Math.min(255, R + 140)},${Math.min(255, G + 140)},${Math.min(255, B + 140)},`;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let q = 0; q < 7; q++) {
+        const y = cy - 84 + q * 26 + ((q * 13) % 9), len = Math.round((40 + (q % 3) * 26) * (1 - k * 0.6) / 4) * 4, d = Math.round((10 + k * (120 + (q % 2) * 50)) / 4) * 4;
+        const x0 = cx + back * d; ctx.fillStyle = light + (0.75 * (1 - k)) + ')';
+        ctx.fillRect(back > 0 ? x0 : x0 - len, Math.round(y / 4) * 4, len, 4);
+        ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - k)})`; ctx.fillRect(back > 0 ? x0 : x0 - 8, Math.round(y / 4) * 4, 8, 4);
+      }
+      const rr = 20 + k * 90; ctx.fillStyle = light + (0.6 * (1 - k)) + ')';
+      for (let q = 0; q < 22; q++) { const an = q / 22 * Math.PI * 2, x = Math.round((cx + Math.cos(an) * rr) / 4) * 4, y = Math.round((GROUND - 8 + Math.sin(an) * rr * 0.18) / 4) * 4; if (y <= GROUND) ctx.fillRect(x - 2, y - 2, 4, 4); }
+      ctx.restore(); return;
+    }
+    if (e.kind === 'evade') {
+      // an attack passed through the dodge: a bright slash glint, a burst of pixel sparks and a ring
+      const k = e.t / e.life, P = PALETTES[e.pal] || { rgb: [111, 211, 230] }, [R, G, B] = P.rgb, cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
+      const light = `rgb(${Math.min(255, R + 130)},${Math.min(255, G + 130)},${Math.min(255, B + 130)})`;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const gl = Math.round((1 - k) * 110 / 4) * 4; ctx.fillStyle = `rgba(255,255,255,${1 - k})`;
+      for (let s2 = -gl; s2 <= gl; s2 += 4) ctx.fillRect(cx + s2, cy - Math.round(s2 * 0.5 / 4) * 4, 4, 4);   // diagonal glint
+      ctx.fillRect(cx - 2, cy - gl / 2, 4, gl);
+      for (let q = 0; q < 12; q++) { const an = q / 12 * Math.PI * 2 + 0.2, d = 14 + k * 110 + (q % 3) * 10; ctx.globalAlpha = 1 - k; ctx.fillStyle = q % 2 ? light : '#ffffff'; ctx.fillRect(Math.round((cx + Math.cos(an) * d) / 4) * 4, Math.round((cy + Math.sin(an) * d * 0.7) / 4) * 4, q % 3 ? 4 : 8, q % 3 ? 4 : 8); }
+      ctx.globalAlpha = 0.7 * (1 - k); ctx.fillStyle = light; const rr = 24 + k * 70;
+      for (let q = 0; q < 30; q++) { const an = q / 30 * Math.PI * 2; ctx.fillRect(Math.round((cx + Math.cos(an) * rr) / 4) * 4, Math.round((cy + Math.sin(an) * rr * 0.8) / 4) * 4, 4, 4); }
       ctx.restore(); return;
     }
     if (e.kind === 'parry') {
