@@ -1,0 +1,238 @@
+{
+ "version": "1.1.0",
+ "notes": [
+  {
+   "v": "1.1.0",
+   "date": "2026-10-29",
+   "items": [
+    "New launcher: the game now updates itself \u2014 only changed files download",
+    "App online: direct P2P with a one-time code swap, no server lag",
+    "App online: no more instant kick when the connection blips while it settles",
+    "Online status shows DIRECT or RELAY and why P2P is not available",
+    "Main menu: INSTALL APP option on claude.ai"
+   ]
+  }
+ ],
+ "launcher": {
+  "min": 1,
+  "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing"
+ },
+ "files": {
+  "alnamas.jpg": {
+   "sha": "fe756f8bb1d69496d28245b35d8d7dd4cda2c4281ca0ddddfc1f49bf454da72d",
+   "size": 271934
+  },
+  "alnamas_song.mp3": {
+   "sha": "06c583296bb61c586ee91b3b9ab09b878b74be2cab7e61ed635ed11372ba57ee",
+   "size": 6414708
+  },
+  "bfxmask0.png": {
+   "sha": "09ea85eab80b31c1a13d27548fdd192d341cf4a94dcc6a420af93407c586ea9b",
+   "size": 928
+  },
+  "bfxsheet0.png": {
+   "sha": "305e44b0d71ef59b0008aca4a8e7224176a5cc61bf581efef9bdce646719cdb6",
+   "size": 38476
+  },
+  "bleep.mp3": {
+   "sha": "9be89e765e9894278340ee1c3db67e4b478ca18b801a171de50f92984702f684",
+   "size": 9855
+  },
+  "bmask0.png": {
+   "sha": "d2ac3b9beb9f853783b8b67db60651e2f7f1c57b24d7fc19d8d64af777b54fd5",
+   "size": 125919
+  },
+  "bmask1.png": {
+   "sha": "de48e409a833ef60884bb258484a003b86e0136d19a89d9c2c9167d8bff9fe14",
+   "size": 26015
+  },
+  "car.png": {
+   "sha": "e29d247f713436054deef0cba209a2b0741fa9a5d46cd03fd30a16feb2382362",
+   "size": 17306
+  },
+  "car_wheels.png": {
+   "sha": "367fa0e2e5510b59d6ae0463ae2481a4c3306b01828659febe00f7deb52f24d6",
+   "size": 94985
+  },
+  "censor.png": {
+   "sha": "ed99359355c34cbe91f78c18d643040f48b391fa726ea1e27dc8a0590f896d3d",
+   "size": 1624
+  },
+  "cfxsheet0.png": {
+   "sha": "b36bd6a933e45ddd0b51958e484a101c337cce9ccb622931251f0fd1fdb316b4",
+   "size": 58907
+  },
+  "chamber.png": {
+   "sha": "943ba3dabf6b6e9d04b58275f0f9f111f1c1d1c4751e31c5870ec056fb269ba2",
+   "size": 14751
+  },
+  "chamber_inner.png": {
+   "sha": "cfc89f8f2c29274ede8a90c7a2d0f6f0d494e323bbe056d3c83e9b689ffe1d08",
+   "size": 7193
+  },
+  "chamber_round.png": {
+   "sha": "a6babe3aba18af920a33b3ccfa0fc6c3b8c66e5d29bf3c30bc9a73e76bfdf968",
+   "size": 540
+  },
+  "cmask0.png": {
+   "sha": "1f8cff27ccf6e3e7c1168abd12ea63e6c01d3b38d80d5e7d7bf63136f2059446",
+   "size": 111714
+  },
+  "cmask1.png": {
+   "sha": "f434b92140a3137b79aeae197014dbe888baaad973bfdb1542bb420129001024",
+   "size": 94248
+  },
+  "cmask2.png": {
+   "sha": "61bc6d7aec6a874667d85f5812d8cf31f7c36a654407624b2b6e2d252e877ace",
+   "size": 24263
+  },
+  "csheet0.png": {
+   "sha": "4dd2de8216b167856e7080e2a99b7ff5ab8009eea4571ae6ec988c1dffa17bb3",
+   "size": 3281996
+  },
+  "csheet1.png": {
+   "sha": "60e68252e46cb4d3eaa63091a8010ebe29f945a9b922002cb89b56b481bd5a6a",
+   "size": 3296534
+  },
+  "csheet2.png": {
+   "sha": "aa21dc31ba98f4656dd3850cbec631bc04b6b0f7675291a0c06bafc821d935da",
+   "size": 1003546
+  },
+  "desert_dune.png": {
+   "sha": "3dea97485b17a13bc5570184d4796e74b5477e847cd6659c4db0fe8e29be5660",
+   "size": 1416
+  },
+  "desert_mesa.png": {
+   "sha": "e99175697a7d589ecae029a26ae769d49091064cb3db6cf9edd4876d7bf53f85",
+   "size": 1040
+  },
+  "desert_mts.png": {
+   "sha": "b427ec11b57bdf8f811af4a192a010d4f53759ab55e765adf54a01b066cfe64e",
+   "size": 730
+  },
+  "desert_road.png": {
+   "sha": "7be20acac901804eeee3afe869062fb90c288d35145c9001d0e79ac1705773ff",
+   "size": 1063
+  },
+  "desert_sky.png": {
+   "sha": "e5015f2893bed6dc8915fca410252371c7e923d9689879c2bef1312db8af33db",
+   "size": 964
+  },
+  "elem_air.png": {
+   "sha": "035b4146016edb81e224ead9f5122520527a6e5b4070634e25454b563d2fa1c1",
+   "size": 6702
+  },
+  "elem_earth.png": {
+   "sha": "0b1f1880745e975a187560f696dd739e1581d680dd964a2585d140df9ec21c8a",
+   "size": 5271
+  },
+  "elem_fire.png": {
+   "sha": "1c247746a6183a91531226ffcc3918194665af920e8cd14c197a53a4e2845a87",
+   "size": 4787
+  },
+  "elem_water.png": {
+   "sha": "bf9bbfcf765dca9d9c876e63ab597f40d740e53d109d88b8f383506fdcdedb9e",
+   "size": 5877
+  },
+  "index.html": {
+   "sha": "7dc2046e0017cdd1c0ba5b528fe115e02e693b3716804266b49edd3238d6b62e",
+   "size": 1465205
+  },
+  "kunai2.png": {
+   "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
+   "size": 292
+  },
+  "pit.jpg": {
+   "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",
+   "size": 213550
+  },
+  "pit_song.mp3": {
+   "sha": "cc6ff9c7851a4d18b8c7ddefe6e63185e5cd55a6e6f340392dd7a73dff3697ee",
+   "size": 798347
+  },
+  "rfxsheet0.png": {
+   "sha": "deda62506a4c7d405326c695b50b84486dfa1646bfb4ead80fe6ff0565c87391",
+   "size": 172380
+  },
+  "rmask0.png": {
+   "sha": "1b5b15b48121a42bd2da0e558059d3db39bce7ab22cabb905571cdc0d15c5357",
+   "size": 36830
+  },
+  "rmask1.png": {
+   "sha": "60fe5340f92a6d4cc4b704590f783159dd514e72fee2cac147d57b0b3d5b1445",
+   "size": 35626
+  },
+  "rmask2.png": {
+   "sha": "d829bff99d9f94d2752652fd19dceee1bf7241e6305b472616e8447bac0b44a5",
+   "size": 9944
+  },
+  "rock_shatter_strip.png": {
+   "sha": "d511c05bc62a6eb477c19cb1f9d9ab1c9b5aa676487d71016e4251d10ba52024",
+   "size": 57439
+  },
+  "rock_spin_strip.png": {
+   "sha": "fc4cc4a079476da16db39ef1e54fca695f4c10fd013bfca5fe3ed7982e329d8c",
+   "size": 16784
+  },
+  "rsheet0.png": {
+   "sha": "a246c27dca7a721a3babe3cec323a81528eaa0177e2b93850e6e9a41430ad66f",
+   "size": 2689213
+  },
+  "rsheet1.png": {
+   "sha": "2a869b284e20279b05960d0c27524167b3b62e91656e7cdedb840e043f030513",
+   "size": 2928269
+  },
+  "rsheet2.png": {
+   "sha": "dd530b13bc2731fd2d406ed0731b3378e05383647219d197fc4af3108ad6e62f",
+   "size": 742332
+  },
+  "rusty_rock.png": {
+   "sha": "f5250d7f9a4063cf4c79344e04064af9eda8b1bef23fbcff72a8d9e4deecfee3",
+   "size": 1187
+  },
+  "sheet0.png": {
+   "sha": "62f506d72a8eb0e47a2de8ccf6d1330521c078fe8e7f030a26a7cb82937dbea4",
+   "size": 2897134
+  },
+  "sheet1.png": {
+   "sha": "62f3917fd595fe5220d1dab55fcf8784ed39ff1993367becbca91a7f31f0cd1a",
+   "size": 716625
+  },
+  "sign_arrow.png": {
+   "sha": "b45583c1f932e4335cb3974036843ff9767df48b32fe6fe9a9c89f240b8fe5c4",
+   "size": 2049
+  },
+  "sign_arrow_left.png": {
+   "sha": "10f1a2dc74f858fe9a69e3d081fc7ea44fc8366d703d1c5cc9d2ff5c6254be9d",
+   "size": 2055
+  },
+  "sign_square.png": {
+   "sha": "5748b0768b99b30fe34e345faf48fbdfdcb4c84021a2b4cf4bc60e0c9290cc78",
+   "size": 1551
+  },
+  "stage_thumbs.png": {
+   "sha": "11395bae86d5cca4956db3e6d03691a36adb0151c93dc23889847a65cffdc887",
+   "size": 1730208
+  },
+  "yfxsheet0.png": {
+   "sha": "dd69fc0f155358e8bddb96571bc8d586241efe976cf01f1ee2b0c2a38280d1c7",
+   "size": 11718
+  },
+  "ymask0.png": {
+   "sha": "6b1f8e4757b3d28d5e8cfbc5196a332e608bb02100faab63a4599b54a44942c0",
+   "size": 69674
+  },
+  "ymask1.png": {
+   "sha": "cdd17c5af898c5e6b892002304dc45e4cfe0f3429037450a19cd9b97253abffe",
+   "size": 78660
+  },
+  "ysheet0.png": {
+   "sha": "aab2ee9ae3cfcb4699c9d0d7305e44e98b1786f6c9ebd2b514a35631cec568ba",
+   "size": 2082823
+  },
+  "ysheet1.png": {
+   "sha": "c15131ee9bd009c7fa40702c972bba5f2c1c32851bd22240617c5ab6df63bfcd",
+   "size": 2744515
+  }
+ }
+}
