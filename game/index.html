@@ -590,6 +590,7 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
+const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
 const RGRAB = { reach: 300, back: 80, high: 230 };   // Big Rusty's Gator Slam grab box (was 235 / 40 / 170)
 const ARENAS = STAGE_LIST.map(s => s[0]);   // places a wall break can send the fight (Al Namas only via Y4NK's ultimate)
 const ARENA_NAMES = Object.assign({ namas: 'AL NAMAS', pit: 'THE PIT' }, Object.fromEntries(STAGE_LIST.map(s => [s[0], s[1]])));
@@ -1572,7 +1573,7 @@ class Game {
 
   updateFighter(f, o, dt) {
     if (f.input && f.input.pressed('guard')) { if (this.time - (f.guardPressAt || -1e9) >= PARRY_COOLDOWN) f.parryAt = this.time; f.guardPressAt = this.time; }
-    f.st += dt; f.anim.step(f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
+    f.st += dt; f.anim.step(f.state === 'transform' ? dt * FERAL_TF_SPEED : f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
     this.statusUpdate(f, dt);
     if (f.ch === 'rusty') this.feralUpdate(f, dt);
     if (f.hitShake > 0) f.hitShake -= dt;
