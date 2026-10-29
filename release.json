@@ -1,6 +1,14 @@
 {
- "version": "1.2.2",
+ "version": "1.2.3",
  "notes": [
+  {
+   "v": "1.2.3",
+   "date": "2026-10-29",
+   "items": [
+    "Combos: nobody gets knocked down until the 8th hit in a row \u2014 knockdown moves now keep the combo going",
+    "Supers and ultimates still end with their own knockdown"
+   ]
+  },
   {
    "v": "1.2.2",
    "date": "2026-10-29",
@@ -161,8 +169,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "13368cf16882e8e9e4056892e26ded8bb2f95228f61df6e31ab2f9ea7e784c1b",
-   "size": 1476058
+   "sha": "95080e3baf0cc0fac961d619b1ca167fbb3d3d617b3ed5ac123d6c8a7374b91a",
+   "size": 1476301
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",

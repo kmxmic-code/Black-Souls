@@ -712,6 +712,7 @@ const KEY_DEFAULT = [
   { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
 ];
 const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4 };   // RB guards (RT too), LT super / reload
+const KD_HITS = 8;   // hits in a row before a knockdown
 const blank = () => { const s = {}; ACTIONS.forEach(b => s[b] = false); return s; };
 const newStats = () => ({ hits: 0, dmg: 0, maxCombo: 0, blocks: 0, specials: 0 });
 
@@ -1940,7 +1941,7 @@ class Game {
       if (S.tick <= 0 && hb && Math.abs(o.x - f.x) < 200 && hb[2] < 400 && S.hits < 9) {
         S.tick = 105; S.hits++;
         const was = f.move; f.move = 'rtornado';
-        this.applyHit(f, o, last ? { dmg: 46, stun: 520, push: 30, kd: true } : { dmg: 15, stun: 300, push: 4 }, (f.x + o.x) / 2, GROUND - 110, false);
+        this.applyHit(f, o, last ? { dmg: 46, stun: 520, push: 30, kd: true, ult: true } : { dmg: 15, stun: 300, push: 4, ult: true }, (f.x + o.x) / 2, GROUND - 110, false);
         f.move = was;
         if ((S.tick2 = (S.tick2 || 0) + 1) % 2) this.env.sfx('whoosh');
       }
@@ -1974,7 +1975,7 @@ class Game {
         c.hit = true;
         const was = f.move, slide = f.slide, fx = f.x; f.move = 'ycar';
         f.x = o.x - c.dir * 10;   // so the knock goes the way the car drives
-        this.applyHit(f, o, horse ? { dmg: 95, stun: 600, push: 34, kd: true, lvl: 'mid' } : { dmg: 150, stun: 700, push: 40, kd: true, lvl: 'mid', unblock: true }, o.x - c.dir * 40, GROUND - 110, false);
+        this.applyHit(f, o, horse ? { dmg: 95, stun: 600, push: 34, kd: true, ult: true, lvl: 'mid' } : { dmg: 150, stun: 700, push: 40, kd: true, ult: true, lvl: 'mid', unblock: true }, o.x - c.dir * 40, GROUND - 110, false);
         f.x = fx; f.move = was; f.slide = slide;
         if (!o.ko) o.slide = c.dir * 900;
         this.shake(14); this.flash = 60; this.dust(o.x, 14); this.env.sfx('crash');
@@ -2004,7 +2005,7 @@ class Game {
         const x0 = f.x + f.dir * 96, hb = o.hurtbox(), last = tick === 13;
         if (hb && (hb[0] + hb[1]) / 2 * f.dir > x0 * f.dir - 20 && hb[2] < 175 && hb[3] > 95) {
           const was = f.move; f.move = 'cwcannon';
-          this.applyHit(f, o, last ? { dmg: 70, stun: 700, push: 40, kd: true, lvl: 'mid' } : { dmg: 22, stun: 260, push: 4, lvl: 'mid' }, o.x - f.dir * 30, GROUND - 135, false);
+          this.applyHit(f, o, last ? { dmg: 70, stun: 700, push: 40, kd: true, ult: true, lvl: 'mid' } : { dmg: 22, stun: 260, push: 4, ult: true, lvl: 'mid' }, o.x - f.dir * 30, GROUND - 135, false);
           f.move = was; this.hitstop = Math.min(this.hitstop, last ? 160 : 30);
           if (!last && !o.ko && o.state === 'hit') o.slide = f.dir * 140;
         }
@@ -2257,14 +2258,15 @@ class Game {
     if (counter) { this.texts.push({ text: 'COUNTER', x: o.x, y: GROUND - 270, t: 0, life: 800, color: 'red' }); this.env.sfx('counter'); }
     o.move = null; o.special = null; o.hidden = false; o.dir = -away;
     const finalClone = isClone && att.finisher && att.move === 'hp' && h === MOVES.hp.hits[1];
-    const knock = ko || h.kd || finalClone;
+    // knockdowns only end a combo: the 8th hit in a row (or a K.O.) knocks down; supers keep their own finisher
+    const knock = ko || finalClone || (h.ult ? !!h.kd : o.combo >= KD_HITS);
     if (h.wall) {
       o.setState('wallfly'); o.vx = away * 1700; o.h = 0; o.vy = 0; o.lastFall = 'ko'; o.dir = -away;
       this.wallSeq = { owner, victim: o, t: 0 };
       this.texts.push({ text: owner.ch === 'rusty' ? 'TAIL WHIP!' : 'COUNTER!', x: o.x, y: GROUND - 350, t: 0, life: 800, color: 'red' });
     } else if (!o.grounded || o.state === 'airkick') {
       o.juggle++;
-      if (knock || heavy || o.juggle >= 3) {
+      if (knock) {
         const y = o.ch === 'y4nk';
         if (y && !ko) { o.setState('hita', 'hita'); o.vx = away * 220; o.vy = Math.max(o.vy, 260); }
         else { o.lift0 = Math.max(0, o.h - (y ? 0 : 71)); o.h = 0; o.lastFall = 'koair'; o._kfi = -1; o.setState('koair', y ? 'koairko' : 'koair'); o.drawH = o.lift0; }
