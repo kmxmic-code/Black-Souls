@@ -1,6 +1,13 @@
 {
- "version": "1.6.0",
+ "version": "1.6.1",
  "notes": [
+  {
+   "v": "1.6.1",
+   "date": "2026-10-29",
+   "items": [
+    "Remade the pickup truck: clean outline, solid tyres and chassis, wheels that actually roll, and a body that bounces on its suspension"
+   ]
+  },
   {
    "v": "1.6.0",
    "date": "2026-10-29",
@@ -246,8 +253,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "89a13e14fe5691bf8ef1b69061ce282d65a67c58bf6dbadc6a208f4c9e505c3b",
-   "size": 1537389
+   "sha": "154951a863ab8ea2b04c9ebdf1044f2cf77b75b9b72682c65b969b5bb19e514a",
+   "size": 1538650
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
@@ -258,8 +265,12 @@
    "size": 5144057
   },
   "pickup.png": {
-   "sha": "45a127320adde46881d320e6b9161fb1b2cc1f7df32f2b7f8efdb9eabd22c451",
-   "size": 18302
+   "sha": "35d05041ff1fd57c2953c1cae7a5e3dec691fc25a89e1b543ffe0eef43036f77",
+   "size": 18694
+  },
+  "pickup_wheel.png": {
+   "sha": "bd364055c4f2a8fdb5b2ac6b6082b606a64c944dfd6c04407f9fe78ba0860f80",
+   "size": 2047
   },
   "pit.jpg": {
    "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",

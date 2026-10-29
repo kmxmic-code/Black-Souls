@@ -724,7 +724,7 @@ const PARRY_COOLDOWN = 450;   // pressing guard again sooner than this does not 
 const FFA_PLATFORMS = [{ x1: 330, x2: 690, top: 175 }, { x1: 1310, x2: 1670, top: 175 }, { x1: 800, x2: 1200, top: 320 }];
 const FFA_MAX_SEP = 1180;
 // the pickup truck that gives the left-behind fighter a ride to Al Namas (art faces left, drawn at 3x)
-const TRUCK = { sc: 3, w: 215, h: 86, bed: 205, bedH: 165 };   // hits in a row before a knockdown
+const TRUCK = { sc: 3, w: 217, h: 88, bed: 205, bedH: 138, wheels: [[35, 68], [164.5, 67.5]], wr: 19 };   // hits in a row before a knockdown
 const blank = () => { const s = {}; ACTIONS.forEach(b => s[b] = false); return s; };
 const newStats = () => ({ hits: 0, dmg: 0, maxCombo: 0, blocks: 0, specials: 0 });
 
@@ -12463,7 +12463,7 @@ class View {
       ctx.fillStyle = `rgba(214,178,120,${0.6 * (1 - age)})`; ctx.fillRect(Math.round(x / 4) * 4 - sz / 2, Math.round(y / 4) * 4 - sz, sz, sz);
     }
     const RX = T.left ? 930 : 560;   // with the truck chasing, the runner sits further ahead so the whole truck fits behind him
-    if (T.left) { const k = Math.min(1, t / 4400), e = 1 - Math.pow(1 - k, 2), gap = 1750 - 1230 * e; this.drawTruck(ctx, { rider: T.left, moving: true, dir: 1 }, this.g.time, RX - gap, 1); }
+    if (T.left) { const k = Math.min(1, t / 4400), e = 1 - Math.pow(1 - k, 2), gap = 1750 - 1230 * e; this.deserTruck = this.deserTruck && this.deserTruck.rider === T.left ? this.deserTruck : { rider: T.left, moving: true, dir: 1, spin: 18 }; this.drawTruck(ctx, this.deserTruck, this.g.time, RX - gap, 1); }
     const f = T.owner; this.shadow(ctx, RX, 0);
     this.drawCarry(ctx, f, RX, 1);
     const fg = E.road; const off = Math.round(camX * 1.3) % (fg.width * PX - VW);
@@ -12941,14 +12941,27 @@ class View {
   }
   // the pickup truck: rider in the bed first (the bed sides hide his legs), then the truck, with a little road shake
   drawTruck(ctx, tk, t, X, dirOverride) {
-    const img = this.env.extra.pickup; if (!img) return;
-    const d = dirOverride || tk.dir, sc = TRUCK.sc, w = TRUCK.w * sc, h = TRUCK.h * sc, jig = tk.moving ? ((Math.floor(t / 70) % 2) ? -3 : 0) : 0;
+    const img = this.env.extra.pickup, wimg = this.env.extra.pickupWheel; if (!img) return;
+    const d = dirOverride || tk.dir, sc = TRUCK.sc, w = TRUCK.w * sc, h = TRUCK.h * sc;
+    // the body rides on its suspension: a soft bob while driving, a dip when it brakes to a stop
+    const bob = tk.moving ? Math.round((Math.sin(t / 55) * 1.6 + Math.sin(t / 23) * 0.8)) * 3 : 0;
+    if (tk.moving !== tk._wasMoving) { if (tk._wasMoving && !tk.moving) tk._dipT = t; tk._wasMoving = tk.moving; }
+    const dip = tk._dipT != null && t - tk._dipT < 360 ? Math.round(Math.sin((t - tk._dipT) / 360 * Math.PI) * 2) * 3 : 0, jig = bob + dip;
     const r = tk.rider;
-    if (r && r.inTruck) { const [n, i] = r.frameName(); this.drawSprite(ctx, r.pal, n, i, X - d * TRUCK.bed, TRUCK.bedH + jig, d, {}); }
+    if (r && r.inTruck) { const [n, i] = r.frameName(); this.drawSprite(ctx, r.pal, n, i, X - d * TRUCK.bed, TRUCK.bedH - jig, d, {}); }
     ctx.fillStyle = 'rgba(8,5,16,0.4)'; ctx.fillRect(Math.round(X - w / 2 + 30), GROUND - 6, Math.round(w - 60), 10);
     ctx.save(); ctx.imageSmoothingEnabled = false;
-    ctx.translate(Math.round(X), GROUND + 3 + jig); if (d > 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, Math.round(-w / 2), -h, w, h);
+    ctx.translate(Math.round(X), GROUND + 3); if (d > 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, Math.round(-w / 2), -h + jig, w, h);
+    // wheels stay on the road and roll with the distance travelled
+    if (wimg) {
+      if (tk._lx == null) tk._lx = X; tk._roll = (tk._roll || 0) + (tk.moving ? Math.max(Math.abs(X - tk._lx), tk.spin || 0) : 0); tk._lx = X;
+      const ang = -(tk._roll / (TRUCK.wr * sc)), ws = wimg.width * sc;
+      for (const [wx, wy] of TRUCK.wheels) {
+        ctx.save(); ctx.translate(Math.round((wx - TRUCK.w / 2) * sc), Math.round((wy - TRUCK.h) * sc)); ctx.rotate(Math.round(ang / (Math.PI / 8)) * (Math.PI / 8));
+        ctx.drawImage(wimg, Math.round(-ws / 2), Math.round(-ws / 2), ws, ws); ctx.restore();
+      }
+    }
     ctx.restore();
     if (tk.moving) for (let k = 0; k < 4; k++) { const ph = ((t / 300) + k * 0.25) % 1; ctx.fillStyle = `rgba(214,178,120,${0.45 * (1 - ph)})`; const px = X - d * (w / 2 - 10 + ph * 120), sz = 8 + ph * 16; ctx.fillRect(Math.round(px - sz / 2), Math.round(GROUND - 8 - ph * 20 - sz / 2), Math.round(sz), Math.round(sz)); }
   }
@@ -15913,7 +15926,7 @@ onmessage = e => { const m = e.data; try {
   let game = null, view = null, net = null;
   const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const fonts = document.fonts ? Promise.all(['40px "BS Blade"', '20px "BS Edge"'].map(f => document.fonts.load(f))).catch(() => {}) : Promise.resolve();
-  const EXTRA = { town: 'alnamas.jpg', sky: 'desert_sky.png', mts: 'desert_mts.png', mesa: 'desert_mesa.png', dune: 'desert_dune.png', road: 'desert_road.png', signArrow: 'sign_arrow.png', signArrowLeft: 'sign_arrow_left.png', rockSpin: 'rock_spin_strip.png', kunai: 'kunai2.png', rustyRock: 'rusty_rock.png', censor: 'censor.png', pit: 'pit.jpg', car: 'car.png', carWheels: 'car_wheels.png', rockShatter: 'rock_shatter_strip.png', signSquare: 'sign_square.png', chamber: 'chamber.png', chamberInner: 'chamber_inner.png', chamberRound: 'chamber_round.png', elem_fire: 'elem_fire.png', elem_water: 'elem_water.png', elem_air: 'elem_air.png', elem_earth: 'elem_earth.png', stageThumbs: 'stage_thumbs.png', pickup: 'pickup.png' };
+  const EXTRA = { town: 'alnamas.jpg', sky: 'desert_sky.png', mts: 'desert_mts.png', mesa: 'desert_mesa.png', dune: 'desert_dune.png', road: 'desert_road.png', signArrow: 'sign_arrow.png', signArrowLeft: 'sign_arrow_left.png', rockSpin: 'rock_spin_strip.png', kunai: 'kunai2.png', rustyRock: 'rusty_rock.png', censor: 'censor.png', pit: 'pit.jpg', car: 'car.png', carWheels: 'car_wheels.png', rockShatter: 'rock_shatter_strip.png', signSquare: 'sign_square.png', chamber: 'chamber.png', chamberInner: 'chamber_inner.png', chamberRound: 'chamber_round.png', elem_fire: 'elem_fire.png', elem_water: 'elem_water.png', elem_air: 'elem_air.png', elem_earth: 'elem_earth.png', stageThumbs: 'stage_thumbs.png', pickup: 'pickup.png', pickupWheel: 'pickup_wheel.png' };
   const extra = {};
   const bleepSrc = new Audio('bleep.mp3'); bleepSrc.preload = 'auto';
   // stage songs: Al Namas and the underground pit
@@ -15925,7 +15938,7 @@ onmessage = e => { const m = e.data; try {
   window.addEventListener('pointerdown', kick); window.addEventListener('keydown', kick);
   let songOn = false, songDuck = false;
   const masks = {};
-  Promise.all(MANIFEST.sheets.map(load).concat(Object.entries(EXTRA).map(([k, src]) => load(src).then(i => { extra[k] = i; }, err => { if (k !== 'stageThumbs' && k !== 'pickup') throw err; })),
+  Promise.all(MANIFEST.sheets.map(load).concat(Object.entries(EXTRA).map(([k, src]) => load(src).then(i => { extra[k] = i; }, err => { if (k !== 'stageThumbs' && k !== 'pickup' && k !== 'pickupWheel') throw err; })),
     Object.entries(MANIFEST.masks || {}).map(([k, src]) => load(src).then(i => { masks[k] = i; })))).then(async all => {
     const imgs = all.slice(0, MANIFEST.sheets.length); sheetImgs = imgs; if (!skinW) warmIndexes(); else setTimeout(() => warmSkinWorker(imgs), 1500);
     await fonts;
