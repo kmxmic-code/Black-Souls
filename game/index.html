@@ -594,6 +594,8 @@ const BLITZY_TOUGH = 0.85;   // Blitzy's (the gunslinger, id 'cowboy') health bu
 const DODGE_SPEED = 1.5;   // the dodge animation plays this much faster, and the whole of it is untouchable
 const RUSTY_DMG = 0.75;   // Big Rusty's nerf: everything he does deals 25% less
 const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
+const WALL_NEAR = 150;   // a heavy hit this close to a side wall slams the fighter into it
+const WALL_SLAMS = [3, 5];   // slams a wall takes before it breaks (each wall rolls its own number in this range)
 const RGRAB = { reach: 300, back: 80, high: 230 };   // Big Rusty's Gator Slam grab box (was 235 / 40 / 170)
 const ARENAS = STAGE_LIST.map(s => s[0]);   // places a wall break can send the fight (Al Namas only via Y4NK's ultimate)
 const ARENA_NAMES = Object.assign({ namas: 'AL NAMAS', pit: 'THE PIT' }, Object.fromEntries(STAGE_LIST.map(s => [s[0], s[1]])));
@@ -1091,7 +1093,7 @@ class Game {
     this.platforms = this.ffa ? FFA_PLATFORMS : null; this.p.forEach(f => { f.plat = 0; f.noLand = 0; f.dropT = 0; });
     if (this.ffa) { this.p[0].reset(STAGE_W / 2 - 360, 1); this.p[1].reset(STAGE_W / 2 + 360, -1); this.p[2].reset(STAGE_W / 2, 1); this.p.forEach(f => { f.target = null; f.lastHitBy = null; }); }
     else { this.p[0].reset(STAGE_W / 2 - 230, 1); this.p[1].reset(STAGE_W / 2 + 230, -1); }
-    this.clones = []; this.fx = []; this.parts = []; this.texts = []; this.koFx = null; this.superFlash = null; this.hitstop = 0; this.trip = null; this.rocks = []; this.cars = []; this.wallSeq = null; this.mapBreak = null; this.walls = [null, null];
+    this.clones = []; this.fx = []; this.parts = []; this.texts = []; this.koFx = null; this.superFlash = null; this.hitstop = 0; this.trip = null; this.rocks = []; this.cars = []; this.wallSeq = null; this.mapBreak = null;
     this.cam.x = (STAGE_W - VW) / 2; this.cam.zoom = this.cam.zoomTo = 1;
     this.timer = this.mode === 'training' || !this.settings.timer ? Infinity : this.settings.timer;
     this.pt = 0; this.ai.forEach((a, i) => a.reset(this.aiLevel[i]));
@@ -1555,7 +1557,7 @@ class Game {
     this.texts = this.texts.filter(e => (e.t += dt) < e.life);
     this.stepParticles(dt);
     if (this.koFx) this.koFx.t += dt;
-    (this.walls || []).forEach((w, i) => { if (w && (w.t += dt) > 9000) this.walls[i] = null; });
+    (this.walls || []).forEach(w => { if (w) w.t += dt; });   // cracks stay until the wall breaks or the match ends
     if (this.wallSeq && (this.wallSeq.t += dt) > 6000) this.wallSeq = null;
   }
   endCombo(f) {
@@ -2282,15 +2284,40 @@ class Game {
     this.texts.push({ text: 'PARRY!', x: o.x, y: GROUND - 270, t: 0, life: 700, color: 'violet' });
     this.startMove(o, 'ycounter');
   }
+  // ---------- side walls: heavy hits near a wall slam the fighter into it; every slam grows the crack, and after
+  // 3 to 5 slams (each wall rolls its own number) the wall gives way and the fight crashes through into another map
+  crackWall(side, n = 1) {
+    const W = this.walls[side] || (this.walls[side] = { t: 0, y: GROUND - 120 - Math.floor(rnd() * 50), lvl: 0, need: WALL_SLAMS[0] + Math.floor(rnd() * (WALL_SLAMS[1] - WALL_SLAMS[0] + 1)) });
+    W.lvl = Math.min(W.need, W.lvl + n); W.t = 0;
+    return W.lvl >= W.need;
+  }
+  canBreakWall(f) { return !f.ko && !this.ffa && this.stage !== 'pit' && this.phase === 'fight'; }
+  breakWall(f, side) {
+    this.mapBreak = { t: 0, victim: f, side, switched: false }; this.env.sfx('smoke'); this.env.sfx('koHit');
+    const wx = side ? STAGE_W - 70 : 70, dir = side ? -1 : 1;
+    for (let k = 0; k < 5; k++) this.burst(wx, GROUND - 40 - k * 50, dir, 'heavy');
+    this.texts.push({ text: 'WALL BREAK!', x: clamp(f.x, 260, STAGE_W - 260), y: GROUND - 330, t: 0, life: 1000, color: 'red' });
+  }
+  wallSlam(o, side, knocked) {
+    const wx = side ? STAGE_W - 70 : 70, dir = side ? -1 : 1;
+    o.x = side ? STAGE_W - EDGE : EDGE; o.flyTo = null;
+    const broke = this.crackWall(side), W = this.walls[side];
+    this.shake(14 + W.lvl * 3); this.flash = 60; this.hitstop = Math.max(this.hitstop, 160); this.env.sfx('slam'); this.env.rumble(o.id, 1, 0.9, 300);
+    this.burst(wx, W.y, dir, 'heavy'); this.dust(wx + dir * 30, 6 + W.lvl * 2);
+    this.texts.push({ text: broke ? 'WALL CRACKING!' : 'WALL SLAM!', x: clamp(o.x, 260, STAGE_W - 260), y: GROUND - 300, t: 0, life: 800, color: broke ? 'red' : 'amber', small: !broke });
+    if (broke && this.canBreakWall(o)) { this.breakWall(o, side); return; }
+    if (knocked || o.ko) { if (!['knock', 'down', 'koair'].includes(o.state)) this.fallDown(o, o.ko); o.slide = dir * 200; }
+    else o.slide = dir * 180;   // bounce back off the wall, still in hit stun
+  }
   wallCrash(f) {
     const side = f.x < STAGE_W / 2 ? 0 : 1, wx = side ? STAGE_W - 70 : 70, dir = side ? -1 : 1;
-    this.walls[side] = { t: 0, y: GROUND - 130 };
+    const broke = this.crackWall(side, 2);   // a full-speed wall crash (tail whip, counter) cracks it twice as hard
     this.shake(24); this.flash = 160; this.hitstop = 240; this.env.sfx('koHit'); this.env.sfx('slam');
     this.env.rumble(f.id, 1, 1, 450); if (this.wallSeq) this.env.rumble(this.wallSeq.owner.id, 0.4, 0.5, 200);
     this.burst(wx, GROUND - 130, dir, 'heavy'); this.burst(wx, GROUND - 60, dir, 'heavy'); this.dust(wx + dir * 30, 10);
     this.texts.push({ text: 'WALL CRASH!', x: clamp(f.x, 260, STAGE_W - 260), y: GROUND - 300, t: 0, life: 1000, color: 'red' });
     f.vx = 0;
-    if (rnd() < 0.25 && !f.ko && !this.ffa && this.stage !== 'pit') { this.mapBreak = { t: 0, victim: f, side, switched: false }; this.env.sfx('smoke'); return; }
+    if (broke && this.canBreakWall(f)) { this.breakWall(f, side); return; }
     this.fallDown(f, f.ko); f.slide = dir * 260;
   }
   updateMapBreak(dt) {
@@ -2329,18 +2356,29 @@ class Game {
     const next = sc => { T.scene = sc; T.st = 0; };
     switch (T.scene) {
       case 'stage':
-        f.x += T.dir * 560 * s; f.drawH = 0;
+        f.x += T.dir * (T.home ? 560 : 680) * s; f.drawH = 0;
         if (T.home) f.x = clamp(f.x, EDGE + 130, STAGE_W - EDGE - 130);   // at home the wall stops the run
+        else if (T.dir > 0 ? f.x >= STAGE_W - EDGE : f.x <= EDGE) {   // away from home: he runs them straight through the side wall
+          f.x = T.dir > 0 ? STAGE_W - EDGE : EDGE; const side = T.dir > 0 ? 1 : 0, wx = side ? STAGE_W - 70 : 70;
+          this.crackWall(side, 9);
+          this.shake(30); this.flash = 200; this.env.sfx('koHit'); this.env.sfx('slam'); this.env.rumble(f.id, 1, 1, 500); this.env.rumble(o.id, 1, 1, 600);
+          for (let k = 0; k < 6; k++) this.burst(wx, GROUND - 30 - k * 55, -T.dir, 'heavy');
+          this.dust(wx - T.dir * 20, 18);
+          this.texts.push({ text: 'WALL BREAK!', x: clamp(f.x, 300, STAGE_W - 300), y: GROUND - 330, t: 0, life: 900, color: 'red' });
+          this.env.say('Wall break!');
+          return next('crash');
+        }
         if ((T.dustT += dt) > 90) { T.dustT = 0; this.dust(f.x - T.dir * 40, 2); }
         if (T.home && (T.st > 800 || f.x <= EDGE + 130 || f.x >= STAGE_W - EDGE - 130)) return this.dropVictim(f, o);
-        if (!T.home && (T.st > 2400 || f.x - this.cam.x < -200 || f.x - this.cam.x > VW + 200)) next('wipe1');
+        if (!T.home && T.st > 6000) next('wipe1');   // safety: never runs forever
         break;
+      case 'crash': f.anim.fi = Math.min(f.anim.fi, f.anim.durs.length - 1); if (T.st > 420) next('wipe1'); break;   // a beat on the impact before the road
       case 'wipe1': if (T.st > 340) next('desert'); break;
       case 'desert': if (T.st > 4400) next('wipe2'); break;
       case 'wipe2':
         if (T.st > 170 && this.stage !== 'namas') {
           this.stage = 'namas'; this.env.music('namas');
-          this.cam.x = (STAGE_W - VW) / 2; this.parts = []; this.fx = [];
+          this.cam.x = (STAGE_W - VW) / 2; this.parts = []; this.fx = []; this.walls = [null, null];
           // he arrives running the same way he left: from the left edge going right, or from the right going left
           f.dir = T.dir; f.x = T.dir > 0 ? this.cam.x - 160 : this.cam.x + VW + 160; T.target = STAGE_W / 2 - 40 * T.dir;
         }
@@ -2479,6 +2517,11 @@ class Game {
       this.shake(14); this.flash = 40; this.dust(o.x, 12); this.env.sfx('slam'); this.env.rumble(o.id, 1, 0.8, 300);
       this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 280, t: 0, life: 800, color: 'red' });
     }
+    // heavy hit with the wall right behind them: slammed into it
+    if (heavy && !h.wall && !h.slam && o.state !== 'wallfly' && !this.mapBreak && o.grounded) {
+      const side = away > 0 ? 1 : 0;
+      if (side ? o.x >= STAGE_W - EDGE - WALL_NEAR : o.x <= EDGE + WALL_NEAR) this.wallSlam(o, side, knock);
+    }
     if (ko && !o.ko) { o.ko = true; const last = !this.ffa || this.p.filter(q => q.hp > 0).length <= 1; if (last) { this.koFx = { t: 0, loser: o }; this.cam.zoomTo = 1.14; this.cam.fx = o.x; } else { this.texts.push({ text: `${this.ffaTag(o)} OUT!`, x: o.x, y: GROUND - 300, t: 0, life: 1400, color: 'red' }); this.env.say('K O'); } }
     if (!isClone && (o.x <= EDGE + 4 || o.x >= STAGE_W - EDGE - 4 || this.atScreenEdge(o))) att.slide = -away * (h.push || 10) * 14;
   }
@@ -2555,7 +2598,7 @@ class Game {
   shake(m) { if (this.settings.shake) this.cam.shake = Math.max(this.cam.shake, m); }
   updateCamera(dt) {
     const c = this.cam;
-    if (['intro', 'fight', 'roundEnd', 'matchEnd', 'results', 'pause'].includes(this.phase) && !(this.trip && this.trip.scene !== 'stage')) {
+    if (['intro', 'fight', 'roundEnd', 'matchEnd', 'results', 'pause'].includes(this.phase) && !(this.trip && this.trip.scene !== 'stage' && this.trip.scene !== 'crash')) {
       const vis = this.p.filter(f => !f.hidden && !(this.ffa && f.ko && this.phase === 'fight'));
       const pts = vis.length ? vis.map(f => f.x) : this.p.map(f => f.x);
       this.clones.forEach(cl => pts.push(cl.x));
@@ -12571,8 +12614,6 @@ class View {
       px(0, 10, W, 2, '#141022');
       let yb = H - 40;
       for (let row = 0; yb < H; row++, yb += 8) for (let x = -(row % 2) * 6; x < W; x += 12) { px(x, yb, 11, 7, '#4f4560'); px(x, yb, 11, 1, '#6a5f7c'); px(x, yb + 6, 11, 1, '#2f2840'); }
-      // talisman
-      px(14, 40, 8, 22, '#e9dcc0'); px(14, 40, 8, 1, '#c9b894'); for (let k = 0; k < 5; k++) px(16, 44 + k * 3, 4, 1, '#b4322e'); px(17, 62, 2, 4, '#e9dcc0');
       // lantern
       px(17, 76, 2, 6, '#141022'); px(12, 82, 12, 16, '#b4322e'); px(12, 82, 12, 2, '#e2533f'); px(11, 82, 14, 1, '#2a1d2a'); px(11, 97, 14, 1, '#2a1d2a');
       px(15, 85, 6, 10, '#ff7a52'); px(17, 98, 2, 4, '#f2b33d');
@@ -12594,18 +12635,38 @@ class View {
       else ctx.drawImage(art, 0, 0, art.width, art.height, x0, 0, W, art.height * PX);
       ctx.restore();
       const wl = g.walls && g.walls[side];
-      if (wl) {
-        const a = Math.max(0, 1 - Math.max(0, wl.t - 6000) / 3000), face = side ? x0 : x0 + W, d = side ? 1 : -1;
-        ctx.globalAlpha = a; ctx.fillStyle = crack;
-        let seed = 11; const rr = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-        for (let k = 0; k < 9; k++) {
-          let px = face, py = wl.y; const ang = -Math.PI / 2 + (k / 8) * Math.PI, len = 60 + rr() * 90;
-          for (let s = 0; s < len; s += 4) { px += d * Math.abs(Math.cos(ang)) * 4 + (rr() - 0.5) * 3; py += Math.sin(ang) * 4 + (rr() - 0.5) * 3; ctx.fillRect(Math.round(px / 4) * 4, Math.round(py / 4) * 4, 4, 4); }
+      if (wl && wl.lvl) this.drawCrack(ctx, wl, side ? x0 : x0 + W, side ? 1 : -1, crack, side);
+    }
+  }
+  // the crack grows with every slam: a few hairlines at first, then long forking cracks, missing chunks, and a gaping hole
+  drawCrack(ctx, wl, face, d, crack, side) {
+    const k = Math.min(1, wl.lvl / (wl.need || 3)), Q = v => Math.round(v / 4) * 4;
+    let seed = 11 + side * 7; const rr = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    ctx.fillStyle = crack;
+    const n = 3 + Math.round(k * 9), reach = 34 + k * 190;
+    for (let b = 0; b < n; b++) {
+      let px = face, py = wl.y; const ang = -Math.PI / 2 + ((b + 0.5) / n) * Math.PI + (rr() - 0.5) * 0.3, len = reach * (0.55 + rr() * 0.45);
+      for (let s2 = 0; s2 < len; s2 += 4) {
+        px += d * Math.abs(Math.cos(ang)) * 4 * 0.6 + (rr() - 0.5) * 3; py += Math.sin(ang) * 4 + (rr() - 0.5) * 3;
+        const w = s2 < len * 0.35 && k > 0.5 ? 8 : 4;
+        ctx.fillRect(Q(px), Q(py), w, 4);
+        if (k > 0.4 && rr() < 0.05) {   // forks
+          let fx = px, fy = py; const fa = ang + (rr() < 0.5 ? -0.7 : 0.7);
+          for (let q = 0; q < len * 0.35; q += 4) { fx += d * Math.abs(Math.cos(fa)) * 2.4; fy += Math.sin(fa) * 4; ctx.fillRect(Q(fx), Q(fy), 4, 4); }
         }
-        ctx.fillRect(face + (side ? 0 : -16), wl.y - 20, 16, 40);
-        ctx.globalAlpha = 1;
       }
     }
+    // the impact crater: deeper and wider each slam, a hole you can see through at the last one
+    const cw = Q(12 + k * 34), ch = Q(28 + k * 90);
+    ctx.fillRect(d > 0 ? face : face - cw, Q(wl.y - ch / 2), cw, ch);
+    if (k >= 0.6) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(d > 0 ? face : face - Q(cw * 0.6), Q(wl.y - ch / 3), Q(cw * 0.6), Q(ch * 0.66)); }
+    if (k >= 1) {   // about to give: light leaks through the hole and it trembles
+      const j = Math.sin(this.g.time / 40) > 0 ? 4 : 0;
+      ctx.fillStyle = 'rgba(255,214,140,0.35)'; ctx.fillRect((d > 0 ? face : face - 12) + j, Q(wl.y - ch / 4), 12, Q(ch / 2));
+    }
+    // loose chips of wall lying at the foot of it
+    ctx.fillStyle = crack;
+    for (let q = 0; q < Math.round(k * 10); q++) ctx.fillRect(Q(face + d * (8 + rr() * 60)), GROUND - 4 - Q(rr() * 8), 8, 4);
   }
   drawWipe(ctx, p) {
     let seed = 3; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -13106,7 +13167,7 @@ class View {
       ctx.save(); ctx.translate(X, Yc); ctx.rotate(ang);
       ctx.drawImage(sp, 0, 0, RW, RW, -RW / 2, -RW / 2, RW, RW); ctx.restore();
     }
-    // arena walls stay in play but are not drawn
+    this.drawWalls(ctx, camX);   // side walls at both ends of every map, cracking as people are slammed into them
     this.drawCars(ctx, t);
     for (const e of g.fx) this.drawFx(ctx, e);
     (g.netEmo || []).forEach((em, i) => {
@@ -15144,7 +15205,7 @@ class Net {
     const S = {
       n: ++this.frameNo, ph: g.phase, pt: R(g.pt), tm: g.timer === Infinity ? -1 : Math.round(g.timer * 10) / 10, rd: g.round, st: g.stage,
       bn: g.banner ? g.banner.text : 0, wc: g.welcome ? R(g.welcome.t) : -1,
-      wl: (g.walls || [null, null]).map(w => (w ? [R(w.t), R(w.y)] : 0)),
+      wl: (g.walls || [null, null]).map(w => (w ? [R(w.t), R(w.y), w.lvl || 1, w.need || 3] : 0)),
       tr: g.trip ? [g.trip.scene, R(g.trip.st || 0), g.trip.dir, g.trip.owner.id, g.trip.victim ? g.trip.victim.id : 1 - g.trip.owner.id] : 0,
       bo: Math.round((g.blackout || 0) * 100), nb: g.namasBoost == null ? -1 : g.namasBoost, gb: g.groundBreak ? [R(g.groundBreak.x), R(g.groundBreak.t)] : 0, mb: g.mapBreak ? R(g.mapBreak.t) : -1, sf: g.superFlash ? [R(g.superFlash.t), g.superFlash.owner.id] : 0,
       kf: g.koFx ? [R(g.koFx.t), g.koFx.loser.id] : 0, fl: R(Math.max(0, g.flash)),
@@ -15238,7 +15299,7 @@ class Net {
     g.phase = S.ph; g.pt = S.pt; g.timer = S.tm < 0 ? Infinity : S.tm; g.round = S.rd; if (ARENAS.includes(S.st) || ARENA_NAMES[S.st]) g.stage = S.st;   // a map this version doesn't have keeps the current one
     if (S.bn) { if (!g.banner || g.banner.text !== S.bn) g.banner = { text: S.bn, t: 0 }; } else g.banner = null;
     g.welcome = S.wc >= 0 ? { t: S.wc } : null;
-    g.walls = S.wl.map(w => (w ? { t: w[0], y: w[1] } : null));
+    g.walls = S.wl.map(w => (w ? { t: w[0], y: w[1], lvl: w[2] || 1, need: w[3] || 3 } : null));
     g.flash = S.fl; g.blackout = (S.bo || 0) / 100; g.namasBoost = S.nb == null ? -1 : S.nb; g.groundBreak = S.gb ? { x: S.gb[0], t: S.gb[1] } : null; g.mapBreak = S.mb >= 0 ? { t: S.mb } : null;
     g.superFlash = S.sf ? { t: S.sf[0], owner: g.p[S.sf[1]] } : null;
     g.koFx = S.kf ? { t: S.kf[0], loser: g.p[S.kf[1]] } : null;
