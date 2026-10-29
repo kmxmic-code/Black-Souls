@@ -130,6 +130,9 @@
   .on-frow.off b { color: var(--muted); } .on-frow button { padding: 4px 9px; font-size: 11px; }
   .on-frow.inv { border-color: var(--amber); } .on-frow.inv b { color: var(--amber); }
   .on-fdot { width: 8px; height: 8px; background: var(--line); flex: none; } .on-fdot.on { background: #63d27a; box-shadow: 0 0 6px #63d27a; }
+  #pausebtn { position: absolute; left: 50%; top: 16.6%; transform: translateX(-50%); z-index: 6; width: 4.2%; min-width: 30px; aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 0; border: 2px solid rgba(255,240,184,.35); background: rgba(10,7,18,.55); color: #fff0b8; font: 400 clamp(10px, 1.3vw, 18px)/1 var(--f-label); cursor: pointer; opacity: .7; transition: opacity .15s, border-color .15s; }
+  #pausebtn:hover, #pausebtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
+  #pausebtn[hidden] { display: none; }
   .on-p2p { display: grid; gap: 8px; }
   .on-p2p textarea { width: 100%; height: 64px; resize: none; font: 400 11px/1.35 ui-monospace, Consolas, monospace; word-break: break-all; background: var(--ink); color: var(--paper); border: 2px solid var(--line); padding: 6px; }
   .on-p2p textarea:focus { outline: 2px solid var(--amber); }
@@ -172,7 +175,7 @@
     </div>
   </header>
 
-  <div id="stage">
+  <div id="stage"><button type="button" id="pausebtn" aria-label="Pause" title="Pause (Start / Esc)" hidden>❚❚</button>
     <canvas id="screen" width="1280" height="720" aria-label="Fight screen"></canvas>
     <div id="toast" hidden></div>
     <div id="touch" aria-hidden="true">
@@ -1084,6 +1087,19 @@ class Game {
     if (this.capture) { this.capture = null; return; }
     if (this.stack.length > 1) { this.stack.pop(); this.env.sfx('back'); return; }
     if (top.id === 'pause') this.resume();
+    if (top.id === 'netpause') this.closeNetPause();
+  }
+  // online menu: the fight keeps running (nobody can freeze the other player); your fighter stands still while it is open
+  openNetPause() { this.netPause = { stack: [{ id: 'netpause', sel: 0 }] }; this.env.sfx('pause'); }
+  closeNetPause() { if (!this.netPause) return; this.netPause = null; this.env.sfx('back'); }
+  netPauseStep() {
+    const saved = this.stack; this.stack = this.netPause.stack;
+    try { this.updateMenu({ keys: [], pads: [] }); } finally { if (this.netPause) this.netPause.stack = this.stack; this.stack = saved; }
+  }
+  // the pause button / Start: a real pause offline, the online menu in online matches
+  requestPause() {
+    if (this.online) { if (['intro', 'fight', 'roundEnd', 'matchEnd'].includes(this.phase) && !this.netPause) this.openNetPause(); return; }
+    if (['intro', 'fight', 'roundEnd'].includes(this.phase)) this.pause();
   }
   resume() { this.phase = this.pausedFrom || 'fight'; this.env.musicDuck(false); this.env.sfx('back'); }
   pause() { if (this.online) return; this.pausedFrom = this.phase; this.phase = 'pause'; this.stack = [{ id: 'pause', sel: 0 }]; this.env.musicDuck(true); this.env.sfx('pause'); }
@@ -1126,6 +1142,11 @@ class Game {
         return { title: `PLAYER ${pi + 1} BUTTONS`, remap: pi, items: REMAP.map(a => ({ label: ACTION_NAMES[a], val: () => `${padName(g.controls[pi].pad[a])}  ·  ${keyName(g.controls[pi].key[a])}`,
           act: () => { g.capture = { pi, action: a, t: 0 }; g.env.sfx('confirm'); } })).concat([{ label: 'BACK', act: () => g.menuBack() }]) };
       }
+      case 'netpause': return { title: 'MENU', items: [
+        { label: 'RESUME', hint: 'Online matches keep running while this menu is open', act: () => g.closeNetPause() },
+        { label: 'BUTTON GUIDE', act: () => g.openMenu('guide') },
+        { label: 'MOVE LIST', act: () => g.openMenu('movelist') },
+        { label: 'LEAVE MATCH', act: () => { g.netPause = null; setTimeout(() => g.env.online && g.env.online.endGame('You left the match.'), 0); } }] };
       case 'pause': return { title: 'PAUSED', items: [
         { label: 'RESUME', act: () => g.resume() },
         ...(g.mode === 'training' ? [{ label: 'TRAINING SETTINGS', act: () => g.openMenu('training') }] : []),
@@ -1159,14 +1180,14 @@ class Game {
     this.phase = 'ending'; this.pt = 0; this.env.music('victory'); this.env.say('Congratulations');
   }
 
-  updateNav(dt) {
-    const ev = { u: false, d: false, l: false, r: false };
+  updateNav(dt, only) {
+    const ev = { u: false, d: false, l: false, r: false }, M = only === 0 ? [this.mi[0], this.mi[0]] : this.mi;
     for (const k of ['u', 'd', 'l', 'r']) {
-      const held = this.mi[0].held(k) || this.mi[1].held(k), pressed = this.mi[0].pressed(k) || this.mi[1].pressed(k);
+      const held = M[0].held(k) || M[1].held(k), pressed = M[0].pressed(k) || M[1].pressed(k);
       if (pressed) { ev[k] = true; this.navRep[k] = 380; }
       else if (held) { this.navRep[k] -= dt; if (this.navRep[k] <= 0) { ev[k] = true; this.navRep[k] = 90; } }
     }
-    const pr = b => this.mi[0].pressed(b) || this.mi[1].pressed(b);
+    const pr = b => M[0].pressed(b) || M[1].pressed(b);
     ev.ok = pr('start') || pr('lp') || pr('lk'); ev.back = pr('back') || pr('hk'); ev.start = pr('start');
     this.ev = ev;
   }
@@ -1209,12 +1230,13 @@ class Game {
     this.cam.prevX = this.cam.x;
     const sd = dt * (SPEEDS[this.settings.speed] || 1);   // fight simulation runs at the chosen game speed
     this.mi[0].feed(inputs[0]); this.mi[1].feed(inputs[1]);
-    this.updateNav(dt);
+    this.updateNav(dt, this.online === 'host' ? 0 : undefined);
     if (this.toast && (this.toast.t += dt) > 1800) this.toast = null;
     const fighting = ['intro', 'fight', 'roundEnd', 'matchEnd'].includes(this.phase);
     if (fighting) {
       this.p.forEach((f, i) => {
         let src = inputs[i];
+        if (this.netPause && this.online === 'host' && i === 0) src = blank();
         if (this.cpu[i]) src = this.ai[i].think(f, this.p[1 - i], this, dt);
         else if (this.mode === 'training' && i === 1) src = this.training.dummy === 'cpu' ? this.ai[1].think(f, this.p[0], this, dt) : this.dummy.think(f, this.p[0], this, this.training.dummy);
         f.input.feed(src);
@@ -1250,7 +1272,11 @@ class Game {
         if (this.pt > 2600 || (this.pt > 900 && this.ev.ok)) this.toResults();
         break;
     }
-    if (fighting && this.phase !== 'pause' && (this.ev.start || this.mi[0].pressed('back') || this.mi[1].pressed('back')) && this.phase === 'fight') this.pause();
+    if (this.online === 'host') {
+      if (this.netPause && !fighting) this.netPause = null;
+      else if (this.netPause) this.netPauseStep();
+      else if (fighting && (this.ev.start || this.mi[0].pressed('back'))) this.openNetPause();
+    } else if (fighting && this.phase !== 'pause' && (this.ev.start || this.mi[0].pressed('back') || this.mi[1].pressed('back')) && ['intro', 'fight', 'roundEnd'].includes(this.phase)) this.pause();
     this.updateCamera(dt);
   }
 
@@ -12721,6 +12747,7 @@ class View {
         if (g.phase === 'pause') this.drawMenuOverlay(ctx);
         if (g.phase === 'results') this.drawResults(ctx);
     }
+    if (g.netPause) { const st = g.netPause.stack; this.dimAll(ctx, 0.45); this.drawMenuPanel(ctx, st[st.length - 1]); }
     if (g.toast) { this.box(ctx, VW / 2 - 220, VH - 92, 440, 40, COL.ink, COL.line); this.text(ctx, g.toast.msg.toUpperCase(), VW / 2, VH - 64, 18, COL.amber, 'center', FS, COL.ink, 0); }
   }
   vignette(ctx, k) {
@@ -14752,6 +14779,13 @@ class Net {
   guestFrame(local, dt) {
     const g = this.game;
     if (this.role === 'guest') {
+      // the online menu: the host's fight keeps running, my fighter stands still while it is open
+      g.mi[0].feed(local); g.updateNav(dt, 0);
+      const last = this.snaps.length ? this.snaps[this.snaps.length - 1].s : null, inFight = !!last && ['intro', 'fight', 'roundEnd', 'matchEnd'].includes(last.ph);
+      if (g.netPause && !inFight) g.netPause = null;
+      else if (g.netPause) { g.netPauseStep(); local = blank(); }
+      else if (inFight && (g.ev.start || g.mi[0].pressed('back'))) { g.openNetPause(); local = blank(); }
+      if (g.pauseReq) { g.pauseReq = false; if (inFight && !g.netPause) { g.openNetPause(); local = blank(); } }
       let bits = 0;
       NET_BTNS.forEach((b, i) => { if (local[b]) { bits |= 1 << i; if (!this.prevLocal[b]) this.pressCount[b] = (this.pressCount[b] || 0) + 1; } });
       const S = this.snaps.length ? this.snaps[this.snaps.length - 1].s : null;
@@ -14820,7 +14854,7 @@ class Net {
     const g = this.game, was = this.role;
     this.leaveGame(msg);
     if (was !== 'host') for (const f of g.p) delete f.frameName;
-    g.online = null; g.netTags = null; g.netEmo = null; g.netVotes = null; g.goTitle(); this.say(msg); this.open();
+    g.online = null; g.netTags = null; g.netEmo = null; g.netVotes = null; g.netPause = null; g.goTitle(); this.say(msg); this.open();
   }
   leaveGame(msg) {
     clearTimeout(this.joinTimer); clearInterval(this.cdTimer); clearTimeout(this.rtcWatch); clearTimeout(this.rtcRetry); this.rtcClose(); this.rtcSeen = null; this.rtcId = null; this.rtcTries = 0; this.rtcState = null; this.rtcAnswering = null; this.pch = null; this.mx = null;
@@ -15204,6 +15238,8 @@ onmessage = e => { const m = e.data; try {
     window.bvb = { game, view, sound, net };
     applyVolumes();
     let last = performance.now(), acc = 0; const STEP = 1000 / 60;
+    const pauseBtn = document.getElementById('pausebtn');
+    pauseBtn.addEventListener('click', e => { e.preventDefault(); pauseBtn.blur(); game.requestPause(); });
     function frame(now) {
       const real = Math.min(100, now - last); acc += real; last = now;
       const pads = padList();
@@ -15241,6 +15277,7 @@ onmessage = e => { const m = e.data; try {
           for (const k in touchLatch) delete touchLatch[k];   // a quick tap still counts for one step
         }
       }
+      { const showP = ['intro', 'fight', 'roundEnd'].includes(game.phase) && !game.netPause && !(net.playing && net.role === 'spec'); if (pauseBtn.hidden === showP) pauseBtn.hidden = !showP; }
       setScreenMode(game.settings.screen);
       view.alpha = acc / STEP; view.render(ctx, real);
       sound.tick();
