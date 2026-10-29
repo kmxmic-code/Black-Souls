@@ -1,6 +1,15 @@
 {
- "version": "1.5.1",
+ "version": "1.6.0",
  "notes": [
+  {
+   "v": "1.6.0",
+   "date": "2026-10-29",
+   "items": [
+    "PARRY for everyone: tap GUARD just before a hit lands \u2014 no damage, the attacker is stunned, with a burst of light (pressing early only blocks, mashing never parries)",
+    "DODGE now turns your fighter see-through while attacks pass through",
+    "Free for all: when Y4NK carries someone to Al Namas, a pickup truck picks up the fighter left behind, chases them down the desert road, drops him off and drives on"
+   ]
+  },
   {
    "v": "1.5.1",
    "date": "2026-10-29",
@@ -237,8 +246,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "699855055a4276ebca8cc15ec0a3e8683bbd83ba133cf284fca1710e0e4a5997",
-   "size": 1526780
+   "sha": "89a13e14fe5691bf8ef1b69061ce282d65a67c58bf6dbadc6a208f4c9e505c3b",
+   "size": 1537389
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
@@ -247,6 +256,10 @@
   "menu_song.mp3": {
    "sha": "58a52245f961c463cbd8b085f04e28fbf81a6eef05019575a7c406aa38fe87fd",
    "size": 5144057
+  },
+  "pickup.png": {
+   "sha": "45a127320adde46881d320e6b9161fb1b2cc1f7df32f2b7f8efdb9eabd22c451",
+   "size": 18302
   },
   "pit.jpg": {
    "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",
