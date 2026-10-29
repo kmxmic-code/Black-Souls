@@ -1452,7 +1452,8 @@ class Game {
       if (this.superFlash.t > 650) this.superFlash = null;
       return;
     }
-    if (this.hitstop > 0) { this.hitstop -= dt; this.p.forEach(f => { if (f.hitShake > 0) f.hitShake -= dt; }); this.stepParticles(dt * 0.15); return; }
+    // hit freeze: counted in real time, so a faster game speed doesn't shorten it
+    if (this.hitstop > 0) { this.hitstop -= realDt; this.p.forEach(f => { if (f.hitShake > 0) f.hitShake -= realDt; }); this.stepParticles(realDt * 0.15); return; }
     this.stepWorld(dt, false);
     this.matchTime = (this.matchTime || 0) + realDt;
     if (this.timer !== Infinity) this.timer = Math.max(0, this.timer - realDt / 1000);
@@ -16133,6 +16134,7 @@ onmessage = e => { const m = e.data; try {
           game.update(STEP, inputs, { keys: newKeys, pads: rawPads });
           if (hosting) net.hostAfterStep();
           newKeys = []; rawPads = []; acc -= STEP;
+          if (game.hitstop > 0) acc = Math.min(acc, 0);   // a hiccup during a hit freeze doesn't skip the freeze: it plays out on screen
           for (const k in touchLatch) delete touchLatch[k];   // a quick tap still counts for one step
         }
       }
