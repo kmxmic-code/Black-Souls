@@ -1,6 +1,15 @@
 {
- "version": "1.3.1",
+ "version": "1.4.0",
  "notes": [
+  {
+   "v": "1.4.0",
+   "date": "2026-10-29",
+   "items": [
+    "NEW: ONLINE FREE FOR ALL \u2014 host invites 2 friends from ONLINE MODES \u2192 FREE FOR ALL; everyone connects straight to the host (P2P)",
+    "Each player picks their own fighter on their own PC; the host picks the stage; rematch when all 3 vote",
+    "If someone leaves mid-match, a CPU takes over their fighter so the match can finish"
+   ]
+  },
   {
    "v": "1.3.1",
    "date": "2026-10-29",
@@ -204,8 +213,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "5f6dd922310b096e9f2a5ca0e3198c47320264ae2d884d48c9d6a2d953c8c1c1",
-   "size": 1494443
+   "sha": "05263e6eeb5ee8127c0855ae4c9b3405f6e58a4bcb22567fdf6b36c207c27d93",
+   "size": 1517260
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",

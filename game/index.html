@@ -13218,8 +13218,9 @@ class View {
       const w = 372, h = 486, x = 28 + i * (w + 26), y = 128, ch = CHAR_ORDER[s2.ch], pal = PAL_ORDER[s2.pal], C = CHARS[ch], col = palCss(pal);
       this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.88)', s2.human ? col : COL.line);
       ctx.fillStyle = s2.human ? col : '#2a1e3a'; ctx.fillRect(x, y, w, 40);
-      this.text(ctx, s2.human ? `P${i + 1}` : `CPU ${i + 1}`, x + 16, y + 31, 28, s2.human ? COL.ink : COL.muted, 'left', FD, COL.ink, 0);
-      this.text(ctx, s2.human ? 'PLAYER' : `CPU · ${g.settings.difficulty.toUpperCase()}`, x + w - 14, y + 27, 13, s2.human ? COL.ink : COL.muted, 'right', FS, COL.ink, 0);
+      const O = F.online, label = O ? (i === O.local ? 'YOU' : String(s2.name || (g.netTags && g.netTags[i]) || `P${i + 1}`)) : s2.human ? `P${i + 1}` : `CPU ${i + 1}`;
+      this.text(ctx, label, x + 16, y + 31, 28, s2.human ? COL.ink : COL.muted, 'left', FD, COL.ink, 0);
+      this.text(ctx, O ? (i === 0 ? 'HOST' : 'ONLINE') : s2.human ? 'PLAYER' : `CPU · ${g.settings.difficulty.toUpperCase()}`, x + w - 14, y + 27, 13, s2.human ? COL.ink : COL.muted, 'right', FS, COL.ink, 0);
       // the fighter, idling on a little stage of light
       const key = KEY[ch], nf = (this.mf[key] || [0]).length, fi = Math.floor((t + i * 170) / 100) % nf, fr = this.frameCanvas(pal, key, fi), sc = ch === 'rusty' ? 1.0 : 1.1, feet = y + 372, cx = x + w / 2;
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(cx, feet - 4, 110, 14, 0, 0, Math.PI * 2); ctx.fill();
@@ -13227,10 +13228,11 @@ class View {
       ctx.globalAlpha = s2.human ? 1 : 0.8;
       ctx.drawImage(fr, Math.round(cx - 128 * sc + fr.ox * sc), Math.round(feet - 237 * sc + fr.oy * sc - bob), Math.round(fr.width * sc), Math.round(fr.height * sc));
       ctx.globalAlpha = 1;
-      if (s2.human && !s2.ready) { const k = (t % 900) < 450 ? 0 : 4; this.text(ctx, '◀', x + 22 - k, y + 250, 34, COL.amber, 'left', FS, COL.ink, 4); this.text(ctx, '▶', x + w - 22 + k, y + 250, 34, COL.amber, 'right', FS, COL.ink, 4); }
+      if (s2.human && !s2.ready && (!F.online || i === F.online.local)) { const k = (t % 900) < 450 ? 0 : 4; this.text(ctx, '◀', x + 22 - k, y + 250, 34, COL.amber, 'left', FS, COL.ink, 4); this.text(ctx, '▶', x + w - 22 + k, y + 250, 34, COL.amber, 'right', FS, COL.ink, 4); }
       this.text(ctx, C.name, cx, y + 420, 40, COL.paper, 'center', FD, COL.ink, 6);
       this.text(ctx, `${PALETTES[pal].name}${s2.human && !s2.ready ? '  ▲▼' : ''}`, cx, y + 446, 15, col, 'center', FS, COL.ink, 4);
-      if (!s2.human && i > 0) this.text(ctx, joinHint[i], cx, y + 474, 12, (t % 1000) < 650 ? COL.amberHi : COL.muted, 'center', FS, COL.ink, 4);
+      if (F.online && i !== F.online.local && !s2.ready) this.text(ctx, 'PICKING…', cx, y + 474, 12, COL.muted, 'center', FS, COL.ink, 4);
+      else if (!s2.human && i > 0) this.text(ctx, joinHint[i], cx, y + 474, 12, (t % 1000) < 650 ? COL.amberHi : COL.muted, 'center', FS, COL.ink, 4);
       else if (s2.human && !s2.ready && g.ffaClash(i)) this.text(ctx, 'COLOR TAKEN', cx, y + 474, 13, COL.red, 'center', FS, COL.ink, 4);
       if (s2.ready) {
         ctx.save(); ctx.translate(cx, y + 200); ctx.rotate(-0.12);
@@ -13238,7 +13240,9 @@ class View {
         this.text(ctx, 'READY', 0, 16, 46, COL.green, 'center', FD, COL.ink, 6); ctx.restore();
       }
     });
-    this.text(ctx, '◀ ▶ FIGHTER  ·  ▲ ▼ COLOR  ·  A / U READY  ·  B / K BACK  ·  Y / I NEW CPU PICKS', VW / 2, VH - 30, 14, COL.muted, 'center', FS, COL.ink, 4);
+    this.text(ctx, F.online ? '◀ ▶ FIGHTER  ·  ▲ ▼ COLOR  ·  A / U READY  ·  B / K LEAVE' : '◀ ▶ FIGHTER  ·  ▲ ▼ COLOR  ·  A / U READY  ·  B / K BACK  ·  Y / I NEW CPU PICKS', VW / 2, VH - 30, 14, COL.muted, 'center', FS, COL.ink, 4);
+    if (F.online && F.hostPicking) { ctx.fillStyle = 'rgba(10,7,18,0.6)'; ctx.fillRect(0, VH / 2 - 60, VW, 110); this.text(ctx, 'THE HOST IS PICKING THE STAGE…', VW / 2, VH / 2 + 12, 40, COL.amber, 'center', FD, COL.ink, 6); }
+    else if (F.online && F.slots[F.online.local].ready && !F.doneT) this.text(ctx, F.online.role === 'host' ? 'WAITING FOR EVERYONE TO LOCK IN…' : 'WAITING FOR THE OTHERS…', VW / 2, 120, 14, COL.green, 'center', FS, COL.ink, 4);
     if (F.doneT) { const k = Math.min(1, (g.pt - F.doneT) / 300); ctx.fillStyle = `rgba(10,7,18,${0.5 * k})`; ctx.fillRect(0, 0, VW, VH); this.text(ctx, 'GET READY', VW / 2, VH / 2 + 30, 110, COL.amber, 'center', FD, COL.ink, 10); }
   }
   drawHUD3(ctx) {
@@ -13275,6 +13279,7 @@ class View {
       const victim = g.p.find(v => v !== f && v.combo >= 2 && v.lastHitBy === f);
       if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
     });
+    if (g.online && g.env.online) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
     if (g.mode === 'ffa' && g.phase === 'fight') this.text(ctx, 'LAST ONE STANDING', VW / 2, VH - 14, 12, COL.muted, 'center', FS, COL.ink, 4);
   }
   drawHUD(ctx) {
@@ -13808,9 +13813,9 @@ class View {
     });
     this.text(ctx, `MATCH TIME ${Math.round((g.matchTime || 0) / 1000)} SEC`, VW / 2, y + 352, 14, COL.muted, 'center', FS, COL.ink, 0);
     if (g.online) {
-      const v = g.netVotes || [false, false], me = g.online === 'host' ? 0 : g.online === 'guest' ? 1 : -1;
+      const N = g.p.length, v = g.netVotes || [], me = g.online === 'host' ? 0 : g.online === 'guest' ? 1 : -1;
       this.text(ctx, 'REMATCH?', VW / 2, y + 404, 30, COL.paper);
-      [0, 1].forEach(i => this.text(ctx, `${(g.netTags || ['P1', 'P2'])[i]}  ${v[i] ? '✓ READY' : '…'}`, VW / 2 + (i ? 150 : -150), y + 444, 18, v[i] ? COL.green : COL.muted, 'center', FS, COL.ink, 4));
+      g.p.forEach((f, i) => this.text(ctx, `${(g.netTags || ['P1', 'P2', 'P3'])[i] || 'P' + (i + 1)}  ${v[i] ? '✓ READY' : '…'}`, VW / 2 + (i - (N - 1) / 2) * (N > 2 ? 210 : 300), y + 444, 18, v[i] ? COL.green : COL.muted, 'center', FS, COL.ink, 4));
       if (me >= 0) this.text(ctx, 'A / U  REMATCH   ·   B / K  LEAVE', VW / 2, y + 480, 14, COL.muted, 'center', FS, COL.ink, 4);
       else this.text(ctx, 'WATCHING · B TO STOP', VW / 2, y + 480, 14, COL.muted, 'center', FS, COL.ink, 4);
     } else this.drawMenuList(ctx, g.menuDef('results'), top.sel, VW / 2, y + 404, 420);
@@ -14218,6 +14223,7 @@ class Net {
       pressCount: {}, prevLocal: {}, lastSnapAt: 0, ready: false, oppPres: null, names: {}, myId: null, emoSeq: 0, emoSeen: {}, pingMs: 0,
       votes: [false, false], countdown: 0, codeEntry: ['a', 'a', 'a', 'a', 'a'], navPrev: {}, navRep: {}, record: env.store.get('netRecord', { w: 0, l: 0 }), spectators: 0 });
     this.ui = this.buildUi();
+    this.ffa = new OnlineFFA(this);
     this.link = window.bsasLink || null;
     if (this.link) { this.link.on(m => this.onLink(m)); setTimeout(() => this.link.send({ type: 'ready' }), 0); this.actT = setInterval(() => this.reportActivity(), 2000); }
     window.addEventListener('keydown', e => this.emoteKey(e));
@@ -14342,8 +14348,11 @@ class Net {
         this.env.sfx('select');
       }
       if (this.isOpen && !this.role) this.renderUi();
-    } else if (m.type === 'host') this.mHostInvite(m.to, m.name);
-    else if (m.type === 'join') this.mJoinInvite(m.from, m.name, m.code);
+    } else if (m.type === 'host') { if (this.ffa.mode === 'host' && this.ffa.phase === 'lobby') this.ffa.invite(m.to, m.name); else this.mHostInvite(m.to, m.name); }
+    else if (m.type === 'join') { this.unpackCode(m.code).then(o => (o && o.ffa ? this.ffa.join(m.from, m.name, o) : this.mJoinInvite(m.from, m.name, m.code)), () => this.mJoinInvite(m.from, m.name, m.code)); }
+    else if (m.type === 'answer' && this.ffa.mode === 'host' && this.ffa.links.some(l => l.uid === m.from && l.state === 'inviting')) this.ffa.answer(m.from, m.code);
+    else if (m.type === 'declined' && this.ffa.mode === 'host' && this.ffa.declined(m.from, m.name)) { /* handled */ }
+    else if (m.type === 'cancel' && this.ffa.mode === 'host' && this.ffa.links.some(l => l.uid === m.to)) { const L = this.ffa.links.find(l => l.uid === m.to); if (L && L.state !== 'joined') this.ffa.removeLink(L); }
     else if (m.type === 'answer') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.from && !mx.answered) { mx.answered = true; mx.paste = m.code; mx.msg = 'Connecting to ' + mx.toName + '…'; this.mConnect(); } }
     else if (m.type === 'declined') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.from) { mx.err = m.why === 'error' ? 'Could not send the invite. Check your internet.' : (m.name || 'Your friend') + ' declined.'; mx.msg = ''; this.renderUi(); } }
     else if (m.type === 'cancel') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.to) { this.mx.to = null; this.mCancel(); this.renderUi(); } }
@@ -14373,7 +14382,7 @@ class Net {
   }
   reportActivity() {
     const g = this.game, ph = g.phase;
-    const act = this.playing ? 'In a match' : this.role ? 'In a lobby' : ['title', 'select', 'stagesel', 'menu'].includes(ph) ? 'In menu' : 'Playing offline';
+    const act = this.playing ? 'In a match' : this.role || this.ffa.active ? 'In a lobby' : ['title', 'select', 'stagesel', 'menu'].includes(ph) ? 'In menu' : 'Playing offline';
     if (act !== this.lastAct) { this.lastAct = act; this.link.send({ type: 'activity', act }); }
   }
   p2pBody() {
@@ -14393,6 +14402,9 @@ class Net {
         <div class="on-actions"><button type="button" data-a="mcopy" class="on-main">${mx.copied ? 'COPIED ✓' : 'COPY REPLY CODE'}</button><button type="button" data-a="mcancel">CANCEL</button></div></div>`;
   }
 
+  openFFA() { this.ffa.open(); }
+  ffaHosting() { return this.ffa.mode === 'host' && this.ffa.phase === 'match' && this.playing; }
+
   // ---------- panel ----------
   buildUi() {
     const el = document.createElement('div'); el.id = 'online'; el.hidden = true;
@@ -14407,6 +14419,7 @@ class Net {
     if (e.detail === 0 && performance.now() - (this.openedAt || 0) < 350) return;   // keyboard "click" carried over from the menu
     this.env.sfx('tick');
     const a = b.dataset.a;
+    if (a && a[0] === 'x' && this.ffa.active) { this.ffa.click(a, b); return; }
     if (a === 'close') this.close();
     else if (a === 'host') { if (this.manual) this.mHost(); else this.host(); }
     else if (a === 'mjoin') { this.mCancel(); this.mx = { step: 'join', msg: 'Paste the code your friend sent you, then press MAKE REPLY CODE.' }; this.renderUi(); }
@@ -14438,7 +14451,7 @@ class Net {
     this.openedAt = performance.now(); this.navPrev = { a: true, b: true, x: true, y: true, st: true, u: true, d: true, l: true, r: true };
     this.ui.hidden = false; this.renderUi(); const f = this.ui.querySelector('.on-main:not([disabled])'); if (f) f.focus();
   }
-  close() { if (this.mx && !this.role) this.mCancel(); if (this.role && !this.playing) this.leaveGame(); this.ui.hidden = true; }
+  close() { if (this.ffa.active && !this.playing) { this.ffa.leave(); this.ui.hidden = true; return; } if (this.mx && !this.role) this.mCancel(); if (this.role && !this.playing) this.leaveGame(); this.ui.hidden = true; }
   get isOpen() { return !this.ui.hidden; }
 
   fighterPicker() {
@@ -14450,7 +14463,8 @@ class Net {
     const conn = this.available ? (this.connected === false ? '<span class="on-dot off"></span>Reconnecting' : '<span class="on-dot"></span>Online') : '<span class="on-dot off"></span>Offline';
     const rec = `<span class="on-rec">ONLINE RECORD ${this.record.w}W · ${this.record.l}L</span>`;
     let body = '';
-    if (!this.role && this.manual) body = this.p2pBody();
+    if (this.ffa.active && !this.playing) body = this.ffa.body();
+    else if (!this.role && this.manual) body = this.p2pBody();
     else if (!this.role) {
       const peers = this.room ? this.room.peers() : [];
       const hosts = peers.filter(p => !p.sameTab && p.presence && p.presence.host);
@@ -14485,7 +14499,7 @@ class Net {
     const ps = window.PAD_STYLE === 'ps', K = ps ? { a: '✕', b: '○', y: '△', x: '□' } : { a: 'A', b: 'B', y: 'Y', x: 'X' };
     const hints = this.role && !this.playing ? `<kbd class="a">${K.a}</kbd> SELECT · <kbd class="b">${K.b}</kbd> LEAVE · <kbd class="y">${K.y}</kbd> READY · <kbd class="x">${K.x}</kbd> INVITE` : `<kbd class="a">${K.a}</kbd> SELECT · <kbd class="b">${K.b}</kbd> BACK · D-PAD MOVE`;
     el.innerHTML = `<div class="on-card" role="dialog" aria-label="Online"><div class="on-head"><h2>ONLINE</h2><span class="on-conn">${conn}</span>${rec}<button type="button" data-a="close">BACK</button></div>
-      <p class="on-status">${esc(this.status)}</p>${body}<p class="on-hints">${hints}</p></div>`;
+      <p class="on-status">${esc(this.ffa.active && !this.playing ? (this.ffa.mode === 'host' ? 'FREE FOR ALL — invite two friends. Everyone connects straight to you (P2P), and the match starts when all 3 are in.' : 'FREE FOR ALL — you are in ' + this.ffa.host.name + '’s lobby.') : this.status)}</p>${body}<p class="on-hints">${hints}</p></div>`;
     if (focusKey) { const f = [...el.querySelectorAll('button, a')].find(x => this.focusKey(x) === focusKey); if (f) f.focus({ preventScroll: true }); else this.focusFirst(); }
     else if (!el.hidden) this.focusFirst();
     el.querySelectorAll('.nm[data-by]').forEach(async n => { const by = n.dataset.by; if (by) { const nm = await this.nameOf(by, n.textContent); n.textContent = nm; } });
@@ -14524,7 +14538,7 @@ class Net {
     const b = this.ui.querySelector(`.slot[data-i="${i}"]`); if (b) b.textContent = this.codeEntry[i];
     this.env.sfx('tick');
   }
-  back() { if (this.mx && !this.role) { this.mCancel(); this.renderUi(); return; } if (this.role && !this.playing) this.leaveGame('Pick your fighter, then host a game, join one, or enter a friend’s code.'); else this.close(); }
+  back() { if (this.ffa.active && !this.playing) { this.ffa.leave('You left the lobby.'); return; } if (this.mx && !this.role) { this.mCancel(); this.renderUi(); return; } if (this.role && !this.playing) this.leaveGame('Pick your fighter, then host a game, join one, or enter a friend’s code.'); else this.close(); }
   panelKey(e) {
     if (e.target && e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.back(); } return; }
     if ((e.key === 'Enter' || e.key === ' ') && (e.repeat || performance.now() - (this.openedAt || 0) < 350)) { e.preventDefault(); e.stopPropagation(); return; }
@@ -14656,6 +14670,7 @@ class Net {
   rtcAvailable() { try { return typeof RTCPeerConnection !== 'undefined'; } catch (err) { return false; } }
   // why the link is or isn't direct, for the HUD
   linkLabel() {
+    if (this.ffaHosting()) return this.ffa.links.length && this.ffa.links.every(l => l.g && l.g.readyState === 'open') ? 'DIRECT' : 'P2P';
     if (this.direct()) return 'DIRECT';
     const st = this.rtcState || 'connecting';
     return st === 'blocked' ? 'RELAY · P2P BLOCKED' : st === 'error' ? 'RELAY · P2P ERROR' : st === 'failed' ? 'RELAY · NO P2P ROUTE' : 'RELAY · LINKING P2P';
@@ -14861,7 +14876,8 @@ class Net {
     this.remote = { bits: now, pc: Object.assign({}, pc) };
   }
   // the guest's buttons for one host step; taps shorter than a network tick still register
-  remoteInput() {
+  remoteInput(slot = 1) {
+    if (this.ffaHosting()) return this.ffa.remoteInput(slot);
     const s = blank();
     for (const b of NET_BTNS) s[b] = !!this.remote.bits[b];
     for (const b of NET_BTNS) {
@@ -14882,6 +14898,7 @@ class Net {
     if (this.votes[0] && this.votes[1]) { this.votes = [false, false]; this.recorded = false; g.startMatch(); this.say('Rematch!'); }
   }
   hostAfterStep() {
+    if (this.ffaHosting()) return this.ffa.hostAfterStep();
     if (!(this.role === 'host' && this.playing) || !this.gr) return;
     const g = this.game;
     if (g.phase === 'title' || g.phase === 'select') { this.endGame('You left the match.'); return; }
@@ -14911,7 +14928,7 @@ class Net {
       n: ++this.frameNo, ph: g.phase, pt: R(g.pt), tm: g.timer === Infinity ? -1 : Math.round(g.timer * 10) / 10, rd: g.round, st: g.stage,
       bn: g.banner ? g.banner.text : 0, wc: g.welcome ? R(g.welcome.t) : -1,
       wl: (g.walls || [null, null]).map(w => (w ? [R(w.t), R(w.y)] : 0)),
-      tr: g.trip ? [g.trip.scene, R(g.trip.st || 0), g.trip.dir, g.trip.owner.id] : 0,
+      tr: g.trip ? [g.trip.scene, R(g.trip.st || 0), g.trip.dir, g.trip.owner.id, g.trip.victim ? g.trip.victim.id : 1 - g.trip.owner.id] : 0,
       bo: Math.round((g.blackout || 0) * 100), nb: g.namasBoost == null ? -1 : g.namasBoost, gb: g.groundBreak ? [R(g.groundBreak.x), R(g.groundBreak.t)] : 0, mb: g.mapBreak ? R(g.mapBreak.t) : -1, sf: g.superFlash ? [R(g.superFlash.t), g.superFlash.owner.id] : 0,
       kf: g.koFx ? [R(g.koFx.t), g.koFx.loser.id] : 0, fl: R(Math.max(0, g.flash)),
       cam: [R(g.cam.x), Math.round(g.cam.zoom * 1000) / 1000, R(g.cam.fx), Math.round(g.cam.shake)],
@@ -14974,14 +14991,14 @@ class Net {
       if (S && S.ph === 'results') {
         if ((local.lp && !this.prevLocal.lp) || (local.lk && !this.prevLocal.lk) || (local.start && !this.prevLocal.start)) this.myVote = true;
         if ((local.hk && !this.prevLocal.hk) || (local.back && !this.prevLocal.back)) { this.endGame('You left the match.'); return; }
-        if (!this.recorded) { this.recorded = true; this.recordResult(S.ch === 1); }
+        if (!this.recorded) { this.recorded = true; this.recordResult(S.ch === (this.ffaSlot != null ? this.ffaSlot : 1)); }
       } else { this.myVote = false; if (S && S.ph !== 'matchEnd') this.recorded = false; }
       this.prevLocal = Object.assign({}, local);
       // send my buttons the moment they change (at most ~30 a second), otherwise a light keepalive every 100 ms
       const now = performance.now(), sig = bits + '|' + JSON.stringify(this.pressCount) + '|' + (this.myVote ? 1 : 0);
       const msg = () => ({ in: bits, pc: this.pressCount, ack: this.lastPlayed, ts: Math.round(now), pong: this.hostTs, hd: this.hostTsAt ? Math.round(now - this.hostTsAt) : 0, vote: this.myVote ? 1 : 0 });
       if (this.direct()) { if (sig !== this.lastSig || now - (this.lastInSent || 0) >= 16) { this.lastSig = sig; this.lastInSent = now; this.sendDirect(msg()); } }
-      else if ((sig !== this.lastSig && now - (this.lastInSent || 0) >= 25) || now - (this.lastInSent || 0) >= 60) {
+      else if (this.gr && ((sig !== this.lastSig && now - (this.lastInSent || 0) >= 25) || now - (this.lastInSent || 0) >= 60)) {
         this.lastSig = sig; this.lastInSent = now;
         this.gr.presence(msg()).catch(() => {});
       }
@@ -15017,7 +15034,7 @@ class Net {
       f.hp = s[5]; f.dmgTrail = s[6]; f.meter = s[7]; f.wins = s[8]; f.combo = s[9]; f.comboDmg = s[10]; f.hidden = !!s[11];
       f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; f.ch = s[14]; f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.trail = [];
     });
-    g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[1 - S.tr[3]] } : null;
+    g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[S.tr[4] != null ? S.tr[4] : 1 - S.tr[3]] } : null;
     g.clones = S.cl.map(c => ({ x: c[0], prevX: c[0], dir: c[1], visible: true, owner: g.p[c[4]], get pal() { return this.owner.pal; }, trail: [], move: null, frameName: () => [c[2], c[3]] }));
     g.cars = (S.cr || []).map((c, i) => { const ca = (A.cr || [])[i], cb = (B.cr || [])[i], x = ca && cb && ca[1] === cb[1] ? L(ca[0], cb[0]) : c[0]; return { x, prevX: x, dir: c[1], t: c[2], live: true, kind: c[3] ? 'horse' : 'car', owner: g.p[c[4] || 0] }; });
     g.rocks = S.rk.map(r => ({ x: r[0], h: r[1], dir: r[2], t: r[3], live: true, kind: r[4] === 1 ? 'kunai' : r[4] === 2 ? 'rrock' : r[4] === 3 ? 'bullet' : 'rock', owner: r[5] >= 0 ? g.p[r[5]] : null, elem: r[6] >= 0 ? ['fire', 'water', 'air', 'earth'][r[6]] : null, vh: r[7] || 0, vx: r[8] || 0 }));
@@ -15025,7 +15042,8 @@ class Net {
     g.texts = S.tx.map(e => ({ text: e[0], x: e[1], y: e[2], t: e[3], life: e[4], color: e[5], small: !!e[6] }));
     g.netEmo = (S.em || []).map(e => (e ? { text: e[0], t: g.time - e[1] } : null));
     g.netVotes = (S.vt || [0, 0]).map(v => !!v);
-    if (S.tg) g.netTags = this.role === 'guest' ? [String(S.tg[1] === 'YOU' ? 'HOST' : (this.oppName || 'HOST')).toUpperCase().slice(0, 12), 'YOU'] : [(this.oppName || 'HOST').toUpperCase().slice(0, 12), 'GUEST'];
+    if (S.tg && this.ffaSlot != null) g.netTags = S.tg.map((t, i) => (i === this.ffaSlot ? 'YOU' : String(t).toUpperCase().slice(0, 12)));
+    else if (S.tg) g.netTags = this.role === 'guest' ? [String(S.tg[1] === 'YOU' ? 'HOST' : (this.oppName || 'HOST')).toUpperCase().slice(0, 12), 'YOU'] : [(this.oppName || 'HOST').toUpperCase().slice(0, 12), 'GUEST'];
     this.spectators = S.sp || 0;
     if (S.ps) { g.p.forEach((f, i) => { f.stats = S.ps[i]; }); g.champ = S.ch >= 0 ? g.p[S.ch] : null; g.matchTime = S.mt; g.stack = [{ id: 'results', sel: 0 }]; }
   }
@@ -15034,7 +15052,8 @@ class Net {
   opponentLeft() { if (!this.playing) return; this.endGame(this.role === 'host' ? 'Your opponent left.' : 'The host left the match.'); }
   endGame(msg) {
     const g = this.game, was = this.role;
-    this.leaveGame(msg);
+    if (this.ffa.active) this.ffa.leave(msg, true);
+    this.leaveGame(msg); this.ffaSlot = null;
     if (was !== 'host') for (const f of g.p) delete f.frameName;
     g.online = null; g.netTags = null; g.netEmo = null; g.netVotes = null; g.netPause = null; g.goTitle(); this.say(msg); this.open();
   }
@@ -15073,6 +15092,280 @@ class DcRoom {
   }
   onPeers(cb) { this.cbs.push(cb); setTimeout(() => { if (this.cbs.includes(cb)) this.fire(); }, 0); return () => { this.cbs = this.cbs.filter(x => x !== cb); }; }
   leave() { try { if (this.ch.readyState === 'open') this.ch.send(JSON.stringify({ bye: 1 })); } catch (err) {} this.cbs = []; return Promise.resolve(); }
+}
+
+/* Online free for all (launcher only): the host invites two friends; each gets their own direct P2P link.
+   Star layout: the guests only talk to the host. The host runs the fight and streams it to both,
+   exactly like a 1v1 match; picks and the lobby travel on each link's reliable channel. */
+class OnlineFFA {
+  constructor(net) { this.net = net; this.game = net.game; this.env = net.env; this.reset(); }
+  reset() { this.mode = null; this.phase = null; this.links = []; this.slots = null; this.host = null; this.local = 0; this.votes = [false, false, false]; this.lastLobby = ''; this.lastPick = ''; clearTimeout(this.lobbyT); }
+  get active() { return !!this.mode; }
+  newPC() { return new RTCPeerConnection({ iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }] }); }
+  send(ch, obj) { try { if (ch && ch.readyState === 'open') ch.send(JSON.stringify(obj)); } catch (e) {} }
+  myPick() { const m = this.net.mine; return { ch: Math.max(0, CHAR_ORDER.indexOf(m.ch)), pal: Math.max(0, PAL_ORDER.indexOf(m.pal)) }; }
+
+  // ---------- host: lobby + invites ----------
+  open() {
+    const n = this.net;
+    if (!n.link) { n.say('Online free for all works in the launcher'); return; }
+    if (!n.social || !n.social.signedIn) { n.say('Sign in on the launcher FRIENDS panel first'); n.open(); return; }
+    if (n.playing) { n.say('Finish your match first'); return; }
+    if (n.role || n.mx) n.leaveGame();
+    if (this.active) this.leave();
+    this.reset(); this.mode = 'host'; this.phase = 'lobby';
+    const p = this.myPick();
+    this.slots = [{ name: (n.myName || 'You').toUpperCase().slice(0, 12), present: true, ch: p.ch, pal: p.pal, ready: false }, null, null];
+    this.game.goTitle(); n.open();
+  }
+  async invite(uid, name) {
+    const n = this.net;
+    if (this.mode !== 'host' || this.phase !== 'lobby' || this.links.some(l => l.uid === uid)) return;
+    const slot = [1, 2].find(i => !this.slots[i]); if (!slot) return;
+    const L = { uid, name: String(name || 'friend').toUpperCase().slice(0, 12), slot, state: 'inviting', remote: { bits: {}, pc: {} }, queue: {}, tap: {}, ack: 0, pingS: [] };
+    this.slots[slot] = { name: L.name, present: false, ch: Math.floor(Math.random() * CHAR_ORDER.length), pal: (slot * 3) % PAL_ORDER.length, ready: false };
+    this.links.push(L); n.renderUi();
+    try {
+      const pc = L.pc = this.newPC();
+      L.g = pc.createDataChannel('g', { ordered: false, maxRetransmits: 0 }); L.p = pc.createDataChannel('p', { ordered: true });
+      L.g.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } this.fromGuest(L, m); };
+      L.p.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } this.fromGuestRel(L, m); };
+      L.p.onopen = () => this.joined(L);
+      L.p.onclose = () => this.dropped(L);
+      pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') this.dropped(L, 'failed'); };
+      await pc.setLocalDescription(await pc.createOffer()); await n.rtcGathered(pc);
+      if (!this.links.includes(L)) return;
+      const code = await n.packCode({ t: 'o', sdp: n.sdpPack(pc.localDescription.sdp), ffa: 1, host: this.slots[0].name });
+      n.link.send({ type: 'offer', to: uid, code });
+      L.timer = setTimeout(() => { if (L.state !== 'joined') { this.removeLink(L); n.say(L.name + ' did not answer'); } }, 180000);
+    } catch (e) { this.removeLink(L); n.say('Could not start a direct connection'); }
+  }
+  async answer(from, code) {
+    const L = this.links.find(l => l.uid === from && l.state === 'inviting'); if (!L) return false;
+    try { const a = await this.net.unpackCode(code); await L.pc.setRemoteDescription({ type: 'answer', sdp: a.sdp }); L.state = 'connecting'; this.net.renderUi(); }
+    catch (e) { this.removeLink(L); }
+    return true;
+  }
+  declined(from, name) { const L = this.links.find(l => l.uid === from); if (!L) return false; this.removeLink(L); this.net.say((name || L.name) + ' declined'); return true; }
+  cancelInvite(uid) { const L = this.links.find(l => l.uid === uid); if (L) { this.net.link.send({ type: 'cancel', to: uid }); this.removeLink(L); } }
+  removeLink(L) {
+    clearTimeout(L.timer); this.links = this.links.filter(l => l !== L);
+    if (this.slots && this.slots[L.slot]) this.slots[L.slot] = null;
+    try { L.p && (L.p.onclose = null); L.pc && L.pc.close(); } catch (e) {}
+    this.net.renderUi(); this.broadcastLobby(true);
+  }
+  joined(L) {
+    clearTimeout(L.timer); L.state = 'joined'; this.slots[L.slot].present = true;
+    this.net.link.send({ type: 'connected', with: L.uid }); this.env.sfx('select'); this.net.say(L.name + ' joined');
+    this.broadcastLobby(true); this.net.renderUi();
+    if (this.slots.every(s => s && s.present)) this.toSelect();
+  }
+  dropped(L, why) {
+    if (!this.links.includes(L)) return;
+    const name = L.name; this.removeLink(L);
+    if (this.phase === 'match') { this.game.cpu[L.slot] = true; this.game.aiLevel[L.slot] = this.game.settings.difficulty; this.game.ai[L.slot].reset(this.game.aiLevel[L.slot]); this.net.say(name + ' left — a CPU takes over'); }
+    else if (this.phase === 'select' || this.phase === 'stage') { this.phase = 'lobby'; this.game.goTitle(); this.net.open(); this.net.say(name + ' left the lobby'); this.broadcastLobby(true); }
+    else this.net.say(name + (why ? ' could not connect' : ' left'));
+  }
+  // every guest gets the whole lobby, plus which card is theirs
+  broadcastLobby(force) {
+    if (this.mode !== 'host') return;
+    const body = { slots: this.slots.map(s => (s ? { name: s.name, present: !!s.present, ch: s.ch, pal: s.pal, ready: !!s.ready } : null)), phase: this.phase };
+    const key = JSON.stringify(body); if (!force && key === this.lastLobby) return; this.lastLobby = key;
+    for (const L of this.links) if (L.state === 'joined') this.send(L.p, { lobby: Object.assign({ you: L.slot }, body) });
+  }
+  fromGuestRel(L, m) {
+    if (m.pick && this.slots[L.slot]) {
+      const s = this.slots[L.slot]; s.ch = m.pick.ch | 0; s.pal = m.pick.pal | 0; s.ready = !!m.pick.ready;
+      const F = this.game.fsel; if (F && F.online && F.slots[L.slot]) Object.assign(F.slots[L.slot], { ch: s.ch, pal: s.pal, ready: s.ready, moved: this.game.time });
+      this.broadcastLobby();
+    }
+    if (m.hello && this.slots[L.slot]) { if (m.hello.ch != null) { this.slots[L.slot].ch = m.hello.ch | 0; this.slots[L.slot].pal = m.hello.pal | 0; } this.broadcastLobby(true); }
+    if (m.bye) this.dropped(L);
+  }
+  toSelect() {
+    this.phase = 'select'; this.net.ui.hidden = true;
+    this.enterSelect(); this.broadcastLobby(true);
+  }
+  enterSelect() {
+    const g = this.game; g.goFFA();
+    g.fsel.slots = this.slots.map((s, i) => ({ human: true, present: !!s, ch: s ? s.ch : 0, pal: s ? s.pal : i, ready: false, moved: 0, name: s ? s.name : '' }));
+    g.fsel.online = { role: this.mode, local: this.local };
+    g.netTags = this.slots.map((s, i) => (i === this.local ? 'YOU' : s ? s.name : ''));
+  }
+  // every frame while in the lobby / select (called from the app loop)
+  tick() {
+    if (!this.active) return;
+    const g = this.game;
+    if (this.phase === 'select' || this.phase === 'stage') {
+      if (g.phase === 'title') { this.leave('You left the lobby.'); return; }
+      const F = g.fsel;
+      if (F && F.online) {
+        const me = F.slots[this.local];
+        if (this.mode === 'host') {
+          Object.assign(this.slots[0], { ch: me.ch, pal: me.pal, ready: me.ready });
+          if (g.phase === 'stagesel' && this.phase !== 'stage') { this.phase = 'stage'; this.broadcastLobby(true); }
+          if (g.phase === 'ffasel' && this.phase === 'stage') { this.phase = 'select'; this.broadcastLobby(true); }
+          this.broadcastLobby();
+        } else {
+          const pick = { ch: me.ch, pal: me.pal, ready: me.ready ? 1 : 0 }, key = JSON.stringify(pick);
+          if (key !== this.lastPick) { this.lastPick = key; this.send(this.host.p, { pick }); }
+          F.hostPicking = this.phase === 'stage';
+        }
+      }
+    }
+    if (this.mode === 'host' && this.phase === 'match' && !this.net.playing) this.phase = 'select';
+  }
+  // ---------- host: the match ----------
+  startHosting() {
+    const n = this.net, g = this.game;
+    this.phase = 'match';
+    n.role = 'host'; n.playing = true; n.ui.hidden = true;
+    g.online = 'host'; g.netTags = this.slots.map((s, i) => (i === 0 ? 'YOU' : s.name));
+    n.events = []; n.evNext = 1; n.ackSeen = 0; n.recorded = false; this.votes = [false, false, false];
+    for (const L of this.links) { L.remote = { bits: {}, pc: {} }; L.queue = {}; L.tap = {}; L.ack = 0; }
+    n.hookHostEvents();
+    this.links.forEach(L => this.send(L.p, { go: { you: L.slot, chs: g.p.map(f => f.ch), pals: g.p.map(f => f.pal), names: this.slots.map(s => s.name), stage: g.chosenStage } }));
+    g.startMatch();
+  }
+  fromGuest(L, pr) {
+    if (typeof pr.ack === 'number') L.ack = Math.max(L.ack, pr.ack);
+    if (typeof pr.ts === 'number' && pr.ts !== L.echoTs) { L.echoTs = pr.ts; L.echoAt = performance.now(); }
+    if (typeof pr.pong === 'number' && pr.pong !== L.lastPong) { L.lastPong = pr.pong; const ms = performance.now() - pr.pong - (pr.hd || 0); if (ms >= 0 && ms < 5000) { L.pingS.push(ms); if (L.pingS.length > 9) L.pingS.shift(); L.ping = Math.round([...L.pingS].sort((a, b) => a - b)[L.pingS.length >> 1]); } }
+    if (pr.in != null) {
+      const now = {}; NET_BTNS.forEach((b, i) => { now[b] = !!(pr.in & (1 << i)); });
+      const pc = pr.pc || {}; for (const b of NET_BTNS) { const c = pc[b] || 0, was = L.remote.pc[b] || 0; if (c > was) L.queue[b] = (L.queue[b] || 0) + Math.min(3, c - was); }
+      L.remote = { bits: now, pc: Object.assign({}, pc) };
+    }
+    if (pr.vote != null) this.votes[L.slot] = !!pr.vote;
+  }
+  remoteInput(slot) {
+    const L = this.links.find(l => l.slot === slot), s = blank(); if (!L) return s;
+    for (const b of NET_BTNS) s[b] = !!L.remote.bits[b];
+    for (const b of NET_BTNS) {
+      const st = L.tap[b] || 0;
+      if (st === 1) { s[b] = true; L.tap[b] = 2; }
+      else if (st === 2) { s[b] = false; L.tap[b] = 0; }
+      else if (L.queue[b] > 0) { L.queue[b]--; s[b] = true; L.tap[b] = L.remote.bits[b] ? 0 : 2; }
+    }
+    s.start = false; s.back = false; return s;
+  }
+  hostAfterStep() {
+    const n = this.net, g = this.game;
+    if (g.phase === 'title' || g.phase === 'select' || g.phase === 'ffasel') { this.endMatch('You left the match.'); return; }
+    if (g.phase === 'results' && !n.recorded) { n.recorded = true; n.recordResult(g.champ && g.champ.id === 0); }
+    if (g.phase === 'results') {
+      const m = g.mi[0];
+      if (m.pressed('lp') || m.pressed('lk') || m.pressed('start')) { this.votes[0] = true; this.env.sfx('select'); }
+      if (m.pressed('hk') || m.pressed('back')) { this.endMatch('You left the match.'); return; }
+      const need = [0].concat(this.links.map(l => l.slot));
+      if (need.every(i => this.votes[i])) { this.votes = [false, false, false]; n.recorded = false; g.startMatch(); n.say('Rematch!'); }
+    }
+    g.netVotes = this.votes;
+    n.votes = this.votes; n.ackSeen = this.links.length ? Math.min(...this.links.map(l => l.ack)) : n.evNext;
+    const S = n.snapshot();
+    S.tg = this.slots.map(s => (s ? s.name : 'CPU'));
+    for (const L of this.links) {
+      const own = Object.assign({}, S, { ev: n.events.filter(e => e[0] > L.ack).slice(0, 14), pg: L.echoTs, hd: L.echoAt ? Math.round(performance.now() - L.echoAt) : 0 });
+      this.send(L.g, { s: own });
+    }
+    n.pingMs = this.links.length ? Math.max(...this.links.map(l => l.ping || 0)) : 0;
+  }
+  endMatch(msg) {
+    for (const L of this.links) this.send(L.p, { end: msg === 'You left the match.' ? 'The host left the match.' : msg });
+    this.leave(msg, true);
+  }
+
+  // ---------- guest ----------
+  async join(from, name, offer) {
+    const n = this.net;
+    if (n.playing) { n.say('Finish your match first'); return; }
+    if (n.role || n.mx) n.leaveGame();
+    if (this.active) this.leave();
+    this.reset(); this.mode = 'guest'; this.phase = 'joining'; this.host = { uid: from, name: String(offer.host || name || 'HOST').toUpperCase().slice(0, 12) };
+    this.game.goTitle(); n.open();
+    try {
+      const pc = this.host.pc = this.newPC(); n.pc = pc;
+      pc.ondatachannel = e => {
+        if (e.channel.label === 'g') n.rtcWire(e.channel);
+        else { const ch = this.host.p = e.channel; ch.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (err) { return; } this.fromHost(m); }; ch.onclose = () => this.hostGone(); const hi = () => this.send(ch, { hello: Object.assign({ name: n.myName || '' }, this.myPick()) }); if (ch.readyState === 'open') hi(); else ch.onopen = hi; }
+      };
+      pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') this.hostGone(); };
+      await pc.setRemoteDescription({ type: 'offer', sdp: offer.sdp }); await pc.setLocalDescription(await pc.createAnswer()); await n.rtcGathered(pc);
+      if (this.mode !== 'guest') return;
+      n.link.send({ type: 'answer', to: from, code: await n.packCode({ t: 'a', sdp: n.sdpPack(pc.localDescription.sdp) }) });
+      this.joinT = setTimeout(() => { if (this.phase === 'joining') this.leave('Could not reach ' + this.host.name + ' directly. Both of you: allow the game through Windows Firewall, then try again.'); }, 25000);
+    } catch (e) { this.leave('That invite expired. Ask for a new one.'); }
+  }
+  fromHost(m) {
+    const n = this.net, g = this.game;
+    if (m.lobby) {
+      clearTimeout(this.joinT);
+      if (this.phase === 'joining') { this.phase = 'lobby'; n.link.send({ type: 'connected', with: this.host.uid }); this.env.sfx('select'); }
+      this.local = m.lobby.you; this.slots = m.lobby.slots;
+      if ((m.lobby.phase === 'select' || m.lobby.phase === 'stage') && !(g.phase === 'ffasel' && g.fsel && g.fsel.online)) { this.phase = 'select'; n.ui.hidden = true; this.enterSelect(); const s = this.slots[this.local]; if (s) Object.assign(g.fsel.slots[this.local], { ch: s.ch, pal: s.pal }); }
+      if (m.lobby.phase === 'lobby' && this.phase !== 'lobby') { this.phase = 'lobby'; g.goTitle(); n.open(); }
+      this.phase = m.lobby.phase === 'stage' ? 'stage' : this.phase;
+      if (m.lobby.phase === 'select' && this.phase === 'stage') this.phase = 'select';
+      const F = g.fsel;
+      if (F && F.online) this.slots.forEach((s, i) => { if (s && i !== this.local && F.slots[i]) { if (F.slots[i].ch !== s.ch) F.slots[i].moved = g.time; Object.assign(F.slots[i], { ch: s.ch, pal: s.pal, ready: s.ready, present: s.present, name: s.name }); } });
+      if (F && F.online) g.netTags = this.slots.map((s, i) => (i === this.local ? 'YOU' : s ? s.name : ''));
+      n.renderUi();
+    }
+    if (m.go) this.startGuest(m.go);
+    if (m.end) { if (n.playing) n.endGame(m.end); else this.leave(m.end); }
+  }
+  startGuest(go) {
+    const n = this.net, g = this.game;
+    this.phase = 'match'; this.local = go.you;
+    g.setPlayers(3); n.role = 'guest'; n.ffaSlot = go.you;
+    go.chs.forEach((c, i) => { g.p[i].ch = c; g.p[i].pal = go.pals[i]; });
+    this.env.prepare(go.pals);
+    n.startGuest({});
+    g.mode = 'ffa'; g.cpu = [false, false, false]; g.online = 'guest';
+    g.netTags = go.names.map((nm, i) => (i === go.you ? 'YOU' : nm));
+    for (const f of g.p) { f._net = ['idle', 0]; f.frameName = () => f._net; }
+  }
+  hostGone() { if (this.mode !== 'guest') return; const n = this.net; if (n.playing) n.endGame('The host left the match.'); else this.leave(this.phase === 'joining' ? 'Could not connect to ' + this.host.name + '.' : 'The host closed the lobby.'); }
+
+  // ---------- leaving ----------
+  leave(msg, quiet) {
+    const n = this.net;
+    if (this.mode === 'host') { for (const L of this.links) { if (!quiet) this.send(L.p, { end: 'The host closed the lobby.' }); try { L.p.onclose = null; } catch (e) {} setTimeout(() => { try { L.pc.close(); } catch (e) {} }, 300); clearTimeout(L.timer); if (L.state === 'inviting') n.link && n.link.send({ type: 'cancel', to: L.uid }); } }
+    if (this.mode === 'guest' && this.host) { this.send(this.host.p, { bye: 1 }); try { this.host.p && (this.host.p.onclose = null); } catch (e) {} const pc = this.host.pc; setTimeout(() => { try { pc && pc.close(); } catch (e) {} }, 300); }
+    clearTimeout(this.joinT); const wasPlaying = n.playing;
+    this.reset(); n.ffaSlot = null;
+    if (wasPlaying) return;   // endGame() is already taking care of the rest
+    n.dc = null; n.pc = null; n.role = null;
+    if (this.game.phase !== 'title') this.game.goTitle();
+    if (msg) { n.status = msg; n.say(msg); }
+    n.open();
+  }
+  // ---------- the panel (lobby before the character select) ----------
+  body() {
+    const n = this.net, so = n.social || {}, me = this.slots && this.slots[0];
+    const row = (s, i) => {
+      const L = this.links.find(l => l.slot === i);
+      if (!s) return `<div class="on-frow"><span class="on-fdot"></span><b>Slot ${i + 1}</b><span>${this.mode === 'host' ? 'invite a friend below' : 'waiting for a player'}</span></div>`;
+      const st = s.present ? 'in the lobby ✓' : L && L.state === 'connecting' ? 'connecting…' : 'invited — waiting…';
+      return `<div class="on-frow"><span class="on-fdot${s.present ? ' on' : ''}"></span><b>${esc(s.name)}</b><span>${i === 0 ? 'host' : ''}${i === 0 ? ' · ' : ''}${esc(i === 0 ? 'ready to go' : st)}</span><span class="sp"></span>${this.mode === 'host' && i > 0 && L && L.state !== 'joined' ? `<button type="button" data-a="xcancel" data-u="${esc(L.uid)}">CANCEL</button>` : ''}</div>`;
+    };
+    if (this.mode === 'guest' && this.phase === 'joining') return `<div class="on-p2p"><p class="on-p2p-msg">Joining ${esc(this.host.name)}’s free for all…</p><div class="on-actions"><button type="button" data-a="xleave" class="on-main">CANCEL</button></div></div>`;
+    const slots = this.slots || [];
+    const count = slots.filter(s => s && s.present).length;
+    let html = `<div class="on-friends"><span class="on-lbl">Free for all · ${count} / 3 players</span>${slots.map(row).join('')}</div>`;
+    if (this.mode === 'host') {
+      const taken = new Set(this.links.map(l => l.uid)), full = !slots.some((s, i) => i > 0 && !s);
+      const fr = (so.friends || []).map(f => `<div class="on-frow${f.online ? '' : ' off'}"><span class="on-fdot${f.online ? ' on' : ''}"></span><b>${esc(f.name)}</b><span>${esc(f.act)}</span><span class="sp"></span><button type="button" data-a="xinvite" data-u="${esc(f.uid)}" data-n="${esc(f.name)}"${f.online && !/match|lobby/i.test(f.act) && !taken.has(f.uid) && !full ? '' : ' disabled'}>${taken.has(f.uid) ? 'INVITED' : 'INVITE'}</button></div>`).join('');
+      html += `<div class="on-friends"><span class="on-lbl">Invite 2 friends · the character select opens when all 3 are in</span>${fr || '<p class="on-p2p-msg">No friends yet. Add them on the launcher’s FRIENDS panel.</p>'}</div>`;
+    } else html += `<p class="on-p2p-msg">Waiting for ${esc(this.host.name)} to fill the lobby…</p>`;
+    return html + `<div class="on-actions"><button type="button" data-a="xleave">LEAVE</button></div>`;
+  }
+  click(a, b) {
+    if (a === 'xinvite') this.invite(b.dataset.u, b.dataset.n);
+    else if (a === 'xcancel') this.cancelInvite(b.dataset.u);
+    else if (a === 'xleave') this.leave('You left the lobby.');
+  }
 }
 </script>
 <script>/* Blitzy vs Blitzy — browser glue: assets, palettes, keyboard + Xbox controllers, rumble, sound, loop. */
@@ -15457,7 +15750,7 @@ onmessage = e => { const m = e.data; try {
       inputs = playerInputs(pads);
       for (const k in touchKeys) if (touchKeys[k] || touchLatch[k]) inputs[0][k] = true;
       if (net.isOpen) { net.navTick(pads); inputs[0] = blank(); inputs[1] = blank(); }
-      net.selectTick();
+      net.selectTick(); net.ffa.tick();
       if (net.playing && net.role === 'guest') {
         // online guest: my buttons go to the host, the host's fight comes back
         net.guestFrame(inputs[0], real); acc = 0;
@@ -15465,7 +15758,7 @@ onmessage = e => { const m = e.data; try {
       } else {
         const hosting = net.playing && net.role === 'host';
         while (acc >= STEP) {
-          if (hosting) inputs[1] = ['intro', 'fight', 'roundEnd', 'matchEnd'].includes(game.phase) ? net.remoteInput() : blank();
+          if (hosting) for (let k = 1; k < game.p.length; k++) inputs[k] = ['intro', 'fight', 'roundEnd', 'matchEnd'].includes(game.phase) ? net.remoteInput(k) : blank();
           game.update(STEP, inputs, { keys: newKeys, pads: rawPads });
           if (hosting) net.hostAfterStep();
           newKeys = []; rawPads = []; acc -= STEP;
