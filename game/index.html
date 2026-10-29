@@ -2131,6 +2131,7 @@ class Game {
         const was = f.move; f.move = 'rtornado';
         this.applyHit(f, o, last ? { dmg: 46, stun: 520, push: 30, kd: true, ult: true } : { dmg: 15, stun: 300, push: 4, ult: true }, (f.x + o.x) / 2, GROUND - 110, false);
         f.move = was;
+        this.hitstop = last ? Math.min(this.hitstop, 140) : 0; o.hitShake = last ? o.hitShake : 60;   // the spin's small hits don't freeze the game; only the final blow does
         if ((S.tick2 = (S.tick2 || 0) + 1) % 2) this.env.sfx('whoosh');
       }
     }
