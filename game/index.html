@@ -688,7 +688,7 @@ function applyMeasuredBoxes(manifest) {
 const HURT = { stand: [-40, 40, 0, 205], crouch: [-42, 42, 0, 150], air: [-42, 42, -10, 170], airkick: [-40, 60, -70, 150] };
 
 const PALETTES = {
-  crimson: { name: 'CRIMSON', rgb: [216, 58, 70] },
+  crimson: { name: 'DEFAULT', rgb: [216, 58, 70] },   // the original sprite colours (effects use each fighter's own theme)
   jade: { name: 'JADE', rgb: [70, 206, 112] },
   azure: { name: 'AZURE', rgb: [80, 150, 240] },
   violet: { name: 'VIOLET', rgb: [176, 104, 236] },
@@ -1697,7 +1697,7 @@ class Game {
     if (f.ch === 'y4nk' && f.peek('car') && f.meter >= CAR_COST && !(this.cars || []).some(c => c.owner === f)) { f.consume('car'); return this.startCar(f); }
     const atk = f.consume('lp', 'hp', 'lk', 'hk');
     if (atk) return this.startMove(f, f.mv(down ? ((atk === 'lp' || atk === 'hp') ? 'clp' : 'sweep') : atk));
-    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; f._evaded = false; this.env.sfx('whoosh'); this.fx.push({ kind: 'dodge', x: f.x, y: GROUND - 110 - (f.h || 0) - (f.plat || 0), t: 0, life: 360, mirror: f.dir < 0, pal: f.pal }); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
+    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; f._evaded = false; this.env.sfx('whoosh'); this.fx.push({ kind: 'dodge', x: f.x, y: GROUND - 110 - (f.h || 0) - (f.plat || 0), t: 0, life: 360, mirror: f.dir < 0, pal: f.pal, ch: f.ch }); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
     if (f.backTaps.length >= 2 || (f.back() && f.peek('dash'))) { f.consume('dash'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
     if (f.consume('dash') || f.fwdTaps.length >= 2) { f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
     if (up) { f.jdir = f.fwd() ? 1 : f.back() ? -1 : 0; f.airUsed = false; return f.setState('prejump', 'jump_pre'); }
@@ -2395,7 +2395,7 @@ class Game {
       const r = f.box(h.box, (f.h || 0) + (f.plat || 0));
       if (r[0] > hb[1] || r[1] < hb[0] || r[2] > hb[3] || r[3] < hb[2]) continue;
       o._evaded = true;
-      this.fx.push({ kind: 'evade', x: o.x, y: GROUND - 120 - (o.h || 0) - (o.plat || 0), t: 0, life: 520, mirror: o.dir < 0, pal: o.pal });
+      this.fx.push({ kind: 'evade', x: o.x, y: GROUND - 120 - (o.h || 0) - (o.plat || 0), t: 0, life: 520, mirror: o.dir < 0, pal: o.pal, ch: o.ch });
       this.texts.push({ text: 'EVADE!', x: o.x, y: GROUND - 280 - (o.plat || 0), t: 0, life: 700, color: 'cyan', small: true });
       this.env.sfx('whooshH'); return;
     }
@@ -2491,7 +2491,7 @@ class Game {
     if (!ranged) { att.move = null; att.special = null; att.setState('hit', 'hit', true); att.stun = 780; att.slide = away * 260; att.dir = -away; att.combo = 0; }
     this.hitstop = ranged ? 120 : 230; this.flash = 70; this.shake(8);
     this.env.sfx('counter'); this.env.sfx('block'); this.env.rumble(o.id, 0.7, 0.9, 160); if (!ranged) this.env.rumble(att.id, 0.5, 0.4, 260);
-    this.fx.push({ kind: 'parry', x: cx, y: cy, t: 0, life: 640, mirror: away > 0, pal: o.pal });
+    this.fx.push({ kind: 'parry', x: cx, y: cy, t: 0, life: 640, mirror: away > 0, pal: o.pal, ch: o.ch });
     this.texts.push({ text: 'PARRY!', x: o.x, y: GROUND - (o.h || 0) - (o.plat || 0) - 290, t: 0, life: 800, color: 'violet' });
   }
   guardBreak(o, att, quiet) {
@@ -12051,7 +12051,10 @@ const COL = {
 };
 const FD = 'D', FS = 'S';   // pixel faces from pixfont.js: D = Blade display, S = Edge label
 const PALX = k => PALETTES[k] || PALETTES.crimson;   // an unknown colour name (old save, other version) never crashes
-const palCss = (k, a = 1) => { const [r, g, b] = PALX(k).rgb; return `rgba(${r},${g},${b},${a})`; };
+// DEFAULT (the original sprite colours) has no tint of its own: its glow, trails and effects use each fighter's own theme
+const THEME = { blitzy: [216, 58, 70], y4nk: [86, 178, 104], rusty: [118, 204, 74], cowboy: [226, 122, 54] };
+const palRgb = (k, ch) => (k === 'crimson' || !PALETTES[k]) && ch && THEME[ch] ? THEME[ch] : PALX(k).rgb;
+const palCss = (k, a = 1, ch) => { const [r, g, b] = palRgb(k, ch); return `rgba(${r},${g},${b},${a})`; };
 const PX = 4;   // stage pixel size
 // lying frames: only a heel or hand reaches the floor line, so sink the body onto the floor
 const LOWER = { ko: { 9: 14, 10: 14, 11: 14 }, koair: { 11: 14, 12: 14 }, kip: { 0: 14, 1: 14 }, situp: { 0: 14, 1: 14, 2: 8, 3: 4 } };
@@ -13005,7 +13008,7 @@ class View {
     for (const { a, ix } of actors) if ((a.drawH || 0) > -2) this.shadow(ctx, ix, a.drawH || a.h || 0, ['down', 'knock', 'koair'].includes(a.state) && !(a.anim && ['kostand', 'koairko'].includes(a.anim.name)), a.plat || 0);
     if (g.groundBreak) this.drawGroundBreak(ctx, g.groundBreak, t);
     // afterimages
-    for (const { a, pal } of actors) for (const e of a.trail || []) this.drawSprite(ctx, pal, e.n, e.i, e.x, e.h, e.dir, { tint: palCss(pal, 0.75), alpha: 0.42 * (1 - e.t / 220) });
+    for (const { a, pal } of actors) for (const e of a.trail || []) this.drawSprite(ctx, pal, e.n, e.i, e.x, e.h, e.dir, { tint: palCss(pal, 0.75, a.ch), alpha: 0.42 * (1 - e.t / 220) });
     actors.sort((p, q) => (p.a.move ? 1 : 0) - (q.a.move ? 1 : 0));
     // Blitzy's victory: Roberto the robot horse walks in from behind and stands next to him
     for (const f of g.p) {
@@ -13019,12 +13022,12 @@ class View {
     for (const { a, pal, clone, ix, ih } of actors) {
       const [n, i] = a.frameName();
       const shakeX = a.hitShake > 0 ? ((Math.floor(t / 33) % 2) ? 4 : -4) : 0;
-      const opts = clone ? { tint: palCss(pal, 0.38), alpha: 0.9, dx: 0 } : { dx: shakeX, actor: a.id };
+      const opts = clone ? { tint: palCss(pal, 0.38, a.owner && a.owner.ch), alpha: 0.9, dx: 0 } : { dx: shakeX, actor: a.id };
       if (a.state === 'dash' && a.bdash && a.ch !== 'cowboy') opts.fxDir = -a.dir;
-      if (!clone && a.state === 'dash' && a.dodge) { opts.alpha = 0.4 + 0.12 * Math.sin(t / 30); opts.tint = palCss(pal, 0.35); }
+      if (!clone && a.state === 'dash' && a.dodge) { opts.alpha = 0.4 + 0.12 * Math.sin(t / 30); opts.tint = palCss(pal, 0.35, a.ch); }
       if (!clone && a.state === 'dash' && a.dodge && !(g.superFlash && g.superFlash.owner === a)) {   // dodge afterimages: two coloured ghosts sliding out behind and snapping back
         const ph = Math.min(1, a.anim.fi / Math.max(1, a.anim.durs.length - 1)), sp = Math.sin(ph * Math.PI);
-        const [R0, G0, B0] = PALX(pal).rgb, ghost = `rgba(${Math.min(255, R0 + 110)},${Math.min(255, G0 + 110)},${Math.min(255, B0 + 110)},0.92)`;
+        const [R0, G0, B0] = palRgb(pal, a.ch), ghost = `rgba(${Math.min(255, R0 + 110)},${Math.min(255, G0 + 110)},${Math.min(255, B0 + 110)},0.92)`;
         for (const [k, al] of [[2, 0.32], [1, 0.5]]) this.drawSprite(ctx, pal, n, i, ix, ih, a.dir, { dx: (opts.dx || 0) - a.dir * Math.round(k * 26 * sp / 4) * 4, alpha: al * (0.45 + 0.55 * sp), tint: ghost });
       }   // (Blitzy's back dash has its own effect art)   // dash dust trails behind the way he actually moves
       if (g.superFlash && g.superFlash.owner === a) opts.tint = `rgba(255,224,170,${0.25 + 0.2 * Math.sin(t / 40)})`;
@@ -13282,7 +13285,7 @@ class View {
     if (e.kind === 'hitfx') return this.drawHitFx(ctx, e);
     if (e.kind === 'mlight') {
       // muzzle light: a hard-stepped glow in the shooter's colour that flares and dies in a few frames
-      const k = 1 - e.t / e.life, P = PALETTES[(e.owner && e.owner.pal) || 'crimson'] || PALETTES.crimson, [R, G, B] = P.rgb;
+      const k = 1 - e.t / e.life, [R, G, B] = palRgb(e.owner && e.owner.pal, e.owner && e.owner.ch);
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (const [rad, a] of [[78, 0.10], [52, 0.16], [30, 0.26], [14, 0.5]]) {
         const r = Math.round(rad * (0.75 + 0.25 * k)), cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
@@ -13293,7 +13296,7 @@ class View {
     }
     if (e.kind === 'dodge') {
       // dodge: wind streaks whip backwards off the body and a ring of air puffs out at the feet
-      const k = e.t / e.life, P = PALETTES[e.pal] || { rgb: [200, 235, 255] }, [R, G, B] = P.rgb, cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4, back = e.mirror ? 1 : -1;
+      const k = e.t / e.life, [R, G, B] = e.pal ? palRgb(e.pal, e.ch) : [200, 235, 255], cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4, back = e.mirror ? 1 : -1;
       const light = `rgba(${Math.min(255, R + 140)},${Math.min(255, G + 140)},${Math.min(255, B + 140)},`;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (let q = 0; q < 7; q++) {
@@ -13308,7 +13311,7 @@ class View {
     }
     if (e.kind === 'evade') {
       // an attack passed through the dodge: a bright slash glint, a burst of pixel sparks and a ring
-      const k = e.t / e.life, P = PALETTES[e.pal] || { rgb: [111, 211, 230] }, [R, G, B] = P.rgb, cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
+      const k = e.t / e.life, [R, G, B] = e.pal ? palRgb(e.pal, e.ch) : [111, 211, 230], cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
       const light = `rgb(${Math.min(255, R + 130)},${Math.min(255, G + 130)},${Math.min(255, B + 130)})`;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       const gl = Math.round((1 - k) * 110 / 4) * 4; ctx.fillStyle = `rgba(255,255,255,${1 - k})`;
@@ -13321,7 +13324,7 @@ class View {
     }
     if (e.kind === 'parry') {
       // timed parry: a white flash, then a ring of light in the parrier's colour bursting outward, with shards and a cross glint
-      const k = e.t / e.life, P = PALETTES[e.pal] || PALETTES.crimson, [R, G, B] = P.rgb, cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
+      const k = e.t / e.life, [R, G, B] = palRgb(e.pal, e.ch), cx = Math.round(e.x / 4) * 4, cy = Math.round(e.y / 4) * 4;
       const light = `rgb(${Math.min(255, R + 120)},${Math.min(255, G + 120)},${Math.min(255, B + 120)})`;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       if (e.t < 80) { const r = Math.round((44 - e.t * 0.2) / 4) * 4; ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - e.t / 80)})`; for (let y = -r; y <= r; y += 4) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y)) / 4) * 4; ctx.fillRect(cx - w, cy + y, w * 2, 4); } }
@@ -13395,7 +13398,7 @@ class View {
     const KEY = { blitzy: 'idle', y4nk: 'y:idle', rusty: 'r:idle', cowboy: 'c:idle' };
     const joinHint = ['', 'P2: PRESS A · NUM 4 TO JOIN', '3RD CONTROLLER: PRESS A TO JOIN'];
     F.slots.forEach((s2, i) => {
-      const w = 372, h = 486, x = 28 + i * (w + 26), y = 128, ch = CHAR_ORDER[s2.ch], pal = PAL_ORDER[s2.pal], C = CHARS[ch], col = palCss(pal);
+      const w = 372, h = 486, x = 28 + i * (w + 26), y = 128, ch = CHAR_ORDER[s2.ch], pal = PAL_ORDER[s2.pal], C = CHARS[ch], col = palCss(pal, 1, ch);
       this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.88)', s2.human ? col : COL.line);
       ctx.fillStyle = s2.human ? col : '#2a1e3a'; ctx.fillRect(x, y, w, 40);
       const O = F.online, label = O ? (i === O.local ? 'YOU' : String(s2.name || (g.netTags && g.netTags[i]) || `P${i + 1}`)) : s2.human ? `P${i + 1}` : `CPU ${i + 1}`;
@@ -13434,7 +13437,7 @@ class View {
     // a fighter up on a high platform shows through the panels
     const camX = g.cam.x, heads = g.p.filter(f => !f.hidden).map(f => ({ x: f.x - camX, top: GROUND - (f.h || 0) - (f.plat || 0) - 290 }));
     g.p.forEach((f, i) => {
-      const x = 20 + i * (w + gap), col = palCss(f.pal), out = f.ko || f.hp <= 0;
+      const x = 20 + i * (w + gap), col = palCss(f.pal, 1, f.ch), out = f.ko || f.hp <= 0;
       const behind = heads.some(hd => hd.top < y + h && hd.x > x - 60 && hd.x < x + w + 60);
       ctx.save(); if (behind) ctx.globalAlpha = 0.38;
       this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.86)', out ? COL.line : col);
@@ -13474,7 +13477,7 @@ class View {
       if (f.hidden || g.trip) return;
       const sx = f.x - camX, m = 26;
       if (sx >= m && sx <= VW - m) return;
-      const left = sx < m, ax = left ? 40 : VW - 40, ay = Math.max(190, Math.min(GROUND - 70, GROUND - (f.h || 0) - (f.plat || 0) - 130)), col = palCss(f.pal), out = f.ko || f.hp <= 0;
+      const left = sx < m, ax = left ? 40 : VW - 40, ay = Math.max(190, Math.min(GROUND - 70, GROUND - (f.h || 0) - (f.plat || 0) - 130)), col = palCss(f.pal, 1, f.ch), out = f.ko || f.hp <= 0;
       const bob = Math.sin(t / 160) * 3 * (left ? -1 : 1);
       ctx.save(); ctx.globalAlpha = out ? 0.5 : 1;
       // arrow
@@ -13502,7 +13505,7 @@ class View {
     g.p.forEach((f, i) => {
       const L = i === 0, px = L ? 22 : VW - 22 - 84, bx = L ? 120 : VW - 120 - BW;
       // portrait
-      this.box(ctx, px, 22, 84, 84, COL.night, palCss(f.pal));
+      this.box(ctx, px, 22, 84, 84, COL.night, palCss(f.pal, 1, f.ch));
       const pt = this.portrait(f.pal, f);
       if (L) ctx.drawImage(pt, px + 2, 24, 80, 80); else { ctx.save(); ctx.translate(px + 82, 24); ctx.scale(-1, 1); ctx.drawImage(pt, 0, 0, 80, 80); ctx.restore(); }
       // health
@@ -13552,7 +13555,7 @@ class View {
         if (f.element) this.drawElemChamber(ctx, f, cx, cy, sz);
         // a crackle of sparks round the fresh round as the cylinder locks
         if (u > 0.55 && g.time - S.at < S.dur + 160 && S.to > S.from) {
-          const P = PALETTES[f.pal] || PALETTES.crimson, [R2, G2, B2] = P.rgb, tx = Math.round(cx), ty = Math.round(cy - 53 * k);
+          const [R2, G2, B2] = palRgb(f.pal, f.ch), tx = Math.round(cx), ty = Math.round(cy - 53 * k);
           ctx.fillStyle = `rgb(${Math.min(255, R2 + 90)},${Math.min(255, G2 + 90)},${Math.min(255, B2 + 90)})`;
           for (let q = 0; q < 5; q++) { const an = (g.time / 40 + q * 1.3) % 6.28, rr = 6 + (q % 2) * 2; ctx.fillRect(Math.round(tx + Math.cos(an) * rr), Math.round(ty + Math.sin(an) * rr), 1, 2); }
         }
@@ -13562,7 +13565,7 @@ class View {
       const tag = g.netTags ? g.netTags[i] : i === 0 ? (g.mode === 'watch' ? 'CPU' : 'P1') : (g.cpu[1] ? 'CPU' : g.mode === 'training' ? 'DUMMY' : 'P2');
       this.text(ctx, f.C.name, L ? bx : bx + BW, BY + BH + 36, 36, COL.paper, L ? 'left' : 'right');
       const nw = this.textW(f.C.name, 36) + 12;
-      this.text(ctx, `${PALETTES[f.pal].name} · ${tag}`, L ? bx + nw : bx + BW - nw, BY + BH + 32, 15, palCss(f.pal), L ? 'left' : 'right', FS, COL.ink, 4);
+      this.text(ctx, `${PALETTES[f.pal].name} · ${tag}`, L ? bx + nw : bx + BW - nw, BY + BH + 32, 15, palCss(f.pal, 1, f.ch), L ? 'left' : 'right', FS, COL.ink, 4);
       // round wins as shuriken
       if (g.mode !== 'training') for (let k = 0; k < g.settings.rounds; k++) this.drawShuri(ctx, L ? bx + BW - 14 - k * 34 : bx + 14 + k * 34, BY + BH + 22, 3, false, k >= f.wins);
       // smoke meter
@@ -13618,7 +13621,7 @@ class View {
     const x = -VW * (1 - k) + VW * out;
     ctx.save(); ctx.translate(x, 0);
     ctx.fillStyle = 'rgba(18,13,28,0.92)'; ctx.fillRect(0, y, VW, 150);
-    ctx.fillStyle = palCss(sf.owner.pal); ctx.fillRect(0, y, VW, 6); ctx.fillRect(0, y + 144, VW, 6);
+    ctx.fillStyle = palCss(sf.owner.pal, 1, sf.owner.ch); ctx.fillRect(0, y, VW, 6); ctx.fillRect(0, y + 144, VW, 6);
     for (let i = 0; i < 18; i++) { ctx.fillStyle = 'rgba(180,156,255,0.12)'; ctx.fillRect(((i * 97 + sf.t * 3) % (VW + 200)) - 100, y + 14 + (i * 23) % 120, 120, 3); }
     const pt = this.portrait(sf.owner.pal, sf.owner);
     ctx.drawImage(pt, 120, y - 10 + 5, 160, 160);
@@ -13869,15 +13872,15 @@ class View {
       cowboy: { sub: 'THE IRON GUNSLINGER', move: 'ELEMENTAL ROUND', st: [3, 3, 5, 3, 4] },
     };
     const HEAD = { blitzy: 137, y4nk: 150, rusty: 164, cowboy: 140 }, KEY = ch => ch === 'y4nk' ? 'y:idle' : ch === 'rusty' ? 'r:idle' : ch === 'cowboy' ? 'c:idle' : 'idle';
-    const pcol = p => p === 0 ? COL.amber : COL.cyan, pal = p => PAL_ORDER[S.idx[p]];
+    const pcol = p => p === 0 ? COL.amber : COL.cyan, pal = p => PAL_ORDER[S.idx[p]], chOf = p => CHAR_ORDER[S.ch[p]];
     // backdrop: two diagonal halves in each player's colour with slow moving stripes
     ctx.fillStyle = '#0d0a16'; ctx.fillRect(0, 0, VW, VH);
     [0, 1].forEach(p => {
-      const c = palCss(pal(p), 0.22), L = p === 0;
+      const c = palCss(pal(p), 0.22, chOf(p)), L = p === 0;
       ctx.save(); ctx.beginPath();
       if (L) { ctx.moveTo(0, 0); ctx.lineTo(VW / 2 + 120, 0); ctx.lineTo(VW / 2 - 120, VH); ctx.lineTo(0, VH); } else { ctx.moveTo(VW, 0); ctx.lineTo(VW / 2 + 128, 0); ctx.lineTo(VW / 2 - 112, VH); ctx.lineTo(VW, VH); }
       ctx.closePath(); ctx.clip(); ctx.fillStyle = c; ctx.fillRect(0, 0, VW, VH);
-      ctx.fillStyle = palCss(pal(p), 0.07); const off = (t / 30) % 64;
+      ctx.fillStyle = palCss(pal(p), 0.07, chOf(p)); const off = (t / 30) % 64;
       for (let x = -VH; x < VW + VH; x += 64) { ctx.beginPath(); ctx.moveTo(x + off * (L ? 1 : -1), 0); ctx.lineTo(x + 24 + off * (L ? 1 : -1), 0); ctx.lineTo(x + 24 - VH * 0.33 + off * (L ? 1 : -1), VH); ctx.lineTo(x - VH * 0.33 + off * (L ? 1 : -1), VH); ctx.fill(); }
       ctx.restore();
     });
@@ -13905,9 +13908,9 @@ class View {
         return;
       }
       // stand + glow in the chosen colour
-      ctx.fillStyle = palCss(k, 0.18); ctx.beginPath(); ctx.ellipse(x, floor, 150, 26, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = palCss(k, 0.45); ctx.beginPath(); ctx.ellipse(x, floor, 100, 14, 0, 0, Math.PI * 2); ctx.fill();
-      for (let i = 0; i < 6; i++) { const ph = ((t / 900 + i / 6) % 1); ctx.fillStyle = palCss(k, 0.5 * (1 - ph)); ctx.fillRect(Math.round(x - 90 + i * 34 + Math.sin(i * 3 + t / 400) * 8), Math.round(floor - ph * 220), 3, 3); }
+      ctx.fillStyle = palCss(k, 0.18, ch); ctx.beginPath(); ctx.ellipse(x, floor, 150, 26, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = palCss(k, 0.45, ch); ctx.beginPath(); ctx.ellipse(x, floor, 100, 14, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 6; i++) { const ph = ((t / 900 + i / 6) % 1); ctx.fillStyle = palCss(k, 0.5 * (1 - ph), ch); ctx.fillRect(Math.round(x - 90 + i * 34 + Math.sin(i * 3 + t / 400) * 8), Math.round(floor - ph * 220), 3, 3); }
       const key = KEY(ch), n = (this.mf[key] || [0]).length, fr = this.frameCanvas(k, key, Math.floor(t / 100) % n), sc = 1.4;   // same scale for everyone, so heights match the fight
       const since = t - (S.moved ? S.moved[p] : 0), slide = Math.max(0, 1 - since / 180), dx = (L ? -1 : 1) * 60 * slide * slide;
       // the fighter is drawn last, over the roster cards and plates, so a big one like Rusty is never cut off
@@ -13921,13 +13924,13 @@ class View {
       const nx = L ? 40 : VW - 40, al = L ? 'left' : 'right';
       this.text(ctx, S.online ? (p === S.local ? 'YOU' : String(S.oppName || 'CHALLENGER').toUpperCase().slice(0, 14)) : g.mode === 'training' && !L ? 'DUMMY' : L ? '1P' : '2P', nx, 168, 22, pcol(p), al, FD, COL.ink, 5);
       this.text(ctx, CHARS[ch].name, nx, 222, 64, COL.paper, al, FD, COL.ink, 8);
-      this.text(ctx, I.sub, nx, 246, 14, palCss(k), al, FS, COL.ink, 4);
+      this.text(ctx, I.sub, nx, 246, 14, palCss(k, 1, ch), al, FS, COL.ink, 4);
       this.text(ctx, '★ ' + I.move, nx, 272, 13, COL.amber, al, FS, COL.ink, 4);
       // stats
       ['POWER', 'SPEED', 'RANGE', 'GUARD', 'HEALTH'].forEach((lb, j) => {
         const y = 300 + j * 22, bx = L ? nx + 84 : nx - 84 - 5 * 18;
         this.text(ctx, lb, L ? nx : nx, y + 11, 12, COL.muted, al, FS, COL.ink, 3);
-        for (let q = 0; q < 5; q++) { const on = q < I.st[j]; ctx.fillStyle = '#05030a'; ctx.fillRect(bx + q * 18, y, 16, 12); ctx.fillStyle = on ? palCss(k) : '#2a2238'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 8); if (on) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 2); } }
+        for (let q = 0; q < 5; q++) { const on = q < I.st[j]; ctx.fillStyle = '#05030a'; ctx.fillRect(bx + q * 18, y, 16, 12); ctx.fillStyle = on ? palCss(k, 1, ch) : '#2a2238'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 8); if (on) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 2); } }
       });
       // colour picker: a column of chips, the chosen one big and ringed
       const cxp = L ? x + 190 : x - 190;
@@ -13936,14 +13939,14 @@ class View {
         if (a <= 0) return;
         const sel = j === S.idx[p], r = sel ? 13 : 8, taken = S.humans[1 - p] && S.ready[1 - p] && S.idx[1 - p] === j && S.ch[1 - p] === S.ch[p];
         ctx.globalAlpha = a; ctx.fillStyle = '#05030a'; ctx.beginPath(); ctx.arc(cxp, y, r + 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = palCss(pk); ctx.beginPath(); ctx.arc(cxp, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = palCss(pk, 1, ch); ctx.beginPath(); ctx.arc(cxp, y, r, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(cxp - r / 2, y - r / 2, r / 2, 2);
         if (taken) { ctx.strokeStyle = COL.red; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cxp - r, y + r); ctx.lineTo(cxp + r, y - r); ctx.stroke(); }
         if (sel) { ctx.strokeStyle = pcol(p); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cxp, y, r + 7, 0, Math.PI * 2); ctx.stroke(); }
         ctx.globalAlpha = 1;
       });
       if (!ready) { ctx.fillStyle = pcol(p); for (let q = 0; q < 6; q++) { ctx.fillRect(cxp - 6 + q, 350 - q * 2 + 10, 12 - q * 2, 2); ctx.fillRect(cxp - 6 + q, 452 + q * 2 - 10, 12 - q * 2, 2); } }
-      this.text(ctx, PALETTES[k].name, cxp, 482, 13, palCss(k), 'center', FS, COL.ink, 4);
+      this.text(ctx, PALETTES[k].name, cxp, 482, 13, palCss(k, 1, ch), 'center', FS, COL.ink, 4);
       // ready stamp
       if (ready) {
         const rt = t - ((S.readyT && S.readyT[p]) || 0), pop = Math.max(1, 1.6 - rt / 120);
@@ -13962,7 +13965,7 @@ class View {
       const x = rx0 + i * (cw + gap), hov = [0, 1].filter(p => S.humans[p] && S.ch[p] === i && !(S.online && p !== S.local && !S.present)), pk = hov.length ? pal(hov[0]) : 'onyx';
       ctx.save(); ctx.translate(x + cw / 2, ry + chh / 2); ctx.transform(1, 0, -0.12, 1, 0, 0);
       ctx.fillStyle = '#05030a'; ctx.fillRect(-cw / 2 - 4, -chh / 2 - 4, cw + 8, chh + 8);
-      ctx.fillStyle = hov.length ? palCss(pk, 0.55) : '#1b1430'; ctx.fillRect(-cw / 2, -chh / 2, cw, chh);
+      ctx.fillStyle = hov.length ? palCss(pk, 0.55, chOf(hov[0])) : '#1b1430'; ctx.fillRect(-cw / 2, -chh / 2, cw, chh);
       ctx.beginPath(); ctx.rect(-cw / 2, -chh / 2, cw, chh); ctx.clip();
       const key = KEY(ch), top = this.mf[key] ? this.mf[key][0][6] : 30, hx = HEAD[ch], c = this.frameCanvas(hov.length ? pk : 'crimson', key, 0, [hx - 70, top - 6, 140, 180]);
       ctx.imageSmoothingEnabled = false; ctx.globalAlpha = hov.length ? 1 : 0.55; ctx.drawImage(c, -cw / 2 - 18, -chh / 2 + 2, 140, 180); ctx.globalAlpha = 1;
@@ -13993,9 +13996,9 @@ class View {
   drawVs(ctx) {
     const g = this.g, A = g.arc, t = g.pt, k = Math.min(1, t / 300);
     this.dimAll(ctx, 0.35);
-    ctx.fillStyle = palCss(g.p[0].pal, 0.85); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(VW / 2 + 80, 0); ctx.lineTo(VW / 2 - 80, VH); ctx.lineTo(0, VH); ctx.closePath();
+    ctx.fillStyle = palCss(g.p[0].pal, 0.85, g.p[0].ch); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(VW / 2 + 80, 0); ctx.lineTo(VW / 2 - 80, VH); ctx.lineTo(0, VH); ctx.closePath();
     ctx.save(); ctx.translate(-VW * (1 - k), 0); ctx.fill(); ctx.restore();
-    ctx.fillStyle = palCss(g.p[1].pal, 0.85); ctx.beginPath(); ctx.moveTo(VW, 0); ctx.lineTo(VW / 2 + 84, 0); ctx.lineTo(VW / 2 - 76, VH); ctx.lineTo(VW, VH); ctx.closePath();
+    ctx.fillStyle = palCss(g.p[1].pal, 0.85, g.p[1].ch); ctx.beginPath(); ctx.moveTo(VW, 0); ctx.lineTo(VW / 2 + 84, 0); ctx.lineTo(VW / 2 - 76, VH); ctx.lineTo(VW, VH); ctx.closePath();
     ctx.save(); ctx.translate(VW * (1 - k), 0); ctx.fill(); ctx.restore();
     this.dimAll(ctx, 0.35);
     const p0 = this.portrait(g.p[0].pal, g.p[0]), p1 = this.portrait(g.p[1].pal, g.p[1]);
@@ -14015,10 +14018,10 @@ class View {
     const w = 720, x = VW / 2 - w / 2, y = 64, n = g.menuDef('results').items.length;
     this.box(ctx, x, y, w, 404 + (n - 1) * 46 + 30, 'rgba(27,20,48,0.96)', COL.line);
     const champ = g.champ;
-    this.text(ctx, `${g.winnerTag(champ)} WINS`, VW / 2, y + 66, 64, palCss(champ.pal));
+    this.text(ctx, `${g.winnerTag(champ)} WINS`, VW / 2, y + 66, 64, palCss(champ.pal, 1, champ.ch));
     const rows = [['HITS LANDED', 'hits'], ['DAMAGE', 'dmg'], ['BEST COMBO', 'maxCombo'], ['BLOCKS', 'blocks'], ['SUPERS', 'specials']];
     const c0 = x + 60, N = g.p.length, colX = j => x + w - 80 - (N - 1 - j) * (N > 2 ? 140 : 170);
-    g.p.forEach((f, j) => this.text(ctx, g.winnerTag(f), colX(j), y + 112, 16, palCss(f.pal), 'center', FS, COL.ink, 4));
+    g.p.forEach((f, j) => this.text(ctx, g.winnerTag(f), colX(j), y + 112, 16, palCss(f.pal, 1, f.ch), 'center', FS, COL.ink, 4));
     rows.forEach(([label, k], i) => {
       const yy = y + 150 + i * 36, vals = g.p.map(f => f.stats[k]), top = Math.max(...vals);
       ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 30, yy - 24, w - 60, 34);
@@ -15925,7 +15928,7 @@ onmessage = e => { const m = e.data; try {
   const extra = {};
   const bleepSrc = new Audio('bleep.mp3'); bleepSrc.preload = 'auto';
   // stage songs: Al Namas and the underground pit
-  const songs = { namas: new Audio('alnamas_song.mp3'), pit: new Audio('pit_song.mp3'), title: new Audio('menu_song.mp3') };   // title = the menu music (title, select, VS)
+  const songs = { namas: new Audio('alnamas_song.mp3'), pit: new Audio('pit_song.mp3'), title: new Audio('main_theme.mp3') };   // title = the main theme (title, select, VS), levelled to match the game's own music
   for (const a of Object.values(songs)) { a.loop = true; a.preload = 'auto'; }
   let song = songs.namas;
   // browsers only start audio after the player touches the page: start the waiting song on the first click or key
