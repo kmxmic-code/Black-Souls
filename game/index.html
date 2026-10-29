@@ -716,7 +716,11 @@ const KEY_DEFAULT = [
   { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', dodge: 'Numpad8', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
 ];
 const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7 };   // RB guards, LT super / reload, RT dodges
-const KD_HITS = 8;   // hits in a row before a knockdown
+const KD_HITS = 8;
+// free for all: floating platforms (one-way: jump up through them, land on top, hold down to drop through)
+// x1..x2 is the walkable top, top is its height above the floor
+const FFA_PLATFORMS = [{ x1: 330, x2: 690, top: 175 }, { x1: 1310, x2: 1670, top: 175 }, { x1: 800, x2: 1200, top: 320 }];
+const FFA_MAX_SEP = 1180;   // hits in a row before a knockdown
 const blank = () => { const s = {}; ACTIONS.forEach(b => s[b] = false); return s; };
 const newStats = () => ({ hits: 0, dmg: 0, maxCombo: 0, blocks: 0, specials: 0 });
 
@@ -751,7 +755,7 @@ class Fighter {
     Object.assign(this, {
       x, px: x, dir, h: 0, vx: 0, vy: 0, hp: MAX_HP, dmgTrail: MAX_HP, state: 'idle', st: 0, move: null,
       hitDone: new Set(), stun: 0, slide: 0, combo: 0, comboDmg: 0, juggle: 0, hidden: false, drawH: 0,
-      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, dodge: false, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
+      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, dodge: false, plat: 0, noLand: 0, dropT: 0, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
       connected: false, connectT: -1e9, trail: [], hitShake: 0, refill: 0, lastFall: 'ko', lift0: 0, _dfi: -1, _kfi: -1,
     });
     this.anim.set('idle', true);
@@ -787,7 +791,7 @@ class Fighter {
     if (this.state === 'dash' && this.dodge && this.anim && this.anim.fi < Math.ceil(this.anim.durs.length * 0.6)) return null;   // dodging
     const k = this.state === 'airkick' ? 'airkick' : !this.grounded ? 'air' : this.isCrouching ? 'crouch' : 'stand';
     const own = HURT_BY && HURT_BY[this.ch === 'rusty' && this.feral ? 'feral' : this.ch], b = (own && own[k === 'airkick' ? 'air' : k]) || HURT[k];
-    return this.box(b, this.h);
+    return this.box(b, this.h + (this.plat || 0));
   }
   box(b, h) { const x0 = this.x + this.dir * b[0], x1 = this.x + this.dir * b[1]; return [Math.min(x0, x1), Math.max(x0, x1), b[2] + h, b[3] + h]; }
   fwd() { return this.dir > 0 ? this.input.held('r') : this.input.held('l'); }
@@ -947,7 +951,7 @@ class Game {
 
   // ---------- flow ----------
   goTitle() {
-    this.setPlayers(2);
+    this.setPlayers(2); this.platforms = null;
     this.phase = 'title'; this.mode = null; this.stack = [{ id: 'main', sel: 0 }]; this.clones = []; this.fx = []; this.texts = [];
     this.cam.zoom = this.cam.zoomTo = 1; this.koFx = null; this.superFlash = null; this.banner = null;
     this.env.music('title');
@@ -1074,6 +1078,7 @@ class Game {
   }
   startRound() {
     if (!this.nextArena || this.nextArena === this.stage) this.nextArena = randomStage(this.stage);
+    this.platforms = this.ffa ? FFA_PLATFORMS : null; this.p.forEach(f => { f.plat = 0; f.noLand = 0; f.dropT = 0; });
     if (this.ffa) { this.p[0].reset(STAGE_W / 2 - 360, 1); this.p[1].reset(STAGE_W / 2 + 360, -1); this.p[2].reset(STAGE_W / 2, 1); this.p.forEach(f => { f.target = null; f.lastHitBy = null; }); }
     else { this.p[0].reset(STAGE_W / 2 - 230, 1); this.p[1].reset(STAGE_W / 2 + 230, -1); }
     this.clones = []; this.fx = []; this.parts = []; this.texts = []; this.koFx = null; this.superFlash = null; this.hitstop = 0; this.trip = null; this.rocks = []; this.cars = []; this.wallSeq = null; this.mapBreak = null; this.walls = [null, null];
@@ -1318,7 +1323,7 @@ class Game {
       this.p.forEach((f, i) => {
         let src = inputs[i];
         if (this.netPause && this.online === 'host' && i === 0) src = blank();
-        if (this.cpu[i]) src = this.ai[i].think(f, this.foe(f), this, dt);
+        if (this.cpu[i]) { const fo = this.foe(f); src = this.ai[i].think(f, fo, this, dt); if (this.platforms) src = this.aiPlatforms(f, fo, src, dt); }
         else if (this.mode === 'training' && i === 1) src = this.training.dummy === 'cpu' ? this.ai[1].think(f, this.p[0], this, dt) : this.dummy.think(f, this.p[0], this, this.training.dummy);
         f.input.feed(src);
       });
@@ -1461,6 +1466,55 @@ class Game {
     }
   }
 
+  // ---------- platforms (free for all) ----------
+  platformStep(f, prevAbs, dt) {
+    const P = this.platforms, on = p => f.x >= p.x1 && f.x <= p.x2;
+    if (f.noLand > 0) f.noLand -= dt;
+    if (f.hidden || f.state === 'carried' || f.state === 'wallfly' || this.trip) { if (f.plat && f.state === 'carried') { f.plat = 0; } return; }
+    const abs = (f.h || 0) + (f.plat || 0), air = ['air', 'airkick', 'hita'].includes(f.state);
+    if (f.plat > 0) {
+      const cur = P.find(p => p.top === f.plat && on(p));
+      if (!cur) {
+        // off the edge of the platform
+        if (['knock', 'down', 'getup', 'koair', 'special', 'cannon', 'transform', 'untransform'].includes(f.state)) { const p = P.find(q => q.top === f.plat); if (p) f.x = Math.max(p.x1, Math.min(p.x2, f.x)); }
+        else {
+          f.h = abs; f.plat = 0; f.noLand = 120;
+          if (!air) { const hit = f.state === 'hit' || f.state === 'hitc'; f.move = null; f.setState(hit ? 'hita' : 'air', hit ? 'hita' : 'air', true); f.vy = 0; f.vx = f.slide ? Math.sign(f.slide) * 160 : 0; f.slide = 0; f.jdir = 0; }
+        }
+        return;
+      }
+      // hold down on a platform to drop through it
+      if (f.state === 'crouch' && f.input && f.input.held('d') && !f.cpuDropBlock) { f.dropT += dt; if (f.dropT > 260) { f.dropT = 0; f.h = abs; f.plat = 0; f.noLand = 260; f.setState('air', 'air', true); f.vy = 0; f.vx = 0; f.jdir = 0; } }
+      else f.dropT = 0;
+      return;
+    }
+    // falling onto a platform from above
+    if (air && f.noLand <= 0 && f.vy <= 0) {
+      for (const p of P) if (on(p) && prevAbs >= p.top - 2 && abs < p.top + 1 && p.top > (f.plat || 0)) { f.plat = p.top; f.h = 0.01; break; }
+    }
+  }
+  standHeight(f) { return (f.h || 0) + (f.plat || 0); }
+  // CPU fighters chase their target between floors: jump up to them, drop down to them
+  aiPlatforms(f, o, s, dt) {
+    const dh = this.standHeight(o) - this.standHeight(f), dx = Math.abs(o.x - f.x), grounded = f.grounded && !['knock', 'down', 'getup', 'attack', 'special'].includes(f.state);
+    f._aiPlatT = (f._aiPlatT || 0) - dt;
+    if (!grounded || o.ko) return s;
+    if (dh > 120 && o.grounded && dx < 300 && f._aiPlatT <= 0) {   // they are above: jump up towards them
+      f._aiPlatT = 700 + rnd() * 600;
+      const t = blank(); t.u = true; t[o.x > f.x ? 'r' : 'l'] = true; return t;
+    }
+    if (dh < -120 && f.plat > 0 && dx < 360 && f._aiPlatT <= 0) { const t = blank(); t.d = true; return t; }   // they are below: drop through
+    // now and then take the high ground: hop onto a platform overhead, or up to the next floor
+    if (f._aiPlatT <= 0) {
+      f._aiPlatT = 900 + rnd() * 900;
+      const here = this.standHeight(f), up = this.platforms.find(p => p.top > here && p.top - here < 260 && f.x > p.x1 - 60 && f.x < p.x2 + 60);
+      if (up && rnd() < (dx > 260 ? 0.55 : 0.3)) { const t = blank(); t.u = true; const mid = (up.x1 + up.x2) / 2; if (Math.abs(mid - f.x) > 60) t[mid > f.x ? 'r' : 'l'] = true; return t; }
+      if (f.plat > 0 && dh < -60 && rnd() < 0.4) { f._aiPlatT = 500; const t = blank(); t.d = true; return t; }
+    }
+    if (f.plat > 0 && dh < -60 && f.state === 'crouch' && f._aiPlatT > 0 && f._aiPlatT < 520) { const t = blank(); t.d = true; return t; }   // keep holding down until they drop
+    return s;
+  }
+
   // ---------- who each fighter is fighting ----------
   // 1v1: the other one. Free for all: whoever just hit you, else the nearest fighter still standing (sticky, so nobody flips back and forth)
   foe(f) {
@@ -1477,7 +1531,7 @@ class Game {
   // ---------- simulation ----------
   stepWorld(dt, locked) {
     for (const f of this.p) { f.locked = locked; f.px = f.x; }
-    for (const f of this.p) this.updateFighter(f, this.foe(f), dt);
+    for (const f of this.p) { const pa = (f.h || 0) + (f.plat || 0); this.updateFighter(f, this.foe(f), dt); if (this.platforms) this.platformStep(f, pa, dt); }
     this.updateClones(dt); this.updateRocks(dt); this.updateCars(dt);
     for (const f of this.p) for (const o of this.p) if (f !== o) this.resolveHits(f, o);
     for (let i = 0; i < this.p.length; i++) for (let j = i + 1; j < this.p.length; j++) this.pushApart(this.p[i], this.p[j]);
@@ -2130,6 +2184,7 @@ class Game {
     this.env.sfx('whooshH'); this.shake(4);
   }
   updateRocks(dt) {
+    for (const r of this.rocks || []) if (r.base == null) { r.base = (r.owner && r.owner.plat) || 0; r.h += r.base; }
     if (!this.rocks) return;
     for (const r of this.rocks) {
       r.t += dt; if (!r.live) continue;
@@ -2169,7 +2224,7 @@ class Game {
         if (r.bounced && (r.h > 760 || r.h < 4)) { r.live = false; this.fx.push({ kind: 'spark', x: r.x, y: GROUND - 6, mirror: r.dir < 0, t: 0, life: 110, small: true }); continue; }
         if (!r.bounced) continue;   // it only does damage once it has ricocheted off the floor
       }
-      if (r.kind === 'rock' || !r.kind) r.h = 150 - 30 * Math.sin(Math.min(1, r.t / 700) * Math.PI) + Math.max(0, r.t - 500) * 0.05;
+      if (r.kind === 'rock' || !r.kind) r.h = (r.base || 0) + 150 - 30 * Math.sin(Math.min(1, r.t / 700) * Math.PI) + Math.max(0, r.t - 500) * 0.05;
       const box = r.kind === 'bullet' ? [r.x - 22, r.x + 22, r.h - 8, r.h + 8] : r.kind === 'kunai' ? [r.x - 38, r.x + 38, r.h - 17, r.h + 17] : r.kind === 'rrock' ? [r.x - 45, r.x + 45, r.h - 40, r.h + 40] : [r.x - 49, r.x + 49, r.h - 44, r.h + 44];
       let o = null, hb = null;
       for (const q of this.p) { if (q === r.owner) continue; const b2 = q.hurtbox(); if (b2 && box[0] < b2[1] && box[1] > b2[0] && box[2] < b2[3] && box[3] > b2[2]) { o = q; hb = b2; break; } }
@@ -2237,6 +2292,7 @@ class Game {
     if (M.t > 820) { this.mapBreak = null; this.wallSeq = null; this.shake(10); }
   }
   startTrip(f, o) {
+    this.p.forEach(q => { q.plat = 0; });
     f.anim.set('carry', true);
     const home = this.stage === 'namas';
     this.trip = { owner: f, victim: o, t: 0, scene: 'stage', home, dir: f.dir, dustT: 0 };
@@ -2299,7 +2355,7 @@ class Game {
   resolveHits(f, o, isClone = false) {
     const hb = o.hurtbox(); if (!hb) return;
     for (const { h, i } of this.activeHits(f, o)) {
-      const r = f.box(h.box, f.h || 0);
+      const r = f.box(h.box, (f.h || 0) + (f.plat || 0));
       if (r[0] > hb[1] || r[1] < hb[0] || r[2] > hb[3] || r[3] < hb[2]) continue;
       f.hitDone.add(this.hitKey(i, o));
       const cx = (Math.max(r[0], hb[0]) + Math.min(r[1], hb[1])) / 2;
@@ -2412,7 +2468,7 @@ class Game {
       if ((f._emT = (f._emT || 0) + dt) > 70) { f._emT = 0; this.parts.push({ kind: 'ember', x: f.x + (rnd() - 0.5) * 70, y: GROUND - 30 - rnd() * 160, vx: (rnd() - 0.5) * 30, vy: -90 - rnd() * 80, g: 0, drag: 0.02, t: 0, life: 420, size: 4 }); }
     }
   }
-  atScreenEdge(f) { const o = this.foe(f); return Math.abs(f.x - o.x) >= MAX_SEP - 4 && (f.x - o.x) * (f.x - this.cam.x - VW / 2) > 0; }
+  atScreenEdge(f) { const o = this.foe(f); return Math.abs(f.x - o.x) >= (this.ffa ? FFA_MAX_SEP : MAX_SEP) - 4 && (f.x - o.x) * (f.x - this.cam.x - VW / 2) > 0; }
   pushApart(a, b) {
     if (a.hidden || b.hidden) return;
     if (this.ffa && (a.ko || b.ko)) return;
@@ -2420,7 +2476,7 @@ class Game {
     if (lunging(a) || lunging(b)) return;
     if ([a, b].some(f => f.special && f.special.pit)) return;   // the pit finisher moves both of them itself   // the feral bite carries him right past them
     const d = b.x - a.x, minD = 74;
-    if (Math.abs(d) < minD && Math.abs(a.h - b.h) < 110) {
+    if (Math.abs(d) < minD && Math.abs((a.h + (a.plat || 0)) - (b.h + (b.plat || 0))) < 110) {
       let s = d >= 0 ? 1 : -1;
       // a jumper coming down on top of the rival keeps going the way he was travelling,
       // so he lands on the far side instead of being shoved back (and flipping twice)
@@ -2439,7 +2495,7 @@ class Game {
     if (this.wallSeq) return;
     const live = this.p.filter(f => !f.hidden && !(this.ffa && f.ko)); if (live.length < 2) return;
     let L = live[0], R = live[0]; for (const f of live) { if (f.x < L.x) L = f; if (f.x > R.x) R = f; }
-    const ex = (R.x - L.x) - MAX_SEP;
+    const ex = (R.x - L.x) - (this.ffa ? FFA_MAX_SEP : MAX_SEP);
     if (ex <= 0) return;
     const lo = Math.max(0, L.px - L.x), ro = Math.max(0, R.x - R.px), tot = lo + ro;
     if (tot > 0) { L.x += ex * lo / tot; R.x -= ex * ro / tot; } else { const c = Math.min(ex, ex > 250 ? 40 : 12); L.x += c / 2; R.x -= c / 2; }
@@ -12799,11 +12855,33 @@ class View {
       this.drawFxLayer(ctx, d, 0.55 * (1 - age / 170), false);
     }
   }
-  shadow(ctx, x, h, wide) {
-    const w = Math.max(24, (wide ? 92 : 60) - h * 0.16);
+  shadow(ctx, x, h, wide, base = 0) {
+    const w = Math.max(24, (wide ? 92 : 60) - h * 0.16), y = GROUND - base;
     ctx.fillStyle = 'rgba(8,5,16,0.45)';
-    ctx.fillRect(Math.round(x - w), GROUND - 3, Math.round(w * 2), 6);
-    ctx.fillRect(Math.round(x - w + 8), GROUND - 5, Math.round(w * 2 - 16), 10);
+    ctx.fillRect(Math.round(x - w), y - 3, Math.round(w * 2), 6);
+    ctx.fillRect(Math.round(x - w + 8), y - 5, Math.round(w * 2 - 16), 10);
+  }
+  // free-for-all platforms: floating stone slabs with a lit edge, a soft glow underneath and hanging chains
+  drawPlatforms(ctx, P, t) {
+    for (const p of P) {
+      const y = GROUND - p.top, x1 = p.x1 - 16, w = p.x2 - p.x1 + 32, q = v => Math.round(v / 4) * 4;
+      // glow and shadow cast below
+      const glow = ctx.createLinearGradient(0, y + 30, 0, y + 150); glow.addColorStop(0, 'rgba(242,179,61,0.16)'); glow.addColorStop(1, 'rgba(242,179,61,0)');
+      ctx.fillStyle = glow; ctx.fillRect(x1 + 20, y + 30, w - 40, 120);
+      // chains up to the sky
+      ctx.fillStyle = 'rgba(30,22,40,0.85)';
+      for (const cx of [x1 + 40, x1 + w - 44]) for (let cy = y - 4; cy > Math.max(-10, y - 520); cy -= 16) { ctx.fillRect(cx, cy - 10, 4, 8); ctx.fillRect(cx - 2, cy - 4, 8, 4); }
+      // the slab: lit top lip, stone body with block joints, darker underside that tapers
+      ctx.fillStyle = '#05030a'; ctx.fillRect(x1 - 4, y - 4, w + 8, 36);
+      ctx.fillStyle = '#3a2c4c'; ctx.fillRect(x1, y + 8, w, 20);
+      ctx.fillStyle = '#2a1f38'; ctx.fillRect(x1, y + 20, w, 8);
+      ctx.fillStyle = '#ffd977'; ctx.fillRect(x1, y, w, 4);
+      ctx.fillStyle = '#c98a2c'; ctx.fillRect(x1, y + 4, w, 4);
+      ctx.fillStyle = 'rgba(5,3,10,0.6)'; for (let bx = q(x1 + 48); bx < x1 + w - 20; bx += 64) ctx.fillRect(bx, y + 8, 4, 20);
+      ctx.fillStyle = '#1a1226'; for (let k = 0; k < 4; k++) ctx.fillRect(x1 + 12 + k * 12, y + 28 + k * 4, w - 24 - k * 24, 4);
+      // little embers drifting off the edge
+      for (let k = 0; k < 3; k++) { const ph = ((t / 900) + k * 0.37 + p.x1 * 0.001) % 1; ctx.fillStyle = `rgba(255,200,110,${0.7 * (1 - ph)})`; ctx.fillRect(Math.round(x1 + 30 + ((k * 137 + p.x1) % (w - 60))), Math.round(y + 36 + ph * 70), 4, 4); }
+    }
   }
 
   // ---------- frame ----------
@@ -12870,8 +12948,9 @@ class View {
     for (const f of g.p) if (!f.hidden) actors.push({ a: f, pal: f.pal, clone: false });
     for (const c of g.clones) if (c.visible) actors.push({ a: c, pal: c.pal, clone: true });
     const L = this.lerp || ((p, q) => q);
-    for (const r of actors) { r.ix = L(r.a.prevX, r.a.x); r.ih = r.a.drawH != null ? L(r.a.prevH, r.a.drawH) : (r.a.h || 0); }
-    for (const { a, ix } of actors) if ((a.drawH || 0) > -2) this.shadow(ctx, ix, a.drawH || a.h || 0, ['down', 'knock', 'koair'].includes(a.state) && !(a.anim && ['kostand', 'koairko'].includes(a.anim.name)));
+    for (const r of actors) { r.ix = L(r.a.prevX, r.a.x); r.ih = (r.a.drawH != null ? L(r.a.prevH, r.a.drawH) : (r.a.h || 0)) + (r.a.plat || 0); }
+    if (g.platforms) this.drawPlatforms(ctx, g.platforms, t);
+    for (const { a, ix } of actors) if ((a.drawH || 0) > -2) this.shadow(ctx, ix, a.drawH || a.h || 0, ['down', 'knock', 'koair'].includes(a.state) && !(a.anim && ['kostand', 'koairko'].includes(a.anim.name)), a.plat || 0);
     if (g.groundBreak) this.drawGroundBreak(ctx, g.groundBreak, t);
     // afterimages
     for (const { a, pal } of actors) for (const e of a.trail || []) this.drawSprite(ctx, pal, e.n, e.i, e.x, e.h, e.dir, { tint: palCss(pal, 0.75), alpha: 0.42 * (1 - e.t / 220) });
@@ -13251,8 +13330,12 @@ class View {
     this.box(ctx, VW / 2 - 42, 6, 84, 50, COL.night, COL.line);
     const tm = g.timer === Infinity ? '--' : String(Math.ceil(g.timer)).padStart(2, '0');
     this.text(ctx, tm, VW / 2, 50, 46, g.timer <= 10 ? COL.red : COL.paper);
+    // a fighter up on a high platform shows through the panels
+    const camX = g.cam.x, heads = g.p.filter(f => !f.hidden).map(f => ({ x: f.x - camX, top: GROUND - (f.h || 0) - (f.plat || 0) - 290 }));
     g.p.forEach((f, i) => {
       const x = 20 + i * (w + gap), col = palCss(f.pal), out = f.ko || f.hp <= 0;
+      const behind = heads.some(hd => hd.top < y + h && hd.x > x - 60 && hd.x < x + w + 60);
+      ctx.save(); if (behind) ctx.globalAlpha = 0.38;
       this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.86)', out ? COL.line : col);
       this.box(ctx, x + 6, y + 6, 66, 66, COL.night, col);
       ctx.drawImage(this.portrait(f.pal, f), x + 7, y + 7, 64, 64);
@@ -13273,10 +13356,11 @@ class View {
       if (f.ch === 'rusty') { ctx.fillStyle = '#1d1222'; ctx.fillRect(bx, y + 57, bw, 3); ctx.fillStyle = f.feral ? ((g.time % 240) < 120 ? '#ff3a30' : '#b8142a') : '#a8323a'; ctx.fillRect(bx, y + 57, bw * Math.max(0, Math.min(100, f.rage || 0)) / 100, 3); }
       const full = f.meter >= 100; ctx.fillStyle = '#1d1530'; ctx.fillRect(bx, y + 63, bw, 7); ctx.fillStyle = full ? ((g.time % 260) < 130 ? '#d5c6ff' : '#9d86e8') : '#7a68b8'; ctx.fillRect(bx, y + 63, bw * f.meter / 100, 7);
       if (full && !f.C.noSuper) this.text(ctx, 'SUPER', bx + bw, y + 78, 10, '#e0d6ff', 'right', FS, COL.ink, 3);
-      if (f.ch === 'cowboy') this.text(ctx, '●'.repeat(f.ammo == null ? 6 : f.ammo) + '○'.repeat(6 - (f.ammo == null ? 6 : f.ammo)), bx, y + 78, 10, f.element ? COL.amberHi : COL.paper, 'left', FS, COL.ink, 3);
+      if (f.ch === 'cowboy') { const am = f.ammo == null ? 6 : f.ammo; for (let k = 0; k < 6; k++) { ctx.fillStyle = k < am ? (f.element && k === am - 1 ? COL.amberHi : COL.paper) : '#3a2f4a'; ctx.fillRect(bx + k * 9, y + 71, 6, 6); } }
       if (out) { ctx.fillStyle = 'rgba(8,5,14,0.62)'; ctx.fillRect(x, y, w, h); this.text(ctx, 'K.O.', x + w / 2, y + 56, 40, COL.red, 'center', FD, COL.ink, 6); }
       // combo this fighter is landing
       const victim = g.p.find(v => v !== f && v.combo >= 2 && v.lastHitBy === f);
+      ctx.restore();
       if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
     });
     if (g.online && g.env.online) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
@@ -14922,7 +15006,7 @@ class Net {
   snapshot() {
     const g = this.game, R = Math.round;
     const fp = f => [R(f.x), R(f.drawH || 0), f.dir, f.frameName()[0], f.frameName()[1], R(f.hp), R(f.dmgTrail), R(f.meter), f.wins, f.combo, f.comboDmg, f.hidden ? 1 : 0,
-      f.hitShake > 0 ? 1 : 0, f.special ? f.special.phase || 's' : '', f.ch, f.pal, f.ko ? 1 : 0, f.state, f.feral ? 1 : 0, Math.round(f.rage || 0), f.bdash ? 1 : 0, f.ammo == null ? 6 : f.ammo, ['fire', 'water', 'air', 'earth'].indexOf(f.element), Math.round(g.time - (f.elemAt || 0)), Math.round(f.guard == null ? 100 : f.guard), f.burnT > 0 ? 1 : 0, f.slowT > 0 ? 1 : 0];
+      f.hitShake > 0 ? 1 : 0, f.special ? f.special.phase || 's' : '', f.ch, f.pal, f.ko ? 1 : 0, f.state, f.feral ? 1 : 0, Math.round(f.rage || 0), f.bdash ? 1 : 0, f.ammo == null ? 6 : f.ammo, ['fire', 'water', 'air', 'earth'].indexOf(f.element), Math.round(g.time - (f.elemAt || 0)), Math.round(f.guard == null ? 100 : f.guard), f.burnT > 0 ? 1 : 0, f.slowT > 0 ? 1 : 0, f.plat || 0];
     const em = (g.netEmo || [null, null]).map(e => (e && g.time - e.t < 2200 ? [e.text, R(g.time - e.t)] : 0));
     const S = {
       n: ++this.frameNo, ph: g.phase, pt: R(g.pt), tm: g.timer === Infinity ? -1 : Math.round(g.timer * 10) / 10, rd: g.round, st: g.stage,
@@ -15032,7 +15116,7 @@ class Net {
       f.prevX = f.x = L(a[0], b[0]); f.prevH = f.drawH = L(a[1], b[1]); f.h = f.drawH;
       f.dir = s[2]; f._net = [s[3], s[4]]; f.anim = { name: String(s[3]).replace(/^(y:|r:f_|r:)/, ''), fi: s[4], key: s[3], durs: [1] };
       f.hp = s[5]; f.dmgTrail = s[6]; f.meter = s[7]; f.wins = s[8]; f.combo = s[9]; f.comboDmg = s[10]; f.hidden = !!s[11];
-      f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; f.ch = s[14]; f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.trail = [];
+      f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; f.ch = s[14]; f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.plat = s[27] || 0; f.trail = [];
     });
     g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[S.tr[4] != null ? S.tr[4] : 1 - S.tr[3]] } : null;
     g.clones = S.cl.map(c => ({ x: c[0], prevX: c[0], dir: c[1], visible: true, owner: g.p[c[4]], get pal() { return this.owner.pal; }, trail: [], move: null, frameName: () => [c[2], c[3]] }));
@@ -15322,7 +15406,7 @@ class OnlineFFA {
     go.chs.forEach((c, i) => { g.p[i].ch = c; g.p[i].pal = go.pals[i]; });
     this.env.prepare(go.pals);
     n.startGuest({});
-    g.mode = 'ffa'; g.cpu = [false, false, false]; g.online = 'guest';
+    g.mode = 'ffa'; g.cpu = [false, false, false]; g.online = 'guest'; g.platforms = FFA_PLATFORMS;
     g.netTags = go.names.map((nm, i) => (i === go.you ? 'YOU' : nm));
     for (const f of g.p) { f._net = ['idle', 0]; f.frameName = () => f._net; }
   }
