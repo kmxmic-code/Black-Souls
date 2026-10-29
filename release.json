@@ -1,6 +1,15 @@
 {
- "version": "1.2.3",
+ "version": "1.2.4",
  "notes": [
+  {
+   "v": "1.2.4",
+   "date": "2026-10-29",
+   "items": [
+    "New: DODGE \u2014 the back-dash on the spot, attacks pass through you (keyboard Y / Num 8, controller RT / R2, remappable)",
+    "Stage select: pick the number of rounds (best of 1, 3 or 5) with Y / I / \u25b3 before the fight",
+    "Online: the guest's GUARD button now reaches the host"
+   ]
+  },
   {
    "v": "1.2.3",
    "date": "2026-10-29",
@@ -169,8 +178,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "95080e3baf0cc0fac961d619b1ca167fbb3d3d617b3ed5ac123d6c8a7374b91a",
-   "size": 1476301
+   "sha": "9bf3736c32cbd46e34e00e2040153eb71756d2db1b4d0d90ffa182284fcd64a5",
+   "size": 1477861
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",

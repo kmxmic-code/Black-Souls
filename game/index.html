@@ -192,7 +192,8 @@
         <dt>Stick / D-pad</dt><dd>Move, jump (up), crouch (down)</dd>
         <dt><span class="x">X</span> · <span class="y">Y</span> &nbsp;/&nbsp; □ · △</dt><dd>Light punch · Heavy punch</dd>
         <dt><span class="a">A</span> · <span class="b">B</span> &nbsp;/&nbsp; ✕ · ○</dt><dd>Light kick · Heavy kick</dd>
-        <dt>RB / RT &nbsp;·&nbsp; R1 / R2</dt><dd>Guard (hold, + down for lows)</dd>
+        <dt>RB &nbsp;·&nbsp; R1</dt><dd>Guard (hold, + down for lows)</dd>
+        <dt>RT &nbsp;·&nbsp; R2</dt><dd>Dodge · attacks pass through you</dd>
         <dt>LT &nbsp;·&nbsp; L2</dt><dd>Super move (full meter) · Blitzy: reload</dd>
         <dt>LB &nbsp;·&nbsp; L1</dt><dd>Dash</dd>
         <dt>LS + RS (click both)</dt><dd>Ultimate · Y4NK car call · Rusty tornado</dd>
@@ -209,6 +210,7 @@
         <dt><kbd>P</kbd></dt><dd>Guard (hold)</dd>
         <dt><kbd>O</kbd> <kbd>L</kbd></dt><dd>Super · Dash</dd>
         <dt><kbd>H</kbd></dt><dd>Ultimate · car call · tornado</dd>
+        <dt><kbd>Y</kbd></dt><dd>Dodge</dd>
         <dt><kbd>Enter</kbd> <kbd>Esc</kbd></dt><dd>Select · back or pause</dd>
         <dt><kbd>R</kbd></dt><dd>Reset positions in training</dd>
       </dl>
@@ -222,6 +224,7 @@
         <dt>Num <kbd>7</kbd></dt><dd>Guard (hold)</dd>
         <dt>Num <kbd>6</kbd> <kbd>3</kbd></dt><dd>Super · Dash</dd>
         <dt>Num <kbd>9</kbd></dt><dd>Ultimate · car call · tornado</dd>
+        <dt>Num <kbd>8</kbd></dt><dd>Dodge</dd>
         <dt>Num <kbd>Enter</kbd></dt><dd>Select · pause</dd>
       </dl>
     </div>
@@ -704,14 +707,14 @@ const HIT_FX = {
 };
 const ELEM_NAME = { fire: 'FIRE ROUND', water: 'WATER ROUND', air: 'AIR ROUND', earth: 'EARTH ROUND' };
 const CAR_COST = 75;   // three of the four meter segments
-const ACTIONS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'guard', 'car', 'start', 'back', 'reset'];
-const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'car'];
-const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH', car: 'ULTIMATE · CAR · TORNADO' };
+const ACTIONS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'guard', 'car', 'dodge', 'start', 'back', 'reset'];
+const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'dodge', 'car'];
+const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH', dodge: 'DODGE', car: 'ULTIMATE · CAR · TORNADO' };
 const KEY_DEFAULT = [
-  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', start: 'Enter', back: 'Escape', reset: 'KeyR' },
-  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
+  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', dodge: 'KeyY', start: 'Enter', back: 'Escape', reset: 'KeyR' },
+  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', dodge: 'Numpad8', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
 ];
-const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4 };   // RB guards (RT too), LT super / reload
+const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7 };   // RB guards, LT super / reload, RT dodges
 const KD_HITS = 8;   // hits in a row before a knockdown
 const blank = () => { const s = {}; ACTIONS.forEach(b => s[b] = false); return s; };
 const newStats = () => ({ hits: 0, dmg: 0, maxCombo: 0, blocks: 0, specials: 0 });
@@ -747,7 +750,7 @@ class Fighter {
     Object.assign(this, {
       x, px: x, dir, h: 0, vx: 0, vy: 0, hp: MAX_HP, dmgTrail: MAX_HP, state: 'idle', st: 0, move: null,
       hitDone: new Set(), stun: 0, slide: 0, combo: 0, comboDmg: 0, juggle: 0, hidden: false, drawH: 0,
-      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
+      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, dodge: false, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
       connected: false, connectT: -1e9, trail: [], hitShake: 0, refill: 0, lastFall: 'ko', lift0: 0, _dfi: -1, _kfi: -1,
     });
     this.anim.set('idle', true);
@@ -780,6 +783,7 @@ class Fighter {
   hurtbox() {
     if (this.hidden || this.ko || ['knock', 'down', 'getup', 'koair', 'special', 'carried', 'wallfly', 'transform', 'untransform'].includes(this.state)) return null;
     if (this.state === 'hita' && this.juggle >= 3) return null;   // juggle limit
+    if (this.state === 'dash' && this.dodge && this.anim && this.anim.fi < Math.ceil(this.anim.durs.length * 0.6)) return null;   // dodging
     const k = this.state === 'airkick' ? 'airkick' : !this.grounded ? 'air' : this.isCrouching ? 'crouch' : 'stand';
     const own = HURT_BY && HURT_BY[this.ch === 'rusty' && this.feral ? 'feral' : this.ch], b = (own && own[k === 'airkick' ? 'air' : k]) || HURT[k];
     return this.box(b, this.h);
@@ -1002,6 +1006,7 @@ class Game {
         this.chosenStage = S.idx === 0 ? randomStage(this.chosenStage) : ARENAS[S.idx - 1];
         S.picked = this.chosenStage; S.done = this.pt; this.env.sfx('select'); return;
       }
+      if (m.pressed('hp')) { this.settings.rounds = [1, 2, 3][(([1, 2, 3].indexOf(this.settings.rounds)) + 1) % 3]; this.saveSettings(); S.roundsT = this.time; this.env.sfx('tick'); }
       if (m.pressed('back') || m.pressed('hk')) { this.ssel = null; this.goSelect(this.mode); return; }
     }
   }
@@ -1428,7 +1433,7 @@ class Game {
     if (!L) {
       if ((f.dir > 0 && inp.pressed('r')) || (f.dir < 0 && inp.pressed('l'))) f.fwdTaps.push(f.clock);
       if ((f.dir > 0 && inp.pressed('l')) || (f.dir < 0 && inp.pressed('r'))) f.backTaps.push(f.clock);
-      for (const btn of ['lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'car']) if (inp.pressed(btn)) f.buf.push({ b: btn, t: f.clock });
+      for (const btn of ['lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'car', 'dodge']) if (inp.pressed(btn)) f.buf.push({ b: btn, t: f.clock });
     }
     f.fwdTaps = f.fwdTaps.filter(t => f.clock - t < 260); f.backTaps = f.backTaps.filter(t => f.clock - t < 260);
     f.buf = f.buf.filter(e => f.clock - e.t < 150);
@@ -1451,7 +1456,8 @@ class Game {
         break;
       }
       case 'dash': {
-        const i = f.anim.fi; if (f._dfi !== i) { f._dfi = i; const s = f.bdash ? (f.C.bdashDX ? -1 : -0.8) : 1; f.x += (f.slowT > 0 ? 0.6 : 1) * s * f.dir * (((f.bdash && f.C.bdashDX && (f.feral || f.ch === 'cowboy' ? f.C.bdashDX : [0, 0].concat(f.C.bdashDX))) || (f.feral && f.C.fdashDX) || f.C.dashDX || DASH_DX)[i] || 0); if (i === 1) this.dust(f.x + s * -f.dir * 30, 6); }
+        const i = f.anim.fi; if (f.dodge) { if (f._dfi !== i) { f._dfi = i; if (i === 1) this.dust(f.x, 4); } if (f.anim.done) { f.dodge = false; f.setState('idle', 'idle', true); } break; }
+        if (f._dfi !== i) { f._dfi = i; const s = f.bdash ? (f.C.bdashDX ? -1 : -0.8) : 1; f.x += (f.slowT > 0 ? 0.6 : 1) * s * f.dir * (((f.bdash && f.C.bdashDX && (f.feral || f.ch === 'cowboy' ? f.C.bdashDX : [0, 0].concat(f.C.bdashDX))) || (f.feral && f.C.fdashDX) || f.C.dashDX || DASH_DX)[i] || 0); if (i === 1) this.dust(f.x + s * -f.dir * 30, 6); }
         if (f.anim.done) f.setState('idle', 'idle', true);
         break;
       }
@@ -1537,8 +1543,9 @@ class Game {
     if (f.ch === 'y4nk' && f.peek('car') && f.meter >= CAR_COST && !(this.cars || []).some(c => c.owner === f)) { f.consume('car'); return this.startCar(f); }
     const atk = f.consume('lp', 'hp', 'lk', 'hk');
     if (atk) return this.startMove(f, f.mv(down ? ((atk === 'lp' || atk === 'hp') ? 'clp' : 'sweep') : atk));
-    if (f.backTaps.length >= 2 || (f.back() && f.peek('dash'))) { f.consume('dash'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; this.env.sfx('dash'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
-    if (f.consume('dash') || f.fwdTaps.length >= 2) { f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
+    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; this.env.sfx('whoosh'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
+    if (f.backTaps.length >= 2 || (f.back() && f.peek('dash'))) { f.consume('dash'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
+    if (f.consume('dash') || f.fwdTaps.length >= 2) { f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
     if (up) { f.jdir = f.fwd() ? 1 : f.back() ? -1 : 0; f.airUsed = false; return f.setState('prejump', 'jump_pre'); }
     if (f.input.held('guard')) {
       const want = down ? 'cblock_hold' : 'block_hold'; this.faceOpponent(f, o);
@@ -13448,7 +13455,12 @@ class View {
         const b = Math.floor(t / 250) % 2; this.tri(ctx, X - 26 - b * 3, Y + h / 2, -1); this.tri(ctx, X + w + 26 + b * 3, Y + h / 2, 1); }
     }
     // controls
-    this.text(ctx, '◀ ▶ BROWSE  ·  ▲ ▼ JUMP 7  ·  A / ENTER FIGHT HERE  ·  B / ESC BACK', VW / 2, VH - 4, 13, COL.muted, 'center', FS, COL.ink, 4);
+    // rounds for this match
+    { const R = g.settings.rounds, pop = S.roundsT && g.time - S.roundsT < 220 ? 1.12 : 1, x = VW - 40, y = 70;
+      this.text(ctx, 'ROUNDS', x, y - 26, 13, COL.muted, 'right', FS, COL.ink, 4);
+      this.text(ctx, `◀ BEST OF ${R * 2 - 1} ▶`, x, y + 4, Math.round(30 * pop), COL.amber, 'right', FD, COL.ink, 6);
+      this.text(ctx, 'Y / I  CHANGE', x, y + 26, 12, COL.muted, 'right', FS, COL.ink, 4); }
+    this.text(ctx, '◀ ▶ BROWSE  ·  ▲ ▼ JUMP 7  ·  A / ENTER FIGHT HERE  ·  Y / I ROUNDS  ·  B / ESC BACK', VW / 2, VH - 4, 13, COL.muted, 'center', FS, COL.ink, 4);
     // lock-in flash and stamp
     if (S.done) {
       const k = Math.min(1, (g.pt - S.done) / 650);
@@ -13670,7 +13682,7 @@ class View {
       ['LIGHT PUNCH', B('lp'), mv('lp')], ['HEAVY PUNCH', B('hp'), mv('hp')],
       ['LIGHT KICK', B('lk'), ch === 'cowboy' ? 'Quick draw' : mv('lk')], ['HEAVY KICK', B('hk'), ch === 'cowboy' ? 'Elemental round (2 bars)' : mv('hk')],
       ['CROUCH + PUNCH', '↓ + ' + P, mv('clp')], ['CROUCH + KICK', '↓ + ' + K, mv('sweep')],
-      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '],
+      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dodge'), 'Back-dash on the spot · attacks pass through'],
     ];
     const S = {
       blitzy: [['SMOKE BOMB', `${Q} + ${P}  or  ${B('sp')}`, 'Super · full meter'], ['KUNAI', `${Q} + ${K}`, 'Quarter meter']],
@@ -14025,7 +14037,7 @@ if (false) module.exports = { Sound, buildSongs, deg };
    The host runs the real fight; the guest sends its buttons and draws what the host sends back;
    spectators just draw. Everything travels in room presence (~30 updates a second). */
 'use strict';
-const NET_BTNS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'start', 'back', 'car'];
+const NET_BTNS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'start', 'back', 'car', 'dodge', 'guard'];
 const NET_EMOTES = ['GG', '😂', '🔥', 'EZ', 'WAIT!', 'REMATCH?'];
 const NET_URL = 'https://claude.ai/artifact/8fr23orbxiRPitzHyqVukb';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
