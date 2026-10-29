@@ -590,6 +590,7 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
+const RUSTY_DMG = 0.75;   // Big Rusty's nerf: everything he does deals 25% less
 const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
 const RGRAB = { reach: 300, back: 80, high: 230 };   // Big Rusty's Gator Slam grab box (was 235 / 40 / 170)
 const ARENAS = STAGE_LIST.map(s => s[0]);   // places a wall break can send the fight (Al Namas only via Y4NK's ultimate)
@@ -2006,7 +2007,7 @@ class Game {
           return;
         }
         if (!S.slammed) {
-          S.slammed = true; o.hp = Math.max(1, o.hp - 120); o.comboDmg = 120; o.combo = 1; f.stats.hits++; f.stats.dmg += 120; o.hitShake = 200;
+          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
           this.hitstop = 180; this.shake(22); this.flash = 90; this.dust(o.x, 16); this.env.sfx('koHit'); this.env.sfx('slam'); this.env.rumble(o.id, 1, 1, 400);
           this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 260, t: 0, life: 800, color: 'red' });
         }
@@ -2070,7 +2071,7 @@ class Game {
         const i = f.anim.fi, L = MOVES.rflp.lunge;
         if (P.lfi !== i) { P.lfi = i; f.x = clamp(f.x + f.dir * (L[i] || 0) * 1.7, EDGE, STAGE_W - EDGE); }
         if (!P.bit && i >= 3) {
-          P.bit = true; o.hp = Math.max(1, o.hp - 30); o.hitShake = 160; o.combo++; o.comboDmg += 30; f.stats.hits++; f.stats.dmg += 30;
+          P.bit = true; const bd = Math.round(30 * RUSTY_DMG); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
           this.hitstop = 90; this.shake(9); this.env.sfx('hitH'); this.env.rumble(o.id, 0.8, 0.6, 160);
           this.fx.push({ kind: 'spark', x: o.x, y: GROUND - 110, mirror: f.dir < 0, t: 0, life: 160, big: true }); this.burst(o.x, GROUND - 110, f.dir, 'heavy');
         }
@@ -2419,7 +2420,7 @@ class Game {
     if (o.combo === 0) o.comboDmg = 0;
     o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
-    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1)));
+    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1)));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
     this.addRage(owner, dmg * 0.32); this.addRage(o, dmg * 0.45);
     if (this.mode === 'training' && o.hp <= 0) o.hp = 1;
