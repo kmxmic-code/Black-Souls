@@ -590,6 +590,7 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
+const RGRAB = { reach: 300, back: 80, high: 230 };   // Big Rusty's Gator Slam grab box (was 235 / 40 / 170)
 const ARENAS = STAGE_LIST.map(s => s[0]);   // places a wall break can send the fight (Al Namas only via Y4NK's ultimate)
 const ARENA_NAMES = Object.assign({ namas: 'AL NAMAS', pit: 'THE PIT' }, Object.fromEntries(STAGE_LIST.map(s => [s[0], s[1]])));
 const randomStage = (not) => { const pool = ARENAS.filter(s => s !== not); return pool[Math.floor(rnd() * pool.length)]; };
@@ -1968,7 +1969,7 @@ class Game {
     f.setState('special', 'tornado'); this.env.sfx('whooshH'); this.env.say('Tail tornado!');
   }
   // the ultimate: grab, lift overhead, slam into the floor, then the tail bats them into the wall
-  slamUpdate(f, o, dt) {
+  slamUpdate(f, o, dt) {   // Gator Slam grab range: RGRAB
     const S = f.special, fi = f.anim.fi, d = f.dir;
     if (S.pit) return this.pitUpdate(f, o, dt);
     const hold = (dx, h, anim, afi) => {
@@ -1977,11 +1978,16 @@ class Game {
     };
     if (!S.caught && !S.missed && fi >= 3) {
       const hb = o.hurtbox();
-      if (hb && (o.x - f.x) * d > -40 && Math.abs(o.x - f.x) < 235 && hb[2] < 170 && this.canParryGrab(o)) { S.missed = true; this.timedParry(o, f, (f.x + o.x) / 2, GROUND - 140, false); return; }
-      if (hb && (o.x - f.x) * d > -40 && Math.abs(o.x - f.x) < 235 && hb[2] < 170) {   // grab reach: in front, a bit further, catches low jumps
+      const reach = hb && (o.x - f.x) * d > -RGRAB.back && Math.abs(o.x - f.x) < RGRAB.reach && hb[2] < RGRAB.high;
+      if (reach && this.canParryGrab(o)) { S.missed = true; this.timedParry(o, f, (f.x + o.x) / 2, GROUND - 140, false); return; }
+      if (reach) {   // grab reach: in front, well past his arms, a little behind, and catches jumps
         S.caught = true; o.move = null; o.special = null; o.hidden = false; o.setState('carried'); o.combo = 0; o.vx = o.vy = 0;
         this.env.sfx('hitH'); this.shake(5); this.texts.push({ text: 'GOTCHA!', x: f.x, y: GROUND - 320, t: 0, life: 700, color: 'amber' });
-      } else S.missed = true;
+      } else {   // whiffed: no slam on thin air, straight back to idle
+        S.missed = true; f.special = null; f.move = null; f.setState('idle', 'idle', true); this.env.sfx('whoosh');
+        this.texts.push({ text: 'MISSED', x: f.x, y: GROUND - 300, t: 0, life: 600, color: 'violet', small: true });
+        return;
+      }
     }
     if (S.caught && !S.thrown) {
       const lie = o.ch === 'y4nk' ? ['hit', 3] : ['ko', 11];
