@@ -1,6 +1,16 @@
 {
- "version": "1.1.0",
+ "version": "1.2.0",
  "notes": [
+  {
+   "v": "1.2.0",
+   "date": "2026-10-29",
+   "items": [
+    "Friends: create an account in the launcher, add friends by username, see who is online and what they are doing",
+    "One-click invites: INVITE a friend from the launcher or the ONLINE screen; they ACCEPT and you both land in the character select \u2014 no codes",
+    "Fixed: the instant kick right after connecting in the app",
+    "App online: waits through short connection blips instead of dropping you"
+   ]
+  },
   {
    "v": "1.1.0",
    "date": "2026-10-29",
@@ -14,7 +24,7 @@
   }
  ],
  "launcher": {
-  "min": 1,
+  "min": 2,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing"
  },
  "files": {
@@ -135,8 +145,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "7dc2046e0017cdd1c0ba5b528fe115e02e693b3716804266b49edd3238d6b62e",
-   "size": 1465205
+   "sha": "0b8601158605066b7f395c5f24f8d539f3e38b4b176a677891c18b5d7ef963db",
+   "size": 1472068
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",

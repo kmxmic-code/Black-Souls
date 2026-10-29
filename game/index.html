@@ -124,6 +124,12 @@
   #install .dl { display: block; padding: 12px; background: var(--amber); color: var(--ink); font: 400 20px/1 var(--f-display); text-decoration: none; letter-spacing: .04em; }
   #install .dl:focus, #install .x:focus { outline: 3px solid #fff0b8; }
   #install .x { justify-self: center; }
+  .on-friends { display: grid; gap: 4px; margin-bottom: 10px; }
+  .on-frow { display: flex; align-items: center; gap: 8px; padding: 4px 6px; background: var(--ink); border: 2px solid var(--line); font: 400 12px/1.2 var(--f-label); text-transform: none; }
+  .on-frow b { color: var(--paper); font-weight: 400; } .on-frow span { color: var(--muted); font-size: 11px; } .on-frow .sp { flex: 1; }
+  .on-frow.off b { color: var(--muted); } .on-frow button { padding: 4px 9px; font-size: 11px; }
+  .on-frow.inv { border-color: var(--amber); } .on-frow.inv b { color: var(--amber); }
+  .on-fdot { width: 8px; height: 8px; background: var(--line); flex: none; } .on-fdot.on { background: #63d27a; box-shadow: 0 0 6px #63d27a; }
   .on-p2p { display: grid; gap: 8px; }
   .on-p2p textarea { width: 100%; height: 64px; resize: none; font: 400 11px/1.35 ui-monospace, Consolas, monospace; word-break: break-all; background: var(--ink); color: var(--paper); border: 2px solid var(--line); padding: 6px; }
   .on-p2p textarea:focus { outline: 2px solid var(--amber); }
@@ -14003,6 +14009,8 @@ class Net {
       pressCount: {}, prevLocal: {}, lastSnapAt: 0, ready: false, oppPres: null, names: {}, myId: null, emoSeq: 0, emoSeen: {}, pingMs: 0,
       votes: [false, false], countdown: 0, codeEntry: ['a', 'a', 'a', 'a', 'a'], navPrev: {}, navRep: {}, record: env.store.get('netRecord', { w: 0, l: 0 }), spectators: 0 });
     this.ui = this.buildUi();
+    this.link = window.bsasLink || null;
+    if (this.link) { this.link.on(m => this.onLink(m)); setTimeout(() => this.link.send({ type: 'ready' }), 0); this.actT = setInterval(() => this.reportActivity(), 2000); }
     window.addEventListener('keydown', e => this.emoteKey(e));
     this.connect();
   }
@@ -14085,14 +14093,15 @@ class Net {
   mCheck() {
     if (!this.manual || this.role || !this.mx || !this.pch || this.pch.readyState !== 'open' || !this.direct()) return;
     clearTimeout(this.mTimer);
-    const role = this.mx.step === 'host' ? 'host' : 'guest';
+    const role = this.mx.step === 'host' || this.mx.step === 'invite' ? 'host' : 'guest', other = this.mx.to || this.mx.from;
+    if (this.link && other) this.link.send({ type: 'connected', with: other });
     this.mx = null; this.gr = new DcRoom(this.pch);
     this.role = role; this.code = 'p2p'; this.ready = false; this.oppPres = null; this.status = 'Direct P2P link up.';
     this.gr.presence({ role, ch: this.mine.ch, pal: this.mine.pal, ready: 0, nick: this.myName || null }).catch(() => {});
     this.offPeers = this.gr.onPeers(ch => this.roomPeers(ch));
     this.env.sfx('select'); this.enterSelect();
   }
-  mCancel() { clearTimeout(this.mTimer); if (!this.role) { this.rtcClose(); this.pch = null; } this.mx = null; }
+  mCancel() { if (this.link && this.mx && this.mx.step === 'invite' && this.mx.to) this.link.send({ type: 'cancel', to: this.mx.to }); clearTimeout(this.mTimer); if (!this.role) { this.rtcClose(); this.pch = null; } this.mx = null; }
   mLost() {
     if (this.playing) this.opponentLeft();
     else if (this.role) this.backToPanel('The direct link to your friend dropped (connection lost). Swap fresh codes to reconnect.');
@@ -14104,12 +14113,67 @@ class Net {
     if (!ok) { const a = this.ui.querySelector('textarea[data-f="code"]'); if (a) { a.select(); try { ok = document.execCommand('copy'); } catch (e) {} } }
     this.mx.copied = ok; this.renderUi();
   }
+  friendsBody() {
+    if (!this.link) return '';
+    const so = this.social;
+    if (!so || !so.signedIn) return `<div class="on-friends"><span class="on-lbl">Friends</span><p class="on-p2p-msg">Sign in on the launcher's FRIENDS panel to invite friends with one click.</p></div>`;
+    const inv = (so.invites || []).map(i => `<div class="on-frow inv"><b>${esc(i.name)}</b><span>invites you to fight!</span><span class="sp"></span><button type="button" data-a="faccept" data-u="${esc(i.uid)}" class="on-main">ACCEPT</button><button type="button" data-a="fdecline" data-u="${esc(i.uid)}">DECLINE</button></div>`).join('');
+    const fr = (so.friends || []).slice(0, 8).map(f => `<div class="on-frow${f.online ? '' : ' off'}"><span class="on-fdot${f.online ? ' on' : ''}"></span><b>${esc(f.name)}</b><span>${esc(f.act)}</span><span class="sp"></span><button type="button" data-a="finvite" data-u="${esc(f.uid)}"${f.online && !/match|lobby/i.test(f.act) ? '' : ' disabled'}>INVITE</button></div>`).join('');
+    return `<div class="on-friends">${inv}<span class="on-lbl">Friends · ${esc(so.me || '')}</span>${fr || '<p class="on-p2p-msg">No friends yet. Add them on the launcher’s FRIENDS panel.</p>'}</div>`;
+  }
+  // ---------- launcher link: friends, invites, and the codes they carry ----------
+  onLink(m) {
+    if (!m) return;
+    if (m.type === 'social') {
+      const before = new Set(((this.social && this.social.invites) || []).map(i => i.uid));
+      this.social = m; if (m.me) this.myName = m.me;
+      for (const i of m.invites || []) if (!before.has(i.uid)) {
+        if (!this.playing && !this.role && !this.mx && this.game.phase === 'title') { if (!this.isOpen) this.open(); }
+        else this.say(i.name + ' invited you! Open ONLINE to accept');
+        this.env.sfx('select');
+      }
+      if (this.isOpen && !this.role) this.renderUi();
+    } else if (m.type === 'host') this.mHostInvite(m.to, m.name);
+    else if (m.type === 'join') this.mJoinInvite(m.from, m.name, m.code);
+    else if (m.type === 'answer') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.from && !mx.answered) { mx.answered = true; mx.paste = m.code; mx.msg = 'Connecting to ' + mx.toName + '…'; this.mConnect(); } }
+    else if (m.type === 'declined') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.from) { mx.err = m.why === 'error' ? 'Could not send the invite. Check your internet.' : (m.name || 'Your friend') + ' declined.'; mx.msg = ''; this.renderUi(); } }
+    else if (m.type === 'cancel') { const mx = this.mx; if (mx && mx.step === 'invite' && mx.to === m.to) { this.mx.to = null; this.mCancel(); this.renderUi(); } }
+  }
+  readyForInvite() {
+    if (this.playing) { this.say('Finish your match first'); return false; }
+    if (this.role) this.leaveGame();
+    if (!['title'].includes(this.game.phase)) this.game.goTitle();
+    if (!this.isOpen) this.open();
+    return true;
+  }
+  async mHostInvite(to, name) {
+    if (!this.readyForInvite()) { this.link.send({ type: 'cancel', to }); return; }
+    await this.mHost();
+    const mx = this.mx; if (!mx || !mx.code) return;
+    mx.step = 'invite'; mx.to = to; mx.toName = name; mx.msg = 'Waiting for ' + name + ' to accept…';
+    this.link.send({ type: 'offer', to, code: mx.code }); this.renderUi();
+    clearTimeout(this.mTimer); this.mTimer = setTimeout(() => { if (this.mx === mx && !this.role) { mx.err = mx.answered ? 'Could not reach ' + name + ' directly. Both of you: allow the game through Windows Firewall, then invite again.' : name + ' did not answer.'; mx.msg = ''; this.renderUi(); } }, 180000);
+  }
+  async mJoinInvite(from, name, code) {
+    if (!this.readyForInvite()) return;
+    this.mCancel(); const mx = this.mx = { step: 'join', paste: code, from, fromName: name, auto: true, msg: 'Joining ' + name + '…' }; this.renderUi();
+    await this.mReply();
+    if (this.mx !== mx || mx.step !== 'reply' || !mx.code) { if (this.mx === mx) { mx.msg = ''; mx.err = mx.err || 'That invite expired. Ask ' + name + ' to invite you again.'; this.renderUi(); } return; }
+    mx.msg = 'Connecting to ' + name + '…'; this.link.send({ type: 'answer', to: from, code: mx.code }); this.renderUi();
+    clearTimeout(this.mTimer); this.mTimer = setTimeout(() => { if (this.mx === mx && !this.role) { mx.msg = ''; mx.err = 'Could not reach ' + name + ' directly. Both of you: allow the game through Windows Firewall, then try again.'; this.renderUi(); } }, 25000);
+  }
+  reportActivity() {
+    const g = this.game, ph = g.phase;
+    const act = this.playing ? 'In a match' : this.role ? 'In a lobby' : ['title', 'select', 'stagesel', 'menu'].includes(ph) ? 'In menu' : 'Playing offline';
+    if (act !== this.lastAct) { this.lastAct = act; this.link.send({ type: 'activity', act }); }
+  }
   p2pBody() {
     const mx = this.mx, ta = (f, v, ro, ph) => `<textarea data-f="${f}" spellcheck="false" ${ro ? 'readonly' : ''} placeholder="${ph || ''}">${esc(v || '')}</textarea>`;
-    if (!mx) return `<div class="on-choice">
+    if (!mx) return this.friendsBody() + `${this.link && this.social && this.social.signedIn ? '<span class="on-lbl">Or connect with a code</span>' : ''}<div class="on-choice">
         <button type="button" data-a="host" class="on-main on-big"><b>HOST A GAME</b><span>Get a code, send it to your friend, paste their reply</span></button>
         <button type="button" data-a="mjoin" class="on-big"><b>JOIN A GAME</b><span>Paste your friend’s code, send back the reply</span></button></div>`;
     const msg = `${mx.msg ? `<p class="on-p2p-msg">${esc(mx.msg)}</p>` : ''}${mx.err ? `<p class="on-p2p-err">${esc(mx.err)}</p>` : ''}`;
+    if (mx.step === 'invite' || mx.auto) return `<div class="on-p2p">${msg}<div class="on-actions"><button type="button" data-a="mcancel" class="on-main">${mx.err ? 'BACK' : 'CANCEL'}</button></div></div>`;
     if (mx.step === 'host') return `<div class="on-p2p">${msg}${mx.code ? `<span class="on-lbl">Your code</span>${ta('code', mx.code, true)}
         <div class="on-actions"><button type="button" data-a="mcopy" class="on-main">${mx.copied ? 'COPIED ✓' : 'COPY CODE'}</button></div>
         <span class="on-lbl">Their reply code</span>${ta('paste', mx.paste, false, 'Paste the reply code here (Ctrl+V)')}
@@ -14141,6 +14205,9 @@ class Net {
     else if (a === 'mconnect') this.mConnect();
     else if (a === 'mreply') this.mReply();
     else if (a === 'mcancel') { this.mCancel(); this.renderUi(); }
+    else if (a === 'finvite' && this.link) this.link.send({ type: 'invite', to: b.dataset.u });
+    else if (a === 'faccept' && this.link) { this.link.send({ type: 'accept', from: b.dataset.u }); }
+    else if (a === 'fdecline' && this.link) { this.link.send({ type: 'decline', from: b.dataset.u }); this.social.invites = (this.social.invites || []).filter(i => i.uid !== b.dataset.u); this.renderUi(); }
     else if (a === 'leave') this.leaveGame('Pick your fighter, then host a game, join one, or enter a friend’s code.');
     else if (a === 'join') this.join(b.dataset.code, 'guest');
     else if (a === 'watch') this.join(b.dataset.code, 'spec');
@@ -14222,7 +14289,7 @@ class Net {
   }
 
   // ---------- controller / keyboard navigation of the panel ----------
-  focusKey(x) { if (!x || !this.ui.contains(x) || !x.dataset) return null; return [x.dataset.a, x.dataset.v, x.dataset.i, x.dataset.k, x.dataset.code, x.className].join('|'); }
+  focusKey(x) { if (!x || !this.ui.contains(x) || !x.dataset) return null; return [x.dataset.a, x.dataset.v, x.dataset.i, x.dataset.k, x.dataset.code, x.dataset.u, x.className].join('|'); }
   focusables() { return [...this.ui.querySelectorAll('button:not([disabled]), a[href]')].filter(x => x.offsetParent !== null); }
   focusFirst() { const f = this.ui.querySelector('.on-main:not([disabled])') || this.focusables()[0]; if (f) f.focus({ preventScroll: true }); }
   move(dx, dy) {
@@ -14329,7 +14396,7 @@ class Net {
     if (this.role === 'host') {
       this.spectators = others.filter(p => p.presence && p.presence.role === 'spec').length;
       const g = others.find(p => p.peer === this.opp) || others.find(p => p.presence && p.presence.role === 'guest');
-      if (!g && this.manual && this.oppPres) { if (this.playing) this.opponentLeft(); else this.backToPanel('Your friend left.'); return; }
+      if (!g && this.manual) { if (this.oppPres) { if (this.playing) this.opponentLeft(); else this.backToPanel('Your friend left.'); } return; }   // direct link: no guest yet just means their details haven't arrived — never tear the link down for that
       if (!g) { clearTimeout(this.rtcWatch); clearTimeout(this.rtcRetry); this.rtcClose(); this.rtcTries = 0; this.rtcState = null; if (this.playing) this.opponentLeft(); else if (this.oppPres) { this.oppPres = null; this.ready = false; this.gr.presence({ ready: 0 }).catch(() => {}); this.status = 'Your opponent left. Waiting for another…'; this.publishLobby(); this.renderUi(); } return; }
       const first = !this.oppPres;
       this.opp = g.peer; this.oppPres = g.presence;
