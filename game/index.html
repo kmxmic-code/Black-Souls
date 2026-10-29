@@ -133,6 +133,7 @@
   #pausebtn { position: absolute; left: 50%; top: 16.6%; transform: translateX(-50%); z-index: 6; width: 4.2%; min-width: 30px; aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 0; border: 2px solid rgba(255,240,184,.35); background: rgba(10,7,18,.55); color: #fff0b8; font: 400 clamp(10px, 1.3vw, 18px)/1 var(--f-label); cursor: pointer; opacity: .7; transition: opacity .15s, border-color .15s; }
   #pausebtn:hover, #pausebtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
   #pausebtn[hidden] { display: none; }
+  #pausebtn.ffa { top: 1.2%; left: calc(50% + 6.5%); }
   .on-p2p { display: grid; gap: 8px; }
   .on-p2p textarea { width: 100%; height: 64px; resize: none; font: 400 11px/1.35 ui-monospace, Consolas, monospace; word-break: break-all; background: var(--ink); color: var(--paper); border: 2px solid var(--line); padding: 6px; }
   .on-p2p textarea:focus { outline: 2px solid var(--amber); }
@@ -946,11 +947,57 @@ class Game {
 
   // ---------- flow ----------
   goTitle() {
+    this.setPlayers(2);
     this.phase = 'title'; this.mode = null; this.stack = [{ id: 'main', sel: 0 }]; this.clones = []; this.fx = []; this.texts = [];
     this.cam.zoom = this.cam.zoomTo = 1; this.koFx = null; this.superFlash = null; this.banner = null;
     this.env.music('title');
   }
+  // 2 fighters normally, 3 in free for all
+  setPlayers(n) {
+    while (this.p.length < n) { const i = this.p.length; this.p.push(new Fighter(i)); this.ai.push(new AI()); this.mi.push(new Input()); this.cpu.push(true); this.aiLevel.push(this.settings.difficulty); this.p[i].pal = PAL_ORDER[(i * 3) % PAL_ORDER.length]; }
+    if (this.p.length > n) { this.p.length = n; this.ai.length = n; this.cpu.length = n; this.aiLevel.length = n; }
+  }
+  get ffa() { return this.p.length > 2; }
+  // ---------- free for all: three fighters, last one standing takes the round ----------
+  goFFA(keep) {
+    this.setPlayers(3); this.mode = 'ffa'; this.phase = 'ffasel'; this.pt = 0;
+    const NP = PAL_ORDER.length, NC = CHAR_ORDER.length;
+    if (!keep || !this.fsel) {
+      const p0 = Math.max(0, CHAR_ORDER.indexOf(this.p[0].ch)), c0 = Math.max(0, PAL_ORDER.indexOf(this.p[0].pal));
+      this.fsel = { slots: [0, 1, 2].map(i => ({ human: i === 0, ch: i === 0 ? p0 : Math.floor(rnd() * NC), pal: (c0 + i * 3) % NP, ready: false, moved: 0 })), doneT: 0 };
+    } else this.fsel.slots.forEach(s2 => { s2.ready = false; }); this.fsel.doneT = 0;
+    this.env.music('title'); this.env.sfx('confirm');
+  }
+  ffaClash(i) { const S = this.fsel.slots, a = S[i]; return S.some((b, j) => j !== i && b.ch === a.ch && b.pal === a.pal); }
+  updateFFASelect() {
+    const F = this.fsel, S = F.slots, NC = CHAR_ORDER.length, NP = PAL_ORDER.length;
+    if (F.doneT) { if (this.pt - F.doneT > 600) { F.doneT = 0; this.confirmFFA(); } return; }
+    for (let i = 0; i < 3; i++) {
+      const m = this.mi[i], s2 = S[i];
+      if (!s2.human) { if (i > 0 && (m.pressed('start') || m.pressed('lp') || m.pressed('lk'))) { s2.human = true; s2.ready = false; this.env.sfx('select'); this.say(`P${i + 1} joined`); } continue; }
+      if (s2.ready) { if (m.pressed('back') || m.pressed('hk')) { s2.ready = false; this.env.sfx('back'); } continue; }
+      if (m.pressed('l')) { s2.ch = (s2.ch - 1 + NC) % NC; s2.moved = this.time; this.env.sfx('tick'); }
+      if (m.pressed('r')) { s2.ch = (s2.ch + 1) % NC; s2.moved = this.time; this.env.sfx('tick'); }
+      if (m.pressed('u')) { s2.pal = (s2.pal - 1 + NP) % NP; this.env.sfx('tick'); }
+      if (m.pressed('d')) { s2.pal = (s2.pal + 1) % NP; this.env.sfx('tick'); }
+      if (m.pressed('start') || m.pressed('lp') || m.pressed('lk')) { if (this.ffaClash(i)) { this.say('That color is taken'); this.env.sfx('back'); } else { s2.ready = true; this.env.sfx('select'); } }
+      else if (m.pressed('back') || m.pressed('hk')) { if (i === 0) { this.setPlayers(2); this.goTitle(); return; } s2.human = false; this.env.sfx('back'); }
+    }
+    // P1 rerolls the CPU fighters
+    if (this.mi[0].pressed('hp')) { S.forEach((s2, i) => { if (!s2.human) { s2.ch = Math.floor(rnd() * NC); s2.pal = (s2.pal + 1 + Math.floor(rnd() * (NP - 1))) % NP; s2.moved = this.time; } }); this.env.sfx('tick'); }
+    // CPUs never wear the same colours as someone on the same fighter
+    S.forEach((s2, i) => { if (!s2.human) for (let k = 0; k < NP && this.ffaClash(i); k++) s2.pal = (s2.pal + 1) % NP; });
+    if (S.every(s2 => !s2.human || s2.ready)) { F.doneT = this.pt; this.env.sfx('confirm'); }
+  }
+  confirmFFA() {
+    const S = this.fsel.slots;
+    S.forEach((s2, i) => { this.p[i].ch = CHAR_ORDER[s2.ch]; this.p[i].pal = PAL_ORDER[s2.pal]; this.cpu[i] = !s2.human; this.aiLevel[i] = this.settings.difficulty; });
+    this.env.prepare(this.p.map(f => f.pal)); this.goStageSelect(() => this.startMatch());
+  }
+  ffaTag(f) { return this.cpu[f.id] ? `CPU ${f.id + 1}` : `P${f.id + 1}`; }
+
   goSelect(mode) {
+    this.setPlayers(2);
     this.mode = mode; this.phase = 'select'; this.pt = 0;
     const humans = mode === 'versus' || mode === 'training' ? [true, true] : [true, false];
     const p0 = PAL_ORDER.indexOf(this.p[0].pal), p1 = mode !== 'arcade' ? PAL_ORDER.indexOf(this.p[1].pal) : 1;
@@ -958,6 +1005,7 @@ class Game {
     this.env.music('title'); this.env.sfx('confirm');
   }
   startWatch() {
+    this.setPlayers(2);
     this.mode = 'watch'; const a = pick(PAL_ORDER); let b = pick(PAL_ORDER); if (b === a) b = PAL_ORDER[(PAL_ORDER.indexOf(a) + 2) % PAL_ORDER.length];
     this.p[0].pal = a; this.p[1].pal = b; this.cpu = [true, true];
     this.p[0].ch = pick(CHAR_ORDER); this.p[1].ch = pick(CHAR_ORDER);
@@ -1007,7 +1055,7 @@ class Game {
         S.picked = this.chosenStage; S.done = this.pt; this.env.sfx('select'); return;
       }
       if (m.pressed('hp')) { this.settings.rounds = [1, 2, 3][(([1, 2, 3].indexOf(this.settings.rounds)) + 1) % 3]; this.saveSettings(); S.roundsT = this.time; this.env.sfx('tick'); }
-      if (m.pressed('back') || m.pressed('hk')) { this.ssel = null; this.goSelect(this.mode); return; }
+      if (m.pressed('back') || m.pressed('hk')) { this.ssel = null; if (this.mode === 'ffa') this.goFFA(true); else this.goSelect(this.mode); return; }
     }
   }
   nextArcadeFight(newStage) {
@@ -1023,7 +1071,8 @@ class Game {
   }
   startRound() {
     if (!this.nextArena || this.nextArena === this.stage) this.nextArena = randomStage(this.stage);
-    this.p[0].reset(STAGE_W / 2 - 230, 1); this.p[1].reset(STAGE_W / 2 + 230, -1);
+    if (this.ffa) { this.p[0].reset(STAGE_W / 2 - 360, 1); this.p[1].reset(STAGE_W / 2 + 360, -1); this.p[2].reset(STAGE_W / 2, 1); this.p.forEach(f => { f.target = null; f.lastHitBy = null; }); }
+    else { this.p[0].reset(STAGE_W / 2 - 230, 1); this.p[1].reset(STAGE_W / 2 + 230, -1); }
     this.clones = []; this.fx = []; this.parts = []; this.texts = []; this.koFx = null; this.superFlash = null; this.hitstop = 0; this.trip = null; this.rocks = []; this.cars = []; this.wallSeq = null; this.mapBreak = null; this.walls = [null, null];
     this.cam.x = (STAGE_W - VW) / 2; this.cam.zoom = this.cam.zoomTo = 1;
     this.timer = this.mode === 'training' || !this.settings.timer ? Infinity : this.settings.timer;
@@ -1034,7 +1083,7 @@ class Game {
       if (f.ch === 'blitzy' && this.env.manifest.anims.intro) { f.intro = { t: 0 }; f.hidden = true; }
       if (f.ch !== 'blitzy' && this.env.manifest.anims[f.animKey('intro')]) { f.intro = { t: 0, plain: true }; }
     }
-    const R = this.settings.rounds, final = R > 1 && this.p[0].wins === R - 1 && this.p[1].wins === R - 1;
+    const R = this.settings.rounds, final = R > 1 && this.p.every(f => f.wins === R - 1);
     const txt = final ? 'FINAL ROUND' : `ROUND ${this.round}`;
     this.banner = { text: txt, t: 0 }; this.env.say(final ? 'Final round' : `Round ${this.round}`); this.env.sfx('round');
     this.env.musicTempo(final ? 1.08 : 1);
@@ -1051,6 +1100,7 @@ class Game {
     }
   }
   endRound() {
+    if (this.ffa) return this.endRoundFFA();
     const [a, b] = this.p, deadA = a.hp <= 0, deadB = b.hp <= 0;
     this.phase = 'roundEnd'; this.pt = 0;
     let winner = null;
@@ -1064,11 +1114,23 @@ class Game {
     this.env.say(deadA && deadB ? 'Double K O' : ko ? 'K O' : 'Time');
     this.perfect = !!winner && winner.hp === MAX_HP;
   }
-  winnerTag(f) { return f.id === 0 ? (this.mode === 'watch' ? 'CPU 1' : 'P1') : (this.cpu[1] ? 'CPU' : 'P2'); }
+  endRoundFFA() {
+    const alive = this.p.filter(f => f.hp > 0);
+    this.phase = 'roundEnd'; this.pt = 0;
+    let winner = null;
+    if (alive.length === 1) winner = alive[0];
+    else if (alive.length > 1) { const top = Math.max(...alive.map(f => f.hp)), best = alive.filter(f => f.hp === top); if (best.length === 1) winner = best[0]; }
+    this.roundWinner = winner; if (winner) winner.wins++;
+    const text = !alive.length ? 'DOUBLE K.O.' : alive.length === 1 ? 'K.O.' : 'TIME';
+    this.banner = { text, t: 0 }; this.env.say(!alive.length ? 'Double K O' : alive.length === 1 ? 'K O' : 'Time');
+    this.perfect = !!winner && winner.hp === MAX_HP;
+  }
+  winnerTag(f) {
+    if (this.ffa) return this.ffaTag(f); return f.id === 0 ? (this.mode === 'watch' ? 'CPU 1' : 'P1') : (this.cpu[1] ? 'CPU' : 'P2'); }
   endMatch(champ) {
     this.phase = 'matchEnd'; this.pt = 0; this.champ = champ;
     this.banner = { text: `${this.winnerTag(champ)} WINS`, t: 0 };
-    this.env.say(champ.id === 0 || this.mode === 'versus' ? `Player ${champ.id + 1} wins` : 'You lose');
+    this.env.say(this.ffa ? (this.cpu[champ.id] ? 'C P U wins' : `Player ${champ.id + 1} wins`) : champ.id === 0 || this.mode === 'versus' ? `Player ${champ.id + 1} wins` : 'You lose');
     this.env.music('victory');
     if (this.mode !== 'watch') {
       this.records.matches++;
@@ -1117,6 +1179,7 @@ class Game {
       case 'main': return { items: [
         { label: 'ARCADE', hint: 'Beat three CPU rivals in a row', act: () => g.goSelect('arcade') },
         { label: 'VERSUS', hint: 'Two players head to head', act: () => g.goSelect('versus') },
+        { label: 'FREE FOR ALL', hint: 'Three fighters, last one standing · CPUs fill empty spots', act: () => g.goFFA() },
         { label: 'ONLINE', hint: 'Fight a friend who has this page open', act: () => { if (g.env.online) g.env.online.open(); else g.say('Online is not available here'); } },
         { label: 'TRAINING', hint: 'Practice combos on a dummy', act: () => g.goSelect('training') },
         { label: 'WATCH CPU', hint: 'Sit back and watch two CPUs fight', act: () => g.startWatch() },
@@ -1173,6 +1236,7 @@ class Game {
           ? [{ label: 'NEXT FIGHT', act: () => { g.arc.stage++; g.nextArcadeFight(true); } }, { label: 'QUIT TO TITLE', act: () => g.goTitle() }]
           : [{ label: 'FINISH', act: () => g.arcadeClear() }] };
         if (g.mode === 'watch') return { items: [{ label: 'NEXT BOUT', act: () => g.startWatch() }, { label: 'QUIT TO TITLE', act: () => g.goTitle() }] };
+        if (g.mode === 'ffa') return { items: [{ label: 'REMATCH', act: () => g.startMatch() }, { label: 'CHANGE FIGHTERS', act: () => g.goFFA(true) }, { label: 'QUIT TO TITLE', act: () => { g.setPlayers(2); g.goTitle(); } }], won };
         return { items: [{ label: 'REMATCH', act: () => g.startMatch() }, { label: 'CHANGE COLORS', act: () => g.goSelect('versus') }, { label: 'QUIT TO TITLE', act: () => g.goTitle() }], won };
       }
       case 'movelist': return { title: 'MOVE LIST', screen: true, items: [] };
@@ -1236,7 +1300,7 @@ class Game {
     for (const c of this.clones) c.prevX = c.x;
     this.cam.prevX = this.cam.x;
     const sd = dt * (SPEEDS[this.settings.speed] || 1);   // fight simulation runs at the chosen game speed
-    this.mi[0].feed(inputs[0]); this.mi[1].feed(inputs[1]);
+    this.mi.forEach((m, i) => m.feed(inputs[i] || blank()));
     this.updateNav(dt, this.online === 'host' ? 0 : undefined);
     if (this.toast && (this.toast.t += dt) > 1800) this.toast = null;
     const fighting = ['intro', 'fight', 'roundEnd', 'matchEnd'].includes(this.phase);
@@ -1244,7 +1308,7 @@ class Game {
       this.p.forEach((f, i) => {
         let src = inputs[i];
         if (this.netPause && this.online === 'host' && i === 0) src = blank();
-        if (this.cpu[i]) src = this.ai[i].think(f, this.p[1 - i], this, dt);
+        if (this.cpu[i]) src = this.ai[i].think(f, this.foe(f), this, dt);
         else if (this.mode === 'training' && i === 1) src = this.training.dummy === 'cpu' ? this.ai[1].think(f, this.p[0], this, dt) : this.dummy.think(f, this.p[0], this, this.training.dummy);
         f.input.feed(src);
       });
@@ -1253,6 +1317,7 @@ class Game {
     switch (this.phase) {
       case 'title': this.cam.x = (STAGE_W - VW) / 2 + Math.sin(this.time / 6000) * 300; this.updateMenu(raw); break;
       case 'select': this.updateSelect(); break;
+      case 'ffasel': this.updateFFASelect(); break;
       case 'stagesel': this.updateStageSelect(); break;
       case 'vs': if ((this.pt > 2200 || (this.pt > 600 && this.ev.ok)) && (!this.env.skinsReady || this.env.skinsReady() || this.pt > 6000)) this.startMatch(); break;
       case 'pause': this.updateMenu(raw); break;
@@ -1283,7 +1348,7 @@ class Game {
       if (this.netPause && !fighting) this.netPause = null;
       else if (this.netPause) this.netPauseStep();
       else if (fighting && (this.ev.start || this.mi[0].pressed('back'))) this.openNetPause();
-    } else if (fighting && this.phase !== 'pause' && (this.ev.start || this.mi[0].pressed('back') || this.mi[1].pressed('back')) && ['intro', 'fight', 'roundEnd'].includes(this.phase)) this.pause();
+    } else if (fighting && this.phase !== 'pause' && (this.ev.start || this.mi.some(m => m.pressed('back')) || (this.ffa && this.mi[2].pressed('start'))) && ['intro', 'fight', 'roundEnd'].includes(this.phase)) this.pause();
     this.updateCamera(dt);
   }
 
@@ -1354,7 +1419,7 @@ class Game {
     this.matchTime = (this.matchTime || 0) + realDt;
     if (this.timer !== Infinity) this.timer = Math.max(0, this.timer - realDt / 1000);
     if (this.mode === 'training') return this.updateTraining(dt);
-    if (this.p.some(f => f.hp <= 0) || this.timer <= 0) this.endRound();
+    if ((this.ffa ? this.p.filter(f => f.hp > 0).length <= 1 : this.p.some(f => f.hp <= 0)) || this.timer <= 0) this.endRound();
   }
   updateTraining(dt) {
     const T = this.training;
@@ -1381,19 +1446,32 @@ class Game {
       this.saidPerfect = false;
       const champ = this.p.find(f => f.wins >= this.settings.rounds);
       if (champ) this.endMatch(champ);
-      else if (!this.roundWinner && this.round >= 9) this.endMatch(this.p[0].hp >= this.p[1].hp ? this.p[0] : this.p[1]);
+      else if (!this.roundWinner && this.round >= 9) this.endMatch(this.p.reduce((a, b) => (b.hp > a.hp ? b : a)));
       else { this.round++; this.startRound(); }
     }
   }
 
+  // ---------- who each fighter is fighting ----------
+  // 1v1: the other one. Free for all: whoever just hit you, else the nearest fighter still standing (sticky, so nobody flips back and forth)
+  foe(f) {
+    if (this.p.length === 2) return this.p[1 - f.id];
+    const others = this.p.filter(q => q !== f), alive = others.filter(q => !q.ko && q.hp > 0), pool = alive.length ? alive : others;
+    const dist = q => Math.abs(q.x - f.x) + Math.abs((q.h || 0) - (f.h || 0)) * 0.3;
+    let best = pool[0]; for (const q of pool) if (dist(q) < dist(best)) best = q;
+    const rev = f.lastHitBy && pool.includes(f.lastHitBy) && this.time - f.lastHitAt < 1800 ? f.lastHitBy : null;
+    if (rev) best = rev;
+    else if (f.target && f.target !== best && pool.includes(f.target) && dist(f.target) - dist(best) < 160) best = f.target;
+    f.target = best; return best;
+  }
+
   // ---------- simulation ----------
   stepWorld(dt, locked) {
-    const [a, b] = this.p;
     for (const f of this.p) { f.locked = locked; f.px = f.x; }
-    for (const f of this.p) this.updateFighter(f, this.p[1 - f.id], dt);
+    for (const f of this.p) this.updateFighter(f, this.foe(f), dt);
     this.updateClones(dt); this.updateRocks(dt); this.updateCars(dt);
-    this.resolveHits(a, b); this.resolveHits(b, a);
-    this.pushApart(a, b); this.keepOnScreen(a, b);
+    for (const f of this.p) for (const o of this.p) if (f !== o) this.resolveHits(f, o);
+    for (let i = 0; i < this.p.length; i++) for (let j = i + 1; j < this.p.length; j++) this.pushApart(this.p[i], this.p[j]);
+    this.keepOnScreen();
     for (const f of this.p) {
       if (f.dmgTrail > f.hp) f.dmgTrail = Math.max(f.hp, f.dmgTrail - dt * 0.3);
       if (f.combo > 0 && ['idle', 'walk', 'walkb', 'crouch', 'guard', 'block', 'cblock', 'land', 'getup', 'air', 'prejump', 'attack', 'dash', 'carcall'].includes(f.state)) this.endCombo(f);
@@ -1407,7 +1485,7 @@ class Game {
     if (this.wallSeq && (this.wallSeq.t += dt) > 6000) this.wallSeq = null;
   }
   endCombo(f) {
-    const att = this.p[1 - f.id];
+    const att = f.lastHitBy || this.foe(f);
     if (f.combo >= 2 && !this.cpu[att.id] && this.mode !== 'watch') {
       if (f.combo > this.records.bestCombo) { this.records.bestCombo = f.combo; this.saveRecords(); }
       if (f.comboDmg > this.records.bestComboDmg) { this.records.bestComboDmg = f.comboDmg; this.saveRecords(); }
@@ -1570,7 +1648,7 @@ class Game {
     f.dir = nd; f.dirHist = []; f.fwdTaps = []; f.backTaps = []; f.vx = f.vx;   // forward/back now mean the new side
   }
   startMove(f, mv) {
-    if (f.grounded) this.faceOpponent(f, this.p[1 - f.id]);
+    if (f.grounded) this.faceOpponent(f, this.foe(f));
     f.move = mv; f.moveSeq++; f.hitDone = new Set(); f.connected = false; f._lfi = -1; f.setState('attack', MOVES[mv].anim);
     this.env.sfx(MOVES[mv].heavy ? 'whooshH' : 'whoosh');
   }
@@ -1976,11 +2054,14 @@ class Game {
     if (!this.cars || !this.cars.length) return;
     for (const c of this.cars) {
       c.t += dt; c.prevX = c.x; c.x += c.vx * dt / 1000;
-      const f = c.owner, o = this.p[1 - f.id], horse = c.kind === 'horse', front = c.x + c.dir * (horse ? 120 : 270), back = c.x - c.dir * (horse ? 110 : 280);
+      const f = c.owner, horse = c.kind === 'horse', front = c.x + c.dir * (horse ? 120 : 270), back = c.x - c.dir * (horse ? 110 : 280);
       if (horse && (c.dustT = (c.dustT || 0) + dt) > 70) { c.dustT = 0; this.dust(c.x - c.dir * 80, 3); }
       if ((back - f.x) * c.dir > 40) c.passed = true;
-      if (!c.hit && !o.hidden && !o.ko && o.h < 175 && (front - o.x) * c.dir > -30 && (back - o.x) * c.dir < 0) {
-        c.hit = true;
+      c.hits = c.hits || new Set();
+      for (const o of this.p) {
+      if (o === f) continue;
+      if (!c.hits.has(o.id) && !o.hidden && !o.ko && o.h < 175 && (front - o.x) * c.dir > -30 && (back - o.x) * c.dir < 0) {
+        c.hit = true; c.hits.add(o.id);
         const was = f.move, slide = f.slide, fx = f.x; f.move = 'ycar';
         f.x = o.x - c.dir * 10;   // so the knock goes the way the car drives
         this.applyHit(f, o, horse ? { dmg: 95, stun: 600, push: 34, kd: true, ult: true, lvl: 'mid' } : { dmg: 150, stun: 700, push: 40, kd: true, ult: true, lvl: 'mid', unblock: true }, o.x - c.dir * 40, GROUND - 110, false);
@@ -1988,6 +2069,7 @@ class Game {
         if (!o.ko) o.slide = c.dir * 900;
         this.shake(14); this.flash = 60; this.dust(o.x, 14); this.env.sfx('crash');
         this.texts.push({ text: horse ? 'ROBERTO!' : 'HIT AND RUN!', x: o.x, y: GROUND - 300, t: 0, life: 900, color: 'red' });
+      }
       }
       if ((c.dir > 0 && c.x - 300 > Math.max(STAGE_W, this.cam.x + VW) + 200) || (c.dir < 0 && c.x + 300 < Math.min(0, this.cam.x) - 200) || c.t > 6000) c.live = false;
     }
@@ -2078,9 +2160,10 @@ class Game {
         if (!r.bounced) continue;   // it only does damage once it has ricocheted off the floor
       }
       if (r.kind === 'rock' || !r.kind) r.h = 150 - 30 * Math.sin(Math.min(1, r.t / 700) * Math.PI) + Math.max(0, r.t - 500) * 0.05;
-      const o = this.p[1 - r.owner.id], hb = o.hurtbox();
       const box = r.kind === 'bullet' ? [r.x - 22, r.x + 22, r.h - 8, r.h + 8] : r.kind === 'kunai' ? [r.x - 38, r.x + 38, r.h - 17, r.h + 17] : r.kind === 'rrock' ? [r.x - 45, r.x + 45, r.h - 40, r.h + 40] : [r.x - 49, r.x + 49, r.h - 44, r.h + 44];
-      if (hb && !r.hitOnce && box[0] < hb[1] && box[1] > hb[0] && box[2] < hb[3] && box[3] > hb[2]) {
+      let o = null, hb = null;
+      for (const q of this.p) { if (q === r.owner) continue; const b2 = q.hurtbox(); if (b2 && box[0] < b2[1] && box[1] > b2[0] && box[2] < b2[3] && box[3] > b2[2]) { o = q; hb = b2; break; } }
+      if (o && !r.hitOnce) {
         if (r.airb != null) r.hitOnce = true; else r.live = false;   // the air round keeps ricocheting after it hits
         const kun = r.kind === 'kunai' || r.kind === 'bullet';
         if (!kun) this.shatter(r);
@@ -2095,7 +2178,7 @@ class Game {
   }
   shatter(r) {
     this.fx.push({ kind: 'shatter', x: r.x, y: GROUND - r.h, t: 0, life: 760, mirror: r.dir < 0 });
-    this.shake(14); this.flash = 90; this.env.sfx('koHit'); this.env.rumble(1 - r.owner.id, 1, 0.7, 300);
+    this.shake(14); this.flash = 90; this.env.sfx('koHit'); this.p.forEach(q => { if (q !== r.owner) this.env.rumble(q.id, 1, 0.7, 300); });
   }
   parry(o, att, cx, cy) {
     const away = o.x < att.x ? 1 : -1;
@@ -2118,11 +2201,11 @@ class Game {
     this.burst(wx, GROUND - 130, dir, 'heavy'); this.burst(wx, GROUND - 60, dir, 'heavy'); this.dust(wx + dir * 30, 10);
     this.texts.push({ text: 'WALL CRASH!', x: clamp(f.x, 260, STAGE_W - 260), y: GROUND - 300, t: 0, life: 1000, color: 'red' });
     f.vx = 0;
-    if (rnd() < 0.25 && !f.ko && this.stage !== 'pit') { this.mapBreak = { t: 0, victim: f, side, switched: false }; this.env.sfx('smoke'); return; }
+    if (rnd() < 0.25 && !f.ko && !this.ffa && this.stage !== 'pit') { this.mapBreak = { t: 0, victim: f, side, switched: false }; this.env.sfx('smoke'); return; }
     this.fallDown(f, f.ko); f.slide = dir * 260;
   }
   updateMapBreak(dt) {
-    const M = this.mapBreak, f = M.victim, o = this.p[1 - f.id];
+    const M = this.mapBreak, f = M.victim, o = M.owner || this.foe(f);
     M.t += dt; this.stepParticles(dt); this.fx = this.fx.filter(e => (e.t += dt) < e.life); this.texts = this.texts.filter(e => (e.t += dt) < e.life);
     if (!M.switched && M.t > 380) {
       M.switched = true;
@@ -2197,17 +2280,18 @@ class Game {
   }
 
   // ---------- hits ----------
-  activeHits(f) {
+  hitKey(i, o) { return o && this.p.length > 2 ? i + '@' + o.id : i; }
+  activeHits(f, o) {
     if (!f.move || f.hidden) return [];
     const m = MOVES[f.move], fi = f.anim.fi;
-    return m.hits.map((h, i) => ({ h, i })).filter(({ h, i }) => !f.hitDone.has(i) && fi >= h.f && fi <= (h.fEnd ?? h.f));
+    return m.hits.map((h, i) => ({ h, i })).filter(({ h, i }) => !f.hitDone.has(this.hitKey(i, o)) && fi >= h.f && fi <= (h.fEnd ?? h.f));
   }
   resolveHits(f, o, isClone = false) {
     const hb = o.hurtbox(); if (!hb) return;
-    for (const { h, i } of this.activeHits(f)) {
+    for (const { h, i } of this.activeHits(f, o)) {
       const r = f.box(h.box, f.h || 0);
       if (r[0] > hb[1] || r[1] < hb[0] || r[2] > hb[3] || r[3] < hb[2]) continue;
-      f.hitDone.add(i);
+      f.hitDone.add(this.hitKey(i, o));
       const cx = (Math.max(r[0], hb[0]) + Math.min(r[1], hb[1])) / 2;
       const cy = GROUND - (Math.max(r[2], hb[2]) + Math.min(r[3], hb[3])) / 2;
       this.applyHit(f, o, h, cx, cy, isClone);
@@ -2245,7 +2329,7 @@ class Game {
     }
     const counter = !isClone && (o.state === 'attack' || o.state === 'airkick') && o.anim.fi <= (MOVES[o.move] && MOVES[o.move].hits.length ? MOVES[o.move].hits[MOVES[o.move].hits.length - 1].f : 0);
     if (o.combo === 0) o.comboDmg = 0;
-    o.combo++;
+    o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
     const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 1.5 : 1)));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
@@ -2292,7 +2376,7 @@ class Game {
       this.shake(14); this.flash = 40; this.dust(o.x, 12); this.env.sfx('slam'); this.env.rumble(o.id, 1, 0.8, 300);
       this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 280, t: 0, life: 800, color: 'red' });
     }
-    if (ko && !o.ko) { o.ko = true; this.koFx = { t: 0, loser: o }; this.cam.zoomTo = 1.14; this.cam.fx = o.x; }
+    if (ko && !o.ko) { o.ko = true; const last = !this.ffa || this.p.filter(q => q.hp > 0).length <= 1; if (last) { this.koFx = { t: 0, loser: o }; this.cam.zoomTo = 1.14; this.cam.fx = o.x; } else { this.texts.push({ text: `${this.ffaTag(o)} OUT!`, x: o.x, y: GROUND - 300, t: 0, life: 1400, color: 'red' }); this.env.say('K O'); } }
     if (!isClone && (o.x <= EDGE + 4 || o.x >= STAGE_W - EDGE - 4 || this.atScreenEdge(o))) att.slide = -away * (h.push || 10) * 14;
   }
   guardBreak(o, att, quiet) {
@@ -2305,7 +2389,7 @@ class Game {
   }
   statusUpdate(f, dt) {
     // safety: nobody is carrying him any more (the grab was interrupted) -> drop him instead of leaving him hanging
-    const o = this.p[1 - f.id];
+    const o = this.foe(f);
     if (f.state === 'carried' && !this.trip && !o.special && (f._carriedT = (f._carriedT || 0) + dt) > 400) { f._carriedT = 0; f.hidden = false; f.h = 0; this.fallDown(f, f.hp <= 0); }
     else if (f.state !== 'carried') f._carriedT = 0;
     // guard refills when he is not holding a block
@@ -2318,9 +2402,10 @@ class Game {
       if ((f._emT = (f._emT || 0) + dt) > 70) { f._emT = 0; this.parts.push({ kind: 'ember', x: f.x + (rnd() - 0.5) * 70, y: GROUND - 30 - rnd() * 160, vx: (rnd() - 0.5) * 30, vy: -90 - rnd() * 80, g: 0, drag: 0.02, t: 0, life: 420, size: 4 }); }
     }
   }
-  atScreenEdge(f) { const o = this.p[1 - f.id]; return Math.abs(f.x - o.x) >= MAX_SEP - 4 && (f.x - o.x) * (f.x - this.cam.x - VW / 2) > 0; }
+  atScreenEdge(f) { const o = this.foe(f); return Math.abs(f.x - o.x) >= MAX_SEP - 4 && (f.x - o.x) * (f.x - this.cam.x - VW / 2) > 0; }
   pushApart(a, b) {
     if (a.hidden || b.hidden) return;
+    if (this.ffa && (a.ko || b.ko)) return;
     const lunging = f => f.move && MOVES[f.move] && MOVES[f.move].lunge && f.anim.fi >= 3 && f.anim.fi <= 7;
     if (lunging(a) || lunging(b)) return;
     if ([a, b].some(f => f.special && f.special.pit)) return;   // the pit finisher moves both of them itself   // the feral bite carries him right past them
@@ -2340,9 +2425,11 @@ class Game {
       }
     }
   }
-  keepOnScreen(a, b) {
+  keepOnScreen() {
     if (this.wallSeq) return;
-    const L = a.x <= b.x ? a : b, R = L === a ? b : a, ex = (R.x - L.x) - MAX_SEP;
+    const live = this.p.filter(f => !f.hidden && !(this.ffa && f.ko)); if (live.length < 2) return;
+    let L = live[0], R = live[0]; for (const f of live) { if (f.x < L.x) L = f; if (f.x > R.x) R = f; }
+    const ex = (R.x - L.x) - MAX_SEP;
     if (ex <= 0) return;
     const lo = Math.max(0, L.px - L.x), ro = Math.max(0, R.x - R.px), tot = lo + ro;
     if (tot > 0) { L.x += ex * lo / tot; R.x -= ex * ro / tot; } else { const c = Math.min(ex, ex > 250 ? 40 : 12); L.x += c / 2; R.x -= c / 2; }
@@ -2353,7 +2440,7 @@ class Game {
   updateCamera(dt) {
     const c = this.cam;
     if (['intro', 'fight', 'roundEnd', 'matchEnd', 'results', 'pause'].includes(this.phase) && !(this.trip && this.trip.scene !== 'stage')) {
-      const vis = this.p.filter(f => !f.hidden);
+      const vis = this.p.filter(f => !f.hidden && !(this.ffa && f.ko && this.phase === 'fight'));
       const pts = vis.length ? vis.map(f => f.x) : this.p.map(f => f.x);
       this.clones.forEach(cl => pts.push(cl.x));
       let mid = (Math.min(...pts) + Math.max(...pts)) / 2;
@@ -12242,7 +12329,7 @@ class View {
   // Y4NK carrying the rival in his arms; X is the runner's body centre in screen or world space
   drawCarry(ctx, f, X, dir) {
     const [n, i] = f.frameName(), fr = this.mf[n] && this.mf[n][i];
-    const v = this.g.trip ? this.g.trip.victim : this.g.p[1 - f.id];
+    const v = this.g.trip ? this.g.trip.victim : (this.g.p.find(q => q !== f && q.state === 'carried') || this.g.foe(f));
     if (fr) {
       const [, , , w, h, ox, oy] = fr, hx = ox + w - 30, hy = oy + 88;
       const hk = v.ch === 'y4nk' ? ['y:held', Math.floor(this.g.time / 100) % this.mf['y:held'].length] : (v.ch === 'rusty' || v.ch === 'cowboy') ? [v.animKey('held'), 0] : ['koair', 3 + (Math.floor(this.g.time / 180) % 2)];
@@ -12727,12 +12814,12 @@ class View {
     const camDx = (this.lastCam == null ? 0 : camX - this.lastCam); this.lastCam = camX;
     if (scene === 'desert') { ctx.setTransform(1, 0, 0, 1, 0, 0); this.drawDesert(ctx, T); }
     else {
-      if (g.phase === 'title') this.drawTitleBG(ctx, t, dt); else this.drawStage(ctx, camXs == null ? camX : camXs, t, dim);
-      const inWorld = !['title', 'select', 'stagesel', 'vs', 'continue', 'gameover', 'ending'].includes(g.phase);
+      if (g.phase === 'title' || g.phase === 'ffasel') this.drawTitleBG(ctx, t, dt); else this.drawStage(ctx, camXs == null ? camX : camXs, t, dim);
+      const inWorld = !['title', 'select', 'ffasel', 'stagesel', 'vs', 'continue', 'gameover', 'ending'].includes(g.phase);
       if (inWorld) this.drawWorld(ctx, camX, t);
       if (inWorld && this.g.blackout > 0) { ctx.fillStyle = `rgba(0,0,0,${this.g.blackout})`; ctx.fillRect(0, 0, VW, VH); }
       const shown = this.stageShown();
-      if (g.phase === 'title') { /* embers are part of the menu backdrop */ }
+      if (g.phase === 'title' || g.phase === 'ffasel') { /* embers are part of the menu backdrop */ }
       else if (this.SR.has(shown)) this.SR.drawParticles(ctx, shown, dt, camXs == null ? camDx : 0);
       else if (shown !== 'namas' && shown !== 'pit') this.drawPetals(ctx, dt, camDx);
     }
@@ -12742,6 +12829,7 @@ class View {
     switch (g.phase) {
       case 'title': this.drawTitle(ctx); break;
       case 'select': this.drawSelect(ctx); break;
+      case 'ffasel': this.drawFFASelect(ctx); break;
       case 'stagesel': this.drawStageSelect(ctx); break;
       case 'vs': this.drawVs(ctx); break;
       case 'continue': this.drawContinue(ctx); break;
@@ -12929,7 +13017,7 @@ class View {
         for (let q = 0; q < r; q += 4) px(Math.cos(an) * q - 4, Math.sin(an) * q - 2, 6, 6, col); }
       px(-14, -18, 30, 36, '#fff8ec'); px(-8, -10, 18, 20, '#ffffff');
       // impact splash where it meets the rival
-      const o = g.p[1 - f.id], ox = Math.round(L(o.prevX, o.x)), dist = (ox - X0) * d;
+      const o = g.foe(f), ox = Math.round(L(o.prevX, o.x)), dist = (ox - X0) * d;
       if (dist > 0 && dist < len && o.hurtbox()) for (let i = 0; i < 14; i++) { const an = (i / 14) * Math.PI * 2 + t / 60, r = 20 + ((t / 3 + i * 13) % 50); px(dist - 30 + Math.cos(an) * r * 0.5, Math.sin(an) * r, 6, 6, S[i % 4][1 + (i % 2)]); }
       ctx.restore();
     }
@@ -13109,7 +13197,78 @@ class View {
   dimAll(ctx, a) { ctx.fillStyle = `rgba(10,7,18,${a})`; ctx.fillRect(0, 0, VW, VH); }
 
   // ---------- HUD ----------
+  // ---------- free for all ----------
+  drawFFASelect(ctx) {
+    const g = this.g, F = g.fsel, t = g.time; if (!F) return;
+    this.text(ctx, 'FREE FOR ALL', VW / 2, 76, 64, COL.paper, 'center', FD, COL.ink, 8);
+    this.text(ctx, 'THREE FIGHTERS · LAST ONE STANDING TAKES THE ROUND', VW / 2, 104, 14, COL.amber, 'center', FS, COL.ink, 4);
+    const KEY = { blitzy: 'idle', y4nk: 'y:idle', rusty: 'r:idle', cowboy: 'c:idle' };
+    const joinHint = ['', 'P2: PRESS A · NUM 4 TO JOIN', '3RD CONTROLLER: PRESS A TO JOIN'];
+    F.slots.forEach((s2, i) => {
+      const w = 372, h = 486, x = 28 + i * (w + 26), y = 128, ch = CHAR_ORDER[s2.ch], pal = PAL_ORDER[s2.pal], C = CHARS[ch], col = palCss(pal);
+      this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.88)', s2.human ? col : COL.line);
+      ctx.fillStyle = s2.human ? col : '#2a1e3a'; ctx.fillRect(x, y, w, 40);
+      this.text(ctx, s2.human ? `P${i + 1}` : `CPU ${i + 1}`, x + 16, y + 31, 28, s2.human ? COL.ink : COL.muted, 'left', FD, COL.ink, 0);
+      this.text(ctx, s2.human ? 'PLAYER' : `CPU · ${g.settings.difficulty.toUpperCase()}`, x + w - 14, y + 27, 13, s2.human ? COL.ink : COL.muted, 'right', FS, COL.ink, 0);
+      // the fighter, idling on a little stage of light
+      const key = KEY[ch], nf = (this.mf[key] || [0]).length, fi = Math.floor((t + i * 170) / 100) % nf, fr = this.frameCanvas(pal, key, fi), sc = ch === 'rusty' ? 1.0 : 1.1, feet = y + 372, cx = x + w / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(cx, feet - 4, 110, 14, 0, 0, Math.PI * 2); ctx.fill();
+      const bob = s2.moved && t - s2.moved < 160 ? (1 - (t - s2.moved) / 160) * 10 : 0;
+      ctx.globalAlpha = s2.human ? 1 : 0.8;
+      ctx.drawImage(fr, Math.round(cx - 128 * sc + fr.ox * sc), Math.round(feet - 237 * sc + fr.oy * sc - bob), Math.round(fr.width * sc), Math.round(fr.height * sc));
+      ctx.globalAlpha = 1;
+      if (s2.human && !s2.ready) { const k = (t % 900) < 450 ? 0 : 4; this.text(ctx, '◀', x + 22 - k, y + 250, 34, COL.amber, 'left', FS, COL.ink, 4); this.text(ctx, '▶', x + w - 22 + k, y + 250, 34, COL.amber, 'right', FS, COL.ink, 4); }
+      this.text(ctx, C.name, cx, y + 420, 40, COL.paper, 'center', FD, COL.ink, 6);
+      this.text(ctx, `${PALETTES[pal].name}${s2.human && !s2.ready ? '  ▲▼' : ''}`, cx, y + 446, 15, col, 'center', FS, COL.ink, 4);
+      if (!s2.human && i > 0) this.text(ctx, joinHint[i], cx, y + 474, 12, (t % 1000) < 650 ? COL.amberHi : COL.muted, 'center', FS, COL.ink, 4);
+      else if (s2.human && !s2.ready && g.ffaClash(i)) this.text(ctx, 'COLOR TAKEN', cx, y + 474, 13, COL.red, 'center', FS, COL.ink, 4);
+      if (s2.ready) {
+        ctx.save(); ctx.translate(cx, y + 200); ctx.rotate(-0.12);
+        this.box(ctx, -110, -36, 220, 64, 'rgba(10,30,14,0.85)', COL.green);
+        this.text(ctx, 'READY', 0, 16, 46, COL.green, 'center', FD, COL.ink, 6); ctx.restore();
+      }
+    });
+    this.text(ctx, '◀ ▶ FIGHTER  ·  ▲ ▼ COLOR  ·  A / U READY  ·  B / K BACK  ·  Y / I NEW CPU PICKS', VW / 2, VH - 30, 14, COL.muted, 'center', FS, COL.ink, 4);
+    if (F.doneT) { const k = Math.min(1, (g.pt - F.doneT) / 300); ctx.fillStyle = `rgba(10,7,18,${0.5 * k})`; ctx.fillRect(0, 0, VW, VH); this.text(ctx, 'GET READY', VW / 2, VH / 2 + 30, 110, COL.amber, 'center', FD, COL.ink, 10); }
+  }
+  drawHUD3(ctx) {
+    const g = this.g, n = g.p.length, gap = 20, w = Math.floor((VW - 40 - gap * (n - 1)) / n), y = 62, h = 80;
+    // timer, small, above the middle
+    this.box(ctx, VW / 2 - 42, 6, 84, 50, COL.night, COL.line);
+    const tm = g.timer === Infinity ? '--' : String(Math.ceil(g.timer)).padStart(2, '0');
+    this.text(ctx, tm, VW / 2, 50, 46, g.timer <= 10 ? COL.red : COL.paper);
+    g.p.forEach((f, i) => {
+      const x = 20 + i * (w + gap), col = palCss(f.pal), out = f.ko || f.hp <= 0;
+      this.box(ctx, x, y, w, h, 'rgba(14,9,24,0.86)', out ? COL.line : col);
+      this.box(ctx, x + 6, y + 6, 66, 66, COL.night, col);
+      ctx.drawImage(this.portrait(f.pal, f), x + 7, y + 7, 64, 64);
+      const bx = x + 82, bw = w - 92;
+      this.text(ctx, f.C.name, bx, y + 24, 24, COL.paper, 'left', FD, COL.ink, 4);
+      const nw = this.textW(f.C.name, 24) + 8;
+      this.text(ctx, g.ffaTag(f), bx + nw, y + 22, 13, col, 'left', FS, COL.ink, 3);
+      for (let k = 0; k < g.settings.rounds; k++) this.drawShuri(ctx, x + w - 14 - k * 24, y + 16, 2, false, k >= f.wins);
+      // health
+      ctx.fillStyle = '#2a1e34'; ctx.fillRect(bx, y + 32, bw, 16);
+      const life = bw * Math.max(0, f.hp) / MAX_HP, trail = bw * Math.max(0, f.dmgTrail) / MAX_HP, low = f.hp < MAX_HP * 0.25 && f.hp > 0;
+      ctx.fillStyle = COL.red; ctx.fillRect(bx, y + 32, trail, 16);
+      ctx.fillStyle = low && (g.time % 360) < 180 ? COL.amberHi : COL.amber; ctx.fillRect(bx, y + 32, life, 16);
+      ctx.fillStyle = 'rgba(255,240,200,0.28)'; ctx.fillRect(bx, y + 34, life, 3);
+      ctx.fillStyle = 'rgba(18,13,28,0.5)'; for (let k = 1; k < 10; k++) ctx.fillRect(bx + k * bw / 10, y + 32, 1, 16);
+      // guard, rage (Big Rusty), meter
+      const gd = f.guard == null ? 100 : f.guard; ctx.fillStyle = '#1d1828'; ctx.fillRect(bx, y + 51, bw, 4); ctx.fillStyle = gd < 30 ? '#ff6a4a' : '#7ad070'; ctx.fillRect(bx, y + 51, bw * Math.max(0, gd) / 100, 4);
+      if (f.ch === 'rusty') { ctx.fillStyle = '#1d1222'; ctx.fillRect(bx, y + 57, bw, 3); ctx.fillStyle = f.feral ? ((g.time % 240) < 120 ? '#ff3a30' : '#b8142a') : '#a8323a'; ctx.fillRect(bx, y + 57, bw * Math.max(0, Math.min(100, f.rage || 0)) / 100, 3); }
+      const full = f.meter >= 100; ctx.fillStyle = '#1d1530'; ctx.fillRect(bx, y + 63, bw, 7); ctx.fillStyle = full ? ((g.time % 260) < 130 ? '#d5c6ff' : '#9d86e8') : '#7a68b8'; ctx.fillRect(bx, y + 63, bw * f.meter / 100, 7);
+      if (full && !f.C.noSuper) this.text(ctx, 'SUPER', bx + bw, y + 78, 10, '#e0d6ff', 'right', FS, COL.ink, 3);
+      if (f.ch === 'cowboy') this.text(ctx, '●'.repeat(f.ammo == null ? 6 : f.ammo) + '○'.repeat(6 - (f.ammo == null ? 6 : f.ammo)), bx, y + 78, 10, f.element ? COL.amberHi : COL.paper, 'left', FS, COL.ink, 3);
+      if (out) { ctx.fillStyle = 'rgba(8,5,14,0.62)'; ctx.fillRect(x, y, w, h); this.text(ctx, 'K.O.', x + w / 2, y + 56, 40, COL.red, 'center', FD, COL.ink, 6); }
+      // combo this fighter is landing
+      const victim = g.p.find(v => v !== f && v.combo >= 2 && v.lastHitBy === f);
+      if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
+    });
+    if (g.mode === 'ffa' && g.phase === 'fight') this.text(ctx, 'LAST ONE STANDING', VW / 2, VH - 14, 12, COL.muted, 'center', FS, COL.ink, 4);
+  }
   drawHUD(ctx) {
+    if (this.g.p.length > 2) return this.drawHUD3(ctx);
     const g = this.g, BW = 456, BH = 26, BY = 34;
     g.p.forEach((f, i) => {
       const L = i === 0, px = L ? 22 : VW - 22 - 84, bx = L ? 120 : VW - 120 - BW;
@@ -13360,7 +13519,7 @@ class View {
     const LS = 8 / 13, bob = Math.round(Math.sin(t / 700) * 3);
     ctx.save(); ctx.translate(880 - 600 * LS, -14 + bob); ctx.scale(LS, LS); this.drawLogo(ctx, 600, 0, t, 16); ctx.restore();
     // slanted menu bars
-    const def = g.menuDef('main'), items = def.items, tight = items.length > 9, x0 = 640, bw = 560, bh = tight ? 36 : 40, y0 = tight ? 236 : 240, step = tight ? 42 : 47;
+    const def = g.menuDef('main'), items = def.items, tight = items.length > 9, x0 = 640, bw = 560, step = tight ? Math.min(42, Math.floor(418 / items.length)) : 47, bh = tight ? step - 6 : 40, y0 = tight ? 230 : 240;
     items.forEach((it, i) => {
       const on = i === top.sel, y = y0 + i * step, sk = 14, dx = on ? -26 : 0, X = x0 + dx;
       ctx.fillStyle = on ? COL.ink : 'rgba(6,3,12,0.72)';
@@ -13371,8 +13530,8 @@ class View {
         const sw = (t / 60) % 40; ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(X + 20 + sw * 14, y + 6, 18, bh - 12);
         this.drawShuri(ctx, X - 18, y + bh / 2, 3, true);
       } else { ctx.fillStyle = COL.red; ctx.fillRect(X + 6, y + 8, 4, bh - 16); }
-      this.text(ctx, it.label, X + 40, y + (tight ? 28 : 30), tight ? 21 : 22, on ? COL.ink : COL.paper, 'left', FS, on ? '#fff0b8' : COL.ink, on ? 0 : 4);
-      this.text(ctx, String(i + 1).padStart(2, '0'), X + bw - 24, y + (tight ? 26 : 28), 15, on ? '#6a3a0e' : COL.line, 'right', FS, COL.ink, 0);
+      this.text(ctx, it.label, X + 40, y + (tight ? Math.round(bh * 0.76) : 30), tight ? (step >= 40 ? 21 : 19) : 22, on ? COL.ink : COL.paper, 'left', FS, on ? '#fff0b8' : COL.ink, on ? 0 : 4);
+      this.text(ctx, String(i + 1).padStart(2, '0'), X + bw - 24, y + (tight ? Math.round(bh * 0.72) : 28), tight && step < 40 ? 13 : 15, on ? '#6a3a0e' : COL.line, 'right', FS, COL.ink, 0);
     });
     const hint = items[top.sel] && items[top.sel].hint;
     if (hint) this.text(ctx, hint.toUpperCase(), x0 + bw / 2, y0 + items.length * step + 22, 15, COL.amberHi, 'center', FS, COL.ink, 4);
@@ -13629,15 +13788,13 @@ class View {
     const champ = g.champ;
     this.text(ctx, `${g.winnerTag(champ)} WINS`, VW / 2, y + 66, 64, palCss(champ.pal));
     const rows = [['HITS LANDED', 'hits'], ['DAMAGE', 'dmg'], ['BEST COMBO', 'maxCombo'], ['BLOCKS', 'blocks'], ['SUPERS', 'specials']];
-    const c0 = x + 60, c1 = x + w - 250, c2 = x + w - 80;
-    this.text(ctx, g.winnerTag(g.p[0]), c1, y + 112, 16, palCss(g.p[0].pal), 'center', FS, COL.ink, 4);
-    this.text(ctx, g.winnerTag(g.p[1]), c2, y + 112, 16, palCss(g.p[1].pal), 'center', FS, COL.ink, 4);
+    const c0 = x + 60, N = g.p.length, colX = j => x + w - 80 - (N - 1 - j) * (N > 2 ? 140 : 170);
+    g.p.forEach((f, j) => this.text(ctx, g.winnerTag(f), colX(j), y + 112, 16, palCss(f.pal), 'center', FS, COL.ink, 4));
     rows.forEach(([label, k], i) => {
-      const yy = y + 150 + i * 36, a = g.p[0].stats[k], b = g.p[1].stats[k];
+      const yy = y + 150 + i * 36, vals = g.p.map(f => f.stats[k]), top = Math.max(...vals);
       ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 30, yy - 24, w - 60, 34);
       this.text(ctx, label, c0, yy, 16, COL.muted, 'left', FS, COL.ink, 0);
-      this.text(ctx, String(a), c1, yy, 18, a >= b ? COL.paper : COL.muted, 'center', FS, COL.ink, 0);
-      this.text(ctx, String(b), c2, yy, 18, b >= a ? COL.paper : COL.muted, 'center', FS, COL.ink, 0);
+      vals.forEach((v, j) => this.text(ctx, String(v), colX(j), yy, 18, v >= top ? COL.paper : COL.muted, 'center', FS, COL.ink, 0));
     });
     this.text(ctx, `MATCH TIME ${Math.round((g.matchTime || 0) / 1000)} SEC`, VW / 2, y + 352, 14, COL.muted, 'center', FS, COL.ink, 0);
     if (g.online) {
@@ -15120,13 +15277,23 @@ onmessage = e => { const m = e.data; try {
     const p = pads.find(q => 'pad:' + q.index === dev); return readPad(p, game.controls[slot].pad);
   }
   // each player's buttons this frame, honouring the chosen devices; anything not chosen by P1 drives P2
+  // free for all: player 3 is the first controller nobody else is using
+  function p3Pad(pads) {
+    if (!game || game.p.length < 3) return null;
+    if (!devAssign) return pads[2] || null;
+    return pads.find(q => !devAssign.includes('pad:' + q.index) && (devAssign[1] || q !== pads.find(r => 'pad:' + r.index !== devAssign[0]))) || null;
+  }
   function playerInputs(pads) {
-    if (!devAssign) return [0, 1].map(i => merge(fromKeys(game.controls[i].key, i), readPad(pads[i], game.controls[i].pad)));
-    const p1 = devInput(devAssign[0], 0, pads);
-    let p2;
-    if (devAssign[1]) p2 = devInput(devAssign[1], 1, pads);
-    else { p2 = blank(); for (const d of ['kb0', 'kb1'].concat(pads.map(q => 'pad:' + q.index))) if (d !== devAssign[0]) p2 = merge(p2, devInput(d, 1, pads)); }
-    return [p1, p2];
+    const p3 = p3Pad(pads), out = (() => {
+      if (!devAssign) return [0, 1].map(i => merge(fromKeys(game.controls[i].key, i), readPad(pads[i], game.controls[i].pad)));
+      const p1 = devInput(devAssign[0], 0, pads);
+      let p2;
+      if (devAssign[1]) p2 = devInput(devAssign[1], 1, pads);
+      else { p2 = blank(); for (const d of ['kb0', 'kb1'].concat(pads.map(q => 'pad:' + q.index))) if (d !== devAssign[0] && !(p3 && d === 'pad:' + p3.index)) p2 = merge(p2, devInput(d, 1, pads)); }
+      return [p1, p2];
+    })();
+    if (game && game.p.length > 2) out.push(readPad(p3, game.controls[1].pad));
+    return out;
   }
   // the device kind each player is using, for the on-screen button guide
   function devKinds(pads) {
@@ -15295,7 +15462,7 @@ onmessage = e => { const m = e.data; try {
           for (const k in touchLatch) delete touchLatch[k];   // a quick tap still counts for one step
         }
       }
-      { const showP = ['intro', 'fight', 'roundEnd'].includes(game.phase) && !game.netPause && !(net.playing && net.role === 'spec'); if (pauseBtn.hidden === showP) pauseBtn.hidden = !showP; }
+      { const showP = ['intro', 'fight', 'roundEnd'].includes(game.phase) && !game.netPause && !(net.playing && net.role === 'spec'); if (pauseBtn.hidden === showP) pauseBtn.hidden = !showP; const ffaB = game.p.length > 2; if (pauseBtn.classList.contains('ffa') !== ffaB) pauseBtn.classList.toggle('ffa', ffaB); }
       setScreenMode(game.settings.screen);
       view.alpha = acc / STEP; view.render(ctx, real);
       sound.tick();
