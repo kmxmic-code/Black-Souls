@@ -590,7 +590,7 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
-const BLITZY_TOUGH = 0.85;   // Blitzy's health buff: takes 15% less damage, like having ~700 HP instead of 600
+const BLITZY_TOUGH = 0.85;   // Blitzy's (the gunslinger, id 'cowboy') health buff: takes 15% less damage, like having ~700 HP instead of 600
 const DODGE_SPEED = 1.5;   // the dodge animation plays this much faster, and the whole of it is untouchable
 const RUSTY_DMG = 0.75;   // Big Rusty's nerf: everything he does deals 25% less
 const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
@@ -2009,7 +2009,7 @@ class Game {
           return;
         }
         if (!S.slammed) {
-          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
+          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
           this.hitstop = 180; this.shake(22); this.flash = 90; this.dust(o.x, 16); this.env.sfx('koHit'); this.env.sfx('slam'); this.env.rumble(o.id, 1, 1, 400);
           this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 260, t: 0, life: 800, color: 'red' });
         }
@@ -2073,7 +2073,7 @@ class Game {
         const i = f.anim.fi, L = MOVES.rflp.lunge;
         if (P.lfi !== i) { P.lfi = i; f.x = clamp(f.x + f.dir * (L[i] || 0) * 1.7, EDGE, STAGE_W - EDGE); }
         if (!P.bit && i >= 3) {
-          P.bit = true; const bd = Math.round(30 * RUSTY_DMG * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
+          P.bit = true; const bd = Math.round(30 * RUSTY_DMG * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
           this.hitstop = 90; this.shake(9); this.env.sfx('hitH'); this.env.rumble(o.id, 0.8, 0.6, 160);
           this.fx.push({ kind: 'spark', x: o.x, y: GROUND - 110, mirror: f.dir < 0, t: 0, life: 160, big: true }); this.burst(o.x, GROUND - 110, f.dir, 'heavy');
         }
@@ -2422,7 +2422,7 @@ class Game {
     if (o.combo === 0) o.comboDmg = 0;
     o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
-    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1) * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)));
+    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1) * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
     this.addRage(owner, dmg * 0.32); this.addRage(o, dmg * 0.45);
     if (this.mode === 'training' && o.hp <= 0) o.hp = 1;
@@ -13818,10 +13818,10 @@ class View {
   drawSelect(ctx) {
     const g = this.g, S = g.sel, t = g.time, NC = CHAR_ORDER.length;
     const INFO = {
-      blitzy: { sub: 'THE SHADOW NINJA', move: 'SMOKE BOMB', st: [3, 5, 3, 2] },
-      y4nk: { sub: 'THE BRAWLER', move: 'AL NAMAS EXPRESS', st: [5, 3, 2, 4] },
-      rusty: { sub: 'THE SWAMP KING', move: 'GATOR SLAM', st: [5, 2, 3, 5] },
-      cowboy: { sub: 'THE IRON GUNSLINGER', move: 'ELEMENTAL ROUND', st: [3, 3, 5, 3] },
+      blitzy: { sub: 'THE SHADOW NINJA', move: 'SMOKE BOMB', st: [3, 5, 3, 2, 3] },
+      y4nk: { sub: 'THE BRAWLER', move: 'AL NAMAS EXPRESS', st: [5, 3, 2, 4, 3] },
+      rusty: { sub: 'THE SWAMP KING', move: 'GATOR SLAM', st: [4, 2, 4, 5, 3] },
+      cowboy: { sub: 'THE IRON GUNSLINGER', move: 'ELEMENTAL ROUND', st: [3, 3, 5, 3, 4] },
     };
     const HEAD = { blitzy: 137, y4nk: 150, rusty: 164, cowboy: 140 }, KEY = ch => ch === 'y4nk' ? 'y:idle' : ch === 'rusty' ? 'r:idle' : ch === 'cowboy' ? 'c:idle' : 'idle';
     const pcol = p => p === 0 ? COL.amber : COL.cyan, pal = p => PAL_ORDER[S.idx[p]];
@@ -13879,7 +13879,7 @@ class View {
       this.text(ctx, I.sub, nx, 246, 14, palCss(k), al, FS, COL.ink, 4);
       this.text(ctx, '★ ' + I.move, nx, 272, 13, COL.amber, al, FS, COL.ink, 4);
       // stats
-      ['POWER', 'SPEED', 'RANGE', 'GUARD'].forEach((lb, j) => {
+      ['POWER', 'SPEED', 'RANGE', 'GUARD', 'HEALTH'].forEach((lb, j) => {
         const y = 300 + j * 22, bx = L ? nx + 84 : nx - 84 - 5 * 18;
         this.text(ctx, lb, L ? nx : nx, y + 11, 12, COL.muted, al, FS, COL.ink, 3);
         for (let q = 0; q < 5; q++) { const on = q < I.st[j]; ctx.fillStyle = '#05030a'; ctx.fillRect(bx + q * 18, y, 16, 12); ctx.fillStyle = on ? palCss(k) : '#2a2238'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 8); if (on) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(bx + q * 18 + 2, y + 2, 12, 2); } }
