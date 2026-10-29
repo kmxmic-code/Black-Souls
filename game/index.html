@@ -590,6 +590,8 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
+const BLITZY_TOUGH = 0.85;   // Blitzy's health buff: takes 15% less damage, like having ~700 HP instead of 600
+const DODGE_SPEED = 1.5;   // the dodge animation plays this much faster, and the whole of it is untouchable
 const RUSTY_DMG = 0.75;   // Big Rusty's nerf: everything he does deals 25% less
 const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
 const RGRAB = { reach: 300, back: 80, high: 230 };   // Big Rusty's Gator Slam grab box (was 235 / 40 / 170)
@@ -720,7 +722,7 @@ const KEY_DEFAULT = [
 ];
 const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7 };   // RB guards, LT super / reload, RT dodges
 const KD_HITS = 8;
-const PARRY_MS = 150;   // press GUARD this close before a hit lands to parry it
+const PARRY_MS = 250;   // (was 150)   // press GUARD this close before a hit lands to parry it
 const PARRY_COOLDOWN = 450;   // pressing guard again sooner than this does not open a new parry window (no mashing)
 // free for all: floating platforms (one-way: jump up through them, land on top, hold down to drop through)
 // x1..x2 is the walkable top, top is its height above the floor
@@ -793,7 +795,7 @@ class Fighter {
   hurtbox() {
     if (this.hidden || this.ko || ['knock', 'down', 'getup', 'koair', 'special', 'carried', 'wallfly', 'transform', 'untransform'].includes(this.state)) return null;
     if (this.state === 'hita' && this.juggle >= 3) return null;   // juggle limit
-    if (this.state === 'dash' && this.dodge && this.anim && this.anim.fi < Math.ceil(this.anim.durs.length * 0.6)) return null;   // dodging
+    if (this.state === 'dash' && this.dodge) return null;   // dodging: untouchable for the whole (faster) dodge
     const k = this.state === 'airkick' ? 'airkick' : !this.grounded ? 'air' : this.isCrouching ? 'crouch' : 'stand';
     const own = HURT_BY && HURT_BY[this.ch === 'rusty' && this.feral ? 'feral' : this.ch], b = (own && own[k === 'airkick' ? 'air' : k]) || HURT[k];
     return this.box(b, this.h + (this.plat || 0));
@@ -1574,7 +1576,7 @@ class Game {
 
   updateFighter(f, o, dt) {
     if (f.input && f.input.pressed('guard')) { if (this.time - (f.guardPressAt || -1e9) >= PARRY_COOLDOWN) f.parryAt = this.time; f.guardPressAt = this.time; }
-    f.st += dt; f.anim.step(f.state === 'transform' ? dt * FERAL_TF_SPEED : f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
+    f.st += dt; f.anim.step(f.state === 'transform' ? dt * FERAL_TF_SPEED : f.state === 'dash' && f.dodge ? dt * DODGE_SPEED : f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
     this.statusUpdate(f, dt);
     if (f.ch === 'rusty') this.feralUpdate(f, dt);
     if (f.hitShake > 0) f.hitShake -= dt;
@@ -2007,7 +2009,7 @@ class Game {
           return;
         }
         if (!S.slammed) {
-          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
+          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
           this.hitstop = 180; this.shake(22); this.flash = 90; this.dust(o.x, 16); this.env.sfx('koHit'); this.env.sfx('slam'); this.env.rumble(o.id, 1, 1, 400);
           this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 260, t: 0, life: 800, color: 'red' });
         }
@@ -2071,7 +2073,7 @@ class Game {
         const i = f.anim.fi, L = MOVES.rflp.lunge;
         if (P.lfi !== i) { P.lfi = i; f.x = clamp(f.x + f.dir * (L[i] || 0) * 1.7, EDGE, STAGE_W - EDGE); }
         if (!P.bit && i >= 3) {
-          P.bit = true; const bd = Math.round(30 * RUSTY_DMG); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
+          P.bit = true; const bd = Math.round(30 * RUSTY_DMG * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
           this.hitstop = 90; this.shake(9); this.env.sfx('hitH'); this.env.rumble(o.id, 0.8, 0.6, 160);
           this.fx.push({ kind: 'spark', x: o.x, y: GROUND - 110, mirror: f.dir < 0, t: 0, life: 160, big: true }); this.burst(o.x, GROUND - 110, f.dir, 'heavy');
         }
@@ -2420,7 +2422,7 @@ class Game {
     if (o.combo === 0) o.comboDmg = 0;
     o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
-    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1)));
+    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1) * (o.ch === 'blitzy' ? BLITZY_TOUGH : 1)));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
     this.addRage(owner, dmg * 0.32); this.addRage(o, dmg * 0.45);
     if (this.mode === 'training' && o.hp <= 0) o.hp = 1;
