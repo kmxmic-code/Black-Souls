@@ -1000,7 +1000,7 @@ class Game {
   }
   confirmFFA() {
     const S = this.fsel.slots, O = this.fsel.online;
-    S.forEach((s2, i) => { this.p[i].ch = CHAR_ORDER[s2.ch]; this.p[i].pal = PAL_ORDER[s2.pal]; this.cpu[i] = O ? false : !s2.human; this.aiLevel[i] = this.settings.difficulty; });
+    S.forEach((s2, i) => { this.p[i].ch = CHAR_ORDER[s2.ch] || CHAR_ORDER[0]; this.p[i].pal = PAL_ORDER[s2.pal] || PAL_ORDER[i % PAL_ORDER.length]; this.cpu[i] = O ? false : !s2.human; this.aiLevel[i] = this.settings.difficulty; });
     this.env.prepare(this.p.map(f => f.pal)); this.goStageSelect(() => (O && this.env.online && this.env.online.ffa ? this.env.online.ffa.startHosting() : this.startMatch()));
   }
   ffaTag(f) { if (this.netTags && this.netTags[f.id]) return this.netTags[f.id]; return this.cpu[f.id] ? `CPU ${f.id + 1}` : `P${f.id + 1}`; }
@@ -1072,7 +1072,10 @@ class Game {
     this.env.prepare([this.p[0].pal, this.p[1].pal]);
     this.phase = 'vs'; this.pt = 0; this.env.music('title'); this.env.sfx('vs');
   }
+  // unknown fighter or colour names (an old save, a friend on another version) fall back to real ones
+  fixPicks() { this.p.forEach((f, i) => { if (!CHARS[f.ch]) f.ch = CHAR_ORDER[i % CHAR_ORDER.length]; if (!PALETTES[f.pal]) f.pal = PAL_ORDER[(i * 3) % PAL_ORDER.length]; }); }
   startMatch() {
+    this.fixPicks();
     this.p.forEach(f => { f.wins = 0; f.meter = 0; f.stats = newStats(); });
     this.stage = ARENAS.includes(this.chosenStage) ? this.chosenStage : 'roof'; this.trip = null; this.welcome = null; this.walls = [null, null]; this.wallSeq = null; this.mapBreak = null; this.blackout = 0; this.groundBreak = null; this.namasBoost = -1;
     this.ai.forEach((a, i) => a.reset(this.aiLevel[i]));
@@ -12025,7 +12028,8 @@ const COL = {
   muted: '#a497bf', amber: '#f2b33d', amberHi: '#ffd47a', red: '#d83a46', green: '#5fd17a', violet: '#b49cff', cyan: '#6fd3e6',
 };
 const FD = 'D', FS = 'S';   // pixel faces from pixfont.js: D = Blade display, S = Edge label
-const palCss = (k, a = 1) => { const [r, g, b] = PALETTES[k].rgb; return `rgba(${r},${g},${b},${a})`; };
+const PALX = k => PALETTES[k] || PALETTES.crimson;   // an unknown colour name (old save, other version) never crashes
+const palCss = (k, a = 1) => { const [r, g, b] = PALX(k).rgb; return `rgba(${r},${g},${b},${a})`; };
 const PX = 4;   // stage pixel size
 // lying frames: only a heel or hand reaches the floor line, so sink the body onto the floor
 const LOWER = { ko: { 9: 14, 10: 14, 11: 14 }, koair: { 11: 14, 12: 14 }, kip: { 0: 14, 1: 14 }, situp: { 0: 14, 1: 14, 2: 8, 3: 4 } };
@@ -12172,7 +12176,7 @@ class View {
         if (store[i] === undefined) {
           store[i] = null; arr.pending++;
           const fin = c => { store[i] = c; arr.pending--; if (self.cache[pal] === arr) self.skinReady(pal); };
-          if (env.recolorAsync) env.recolorAsync(img, PALETTES[pal].rgb, env.manifest.sheetChar[i], i, pal, fin); else fin(env.recolor(img, PALETTES[pal].rgb, env.manifest.sheetChar[i], i, pal));
+          if (env.recolorAsync) env.recolorAsync(img, PALX(pal).rgb, env.manifest.sheetChar[i], i, pal, fin); else fin(env.recolor(img, PALX(pal).rgb, env.manifest.sheetChar[i], i, pal));
         }
         return store[i] || img;   // the original art stands in for the moment it takes to re-tone
       } }));
@@ -12821,14 +12825,14 @@ class View {
   // red effect colours re-tinted to a palette (crimson keeps the original art)
   trailRamp(pal) {
     if (pal === 'crimson' || !PALETTES[pal]) return ['#600c1e', '#b21a2c', '#ec403a', '#ffa880'];
-    const [R, G, B] = PALETTES[pal].rgb, c = (k, w) => `rgb(${[R, G, B].map(v => Math.round(Math.min(255, v * k) * (1 - w) + 255 * w)).join(',')})`;
+    const [R, G, B] = PALX(pal).rgb, c = (k, w) => `rgb(${[R, G, B].map(v => Math.round(Math.min(255, v * k) * (1 - w) + 255 * w)).join(',')})`;
     return [c(0.45, 0), c(0.82, 0), c(1.08, 0), c(1.1, 0.5)];
   }
   kunaiFor(pal) {
     const K = this.env.extra.kunai; if (pal === 'crimson' || !PALETTES[pal]) return K;
     this.kunaiCache = this.kunaiCache || {}; if (this.kunaiCache[pal]) return this.kunaiCache[pal];
     const c = this.env.makeCanvas(K.width, K.height), g = c.getContext('2d'); g.drawImage(K, 0, 0);
-    const d = g.getImageData(0, 0, c.width, c.height), a = d.data, [R, G, B] = PALETTES[pal].rgb;
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data, [R, G, B] = PALX(pal).rgb;
     for (let i = 0; i < a.length; i += 4) if (a[i + 3] && a[i] > a[i + 1] + 40 && a[i] > a[i + 2] + 40) { const k = Math.max(a[i], a[i + 1], a[i + 2]) / 216; a[i] = Math.min(255, R * k); a[i + 1] = Math.min(255, G * k); a[i + 2] = Math.min(255, B * k); }
     g.putImageData(d, 0, 0); return (this.kunaiCache[pal] = c);
   }
@@ -15110,8 +15114,8 @@ class Net {
     const g = this.game;
     this.playing = true; this.ui.hidden = true; this.countdown = 0; g.online = this.role;
     this.snaps = []; this.lastPlayed = 0; this.pressCount = {}; this.prevLocal = {}; this.lastSnapAt = performance.now(); this.recorded = false;
-    if (pr.pch) { g.p[0].ch = pr.pch[0]; g.p[1].ch = pr.pch[1]; }
-    if (pr.ppal) { g.p[0].pal = pr.ppal[0]; g.p[1].pal = pr.ppal[1]; this.env.prepare(pr.ppal); }
+    if (pr.pch) { if (CHARS[pr.pch[0]]) g.p[0].ch = pr.pch[0]; if (CHARS[pr.pch[1]]) g.p[1].ch = pr.pch[1]; }
+    if (pr.ppal) { if (PALETTES[pr.ppal[0]]) g.p[0].pal = pr.ppal[0]; if (PALETTES[pr.ppal[1]]) g.p[1].pal = pr.ppal[1]; this.env.prepare([g.p[0].pal, g.p[1].pal]); }
     g.stage = 'roof'; g.mode = 'versus'; g.cpu = [false, false]; g.phase = 'intro'; g.stack = [{ id: 'results', sel: 0 }];
     for (const f of g.p) { f._net = ['idle', 0]; f.frameName = () => f._net; }
     this.ready = false;
@@ -15173,7 +15177,7 @@ class Net {
   }
   applySnap(A, B, k) {
     const g = this.game, L = (x, y) => (Math.abs(y - x) > 200 ? y : x + (y - x) * k), S = k < 0.5 ? A : B;
-    g.phase = S.ph; g.pt = S.pt; g.timer = S.tm < 0 ? Infinity : S.tm; g.round = S.rd; g.stage = S.st;
+    g.phase = S.ph; g.pt = S.pt; g.timer = S.tm < 0 ? Infinity : S.tm; g.round = S.rd; if (ARENAS.includes(S.st) || ARENA_NAMES[S.st]) g.stage = S.st;   // a map this version doesn't have keeps the current one
     if (S.bn) { if (!g.banner || g.banner.text !== S.bn) g.banner = { text: S.bn, t: 0 }; } else g.banner = null;
     g.welcome = S.wc >= 0 ? { t: S.wc } : null;
     g.walls = S.wl.map(w => (w ? { t: w[0], y: w[1] } : null));
@@ -15187,7 +15191,7 @@ class Net {
       f.prevX = f.x = L(a[0], b[0]); f.prevH = f.drawH = L(a[1], b[1]); f.h = f.drawH;
       f.dir = s[2]; f._net = [s[3], s[4]]; f.anim = { name: String(s[3]).replace(/^(y:|r:f_|r:)/, ''), fi: s[4], key: s[3], durs: [1] };
       f.hp = s[5]; f.dmgTrail = s[6]; f.meter = s[7]; f.wins = s[8]; f.combo = s[9]; f.comboDmg = s[10]; f.hidden = !!s[11];
-      f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; f.ch = s[14]; f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.plat = s[27] || 0; f.dodge = !!s[28]; f.trail = [];
+      f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; if (CHARS[s[14]]) f.ch = s[14]; if (PALETTES[s[15]]) f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.plat = s[27] || 0; f.dodge = !!s[28]; f.trail = [];
     });
     g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[S.tr[4] != null ? S.tr[4] : 1 - S.tr[3]] } : null;
     g.clones = S.cl.map(c => ({ x: c[0], prevX: c[0], dir: c[1], visible: true, owner: g.p[c[4]], get pal() { return this.owner.pal; }, trail: [], move: null, frameName: () => [c[2], c[3]] }));
@@ -15331,11 +15335,11 @@ class OnlineFFA {
   }
   fromGuestRel(L, m) {
     if (m.pick && this.slots[L.slot]) {
-      const s = this.slots[L.slot]; s.ch = m.pick.ch | 0; s.pal = m.pick.pal | 0; s.ready = !!m.pick.ready;
+      const s = this.slots[L.slot]; s.ch = ((m.pick.ch | 0) % CHAR_ORDER.length + CHAR_ORDER.length) % CHAR_ORDER.length; s.pal = ((m.pick.pal | 0) % PAL_ORDER.length + PAL_ORDER.length) % PAL_ORDER.length; s.ready = !!m.pick.ready;
       const F = this.game.fsel; if (F && F.online && F.slots[L.slot]) Object.assign(F.slots[L.slot], { ch: s.ch, pal: s.pal, ready: s.ready, moved: this.game.time });
       this.broadcastLobby();
     }
-    if (m.hello && this.slots[L.slot]) { if (m.hello.ch != null) { this.slots[L.slot].ch = m.hello.ch | 0; this.slots[L.slot].pal = m.hello.pal | 0; } this.broadcastLobby(true); }
+    if (m.hello && this.slots[L.slot]) { if (m.hello.ch != null) { this.slots[L.slot].ch = ((m.hello.ch | 0) % CHAR_ORDER.length + CHAR_ORDER.length) % CHAR_ORDER.length; this.slots[L.slot].pal = ((m.hello.pal | 0) % PAL_ORDER.length + PAL_ORDER.length) % PAL_ORDER.length; } this.broadcastLobby(true); }
     if (m.bye) this.dropped(L);
   }
   toSelect() {
@@ -15474,8 +15478,8 @@ class OnlineFFA {
     const n = this.net, g = this.game;
     this.phase = 'match'; this.local = go.you;
     g.setPlayers(3); n.role = 'guest'; n.ffaSlot = go.you;
-    go.chs.forEach((c, i) => { g.p[i].ch = c; g.p[i].pal = go.pals[i]; });
-    this.env.prepare(go.pals);
+    go.chs.forEach((c, i) => { g.p[i].ch = CHARS[c] ? c : CHAR_ORDER[i % CHAR_ORDER.length]; g.p[i].pal = PALETTES[go.pals[i]] ? go.pals[i] : PAL_ORDER[(i * 3) % PAL_ORDER.length]; });
+    this.env.prepare(g.p.map(f => f.pal));
     n.startGuest({});
     g.mode = 'ffa'; g.cpu = [false, false, false]; g.online = 'guest'; g.platforms = FFA_PLATFORMS;
     g.netTags = go.names.map((nm, i) => (i === go.you ? 'YOU' : nm));
@@ -15682,7 +15686,7 @@ onmessage = e => { const m = e.data; try {
   window.addEventListener('blur', () => { keys.clear(); if (game && game.phase === 'fight') game.pause(); });
 
   // ---------- controllers ----------
-  const seen = new Set(); let prevPad = [[], []], rawPads = [];
+  const seen = new Set(); let prevAll = {}, rawPads = [];
   // PlayStation pads (DualSense / DualShock): Chrome reports them in the standard layout, but some browsers
   // (Firefox, older Safari) give the raw HID order with the d-pad on a hat axis. Normalise those to the standard
   // layout so every button, the d-pad and remapping work the same as on Xbox.
@@ -15741,7 +15745,25 @@ onmessage = e => { const m = e.data; try {
     if (!devAssign) return pads[2] || null;
     return pads.find(q => !devAssign.includes('pad:' + q.index) && (devAssign[1] || q !== pads.find(r => 'pad:' + r.index !== devAssign[0]))) || null;
   }
+  // only one person plays on this machine (online, vs CPU, menus): every keyboard set and every controller
+  // drives P1, so a controller that ended up "P2" (or a phantom second pad) never leaves the player stuck
+  function soloP1() {
+    if (!game) return true;
+    if (net && (net.playing || net.isOpen || (net.ffa && net.ffa.mode))) return true;
+    const ph = game.phase;
+    if (ph === 'title') return true;
+    if (ph === 'ffasel') return !!(game.fsel && game.fsel.online);
+    if (ph === 'select') return !(game.sel && game.sel.humans && game.sel.humans[1]);
+    if (game.mode === 'versus' || game.mode === 'training') return false;
+    if (game.p.length > 2) return game.cpu.filter(c => !c).length <= 1;
+    return true;
+  }
   function playerInputs(pads) {
+    if (soloP1()) {
+      let p1 = merge(fromKeys(game.controls[0].key, 0), fromKeys(game.controls[1].key, 1));
+      for (const p of pads) p1 = merge(p1, readPad(p, game.controls[0].pad));
+      const out = [p1, blank()]; while (out.length < game.p.length) out.push(blank()); return out;
+    }
     const p3 = p3Pad(pads), out = (() => {
       if (!devAssign) return [0, 1].map(i => merge(fromKeys(game.controls[i].key, i), readPad(pads[i], game.controls[i].pad)));
       const p1 = devInput(devAssign[0], 0, pads);
@@ -15903,13 +15925,14 @@ onmessage = e => { const m = e.data; try {
       padStatus.dataset.on = pads.length ? '1' : '0';
       let inputs = null;
       // raw presses for button remapping; kept until an update step consumes them
-      pads.slice(0, 2).forEach((p, slot) => {
-        const now2 = p.buttons.map(b => b.pressed || b.value > 0.5);
-        now2.forEach((on, bi) => { if (on && !(prevPad[slot] || [])[bi]) { rawPads.push([slot, bi]); wake(); } });
-        prevPad[slot] = now2;
+      const padPress = [];   // every controller's fresh presses, for the "which device is yours" screen
+      pads.forEach((p, slot) => {
+        const now2 = p.buttons.map(b => !!b && (b.pressed || b.value > 0.5)), was = prevAll[p.index] || [];
+        now2.forEach((on, bi) => { if (on && !was[bi]) { if (slot < 2) rawPads.push([slot, bi]); padPress.push('pad:' + p.index); wake(); } });
+        prevAll[p.index] = now2;
       });
       // device choice screen: first press of each device claims a player slot
-      const presses = newKeys.filter(k => !['F11', 'F5', 'MetaLeft', 'MetaRight', 'AltLeft', 'AltRight', 'Tab'].includes(k)).map(kbSetOf).concat(rawPads.map(([slot]) => pads[slot] ? 'pad:' + pads[slot].index : null).filter(Boolean));
+      const presses = newKeys.filter(k => !['F11', 'F5', 'MetaLeft', 'MetaRight', 'AltLeft', 'AltRight', 'Tab'].includes(k)).map(kbSetOf).concat(padPress);
       const asking = deviceAskFrame(pads, presses);
       window.DEV_KIND = devKinds(pads); window.DEV_NAMES = devAssign ? devAssign.map(devName) : null;
       if (devAssign && devAssign[0] && devAssign[0].startsWith('pad:')) { const p = pads.find(q => 'pad:' + q.index === devAssign[0]); if (p) window.PAD_STYLE = isPS(p) ? 'ps' : 'xbox'; }

@@ -1,5 +1,5 @@
 {
- "version": "1.7.0",
+ "version": "BETA",
  "notes": [],
  "launcher": {
   "min": 2,
@@ -123,8 +123,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "4e55c8b8b93a0a3fbec99124eef6d1e2c355b6cb7d75d8ce954c82ddbf4b3e58",
-   "size": 1531997
+   "sha": "688dd19156de102108609f29534e1ef5c5f30c2716f01335009dddd574172066",
+   "size": 1534190
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
