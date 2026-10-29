@@ -632,7 +632,7 @@ const MOVES = {
     { f: 2, fEnd: 4, box: [10, 104, 20, 115], dmg: 56, stun: 380, lvl: 'high' }] },
   ypar: { anim: 'parry', parry: true, name: 'Parry', hits: [] },
   ycounter: { anim: 'counter', heavy: true, name: 'Counter haymaker', hits: [
-    { f: 2, fEnd: 4, box: [10, 170, 90, 215], dmg: 110, stun: 500, wall: true }] },
+    { f: 2, fEnd: 4, box: [10, 170, 90, 215], dmg: 110, stun: 500, kd: true, ult: true, fly: 300 }] },
   kunai: { anim: 'kunai', name: 'Kunai throw', hits: [] },
   yrock: { anim: 'rock', heavy: true, name: 'Boulder toss', hits: [] },
   ycar: { anim: 'carcall', heavy: true, name: 'Car call', hits: [] },
@@ -722,9 +722,7 @@ const PARRY_COOLDOWN = 450;   // pressing guard again sooner than this does not 
 // free for all: floating platforms (one-way: jump up through them, land on top, hold down to drop through)
 // x1..x2 is the walkable top, top is its height above the floor
 const FFA_PLATFORMS = [{ x1: 330, x2: 690, top: 175 }, { x1: 1310, x2: 1670, top: 175 }, { x1: 800, x2: 1200, top: 320 }];
-const FFA_MAX_SEP = 1180;
-// the pickup truck that gives the left-behind fighter a ride to Al Namas (art faces left, drawn at 3x)
-const TRUCK = { sc: 3, w: 217, h: 88, bed: 205, bedH: 138, wheels: [[35, 68], [164.5, 67.5]], wr: 19 };   // hits in a row before a knockdown
+const FFA_MAX_SEP = 1180;   // hits in a row before a knockdown
 const blank = () => { const s = {}; ACTIONS.forEach(b => s[b] = false); return s; };
 const newStats = () => ({ hits: 0, dmg: 0, maxCombo: 0, blocks: 0, specials: 0 });
 
@@ -1083,7 +1081,6 @@ class Game {
   startRound() {
     if (!this.nextArena || this.nextArena === this.stage) this.nextArena = randomStage(this.stage);
     this.platforms = this.ffa ? FFA_PLATFORMS : null; this.p.forEach(f => { f.plat = 0; f.noLand = 0; f.dropT = 0; });
-    this.truck = null; this.p.forEach(f => { f.inTruck = false; });
     if (this.ffa) { this.p[0].reset(STAGE_W / 2 - 360, 1); this.p[1].reset(STAGE_W / 2 + 360, -1); this.p[2].reset(STAGE_W / 2, 1); this.p.forEach(f => { f.target = null; f.lastHitBy = null; }); }
     else { this.p[0].reset(STAGE_W / 2 - 230, 1); this.p[1].reset(STAGE_W / 2 + 230, -1); }
     this.clones = []; this.fx = []; this.parts = []; this.texts = []; this.koFx = null; this.superFlash = null; this.hitstop = 0; this.trip = null; this.rocks = []; this.cars = []; this.wallSeq = null; this.mapBreak = null; this.walls = [null, null];
@@ -1537,7 +1534,7 @@ class Game {
   stepWorld(dt, locked) {
     for (const f of this.p) { f.locked = locked; f.px = f.x; }
     for (const f of this.p) { const pa = (f.h || 0) + (f.plat || 0); this.updateFighter(f, this.foe(f), dt); if (this.platforms) this.platformStep(f, pa, dt); }
-    this.updateClones(dt); this.updateRocks(dt); this.updateCars(dt); this.updateTruck(dt);
+    this.updateClones(dt); this.updateRocks(dt); this.updateCars(dt);
     for (const f of this.p) for (const o of this.p) if (f !== o) this.resolveHits(f, o);
     for (let i = 0; i < this.p.length; i++) for (let j = i + 1; j < this.p.length; j++) this.pushApart(this.p[i], this.p[j]);
     this.keepOnScreen();
@@ -1570,7 +1567,6 @@ class Game {
   }
 
   updateFighter(f, o, dt) {
-    if (f.inTruck) { f.st += dt; f.anim.step(dt); return; }   // riding in the truck bed: the truck moves him
     if (f.input && f.input.pressed('guard')) { if (this.time - (f.guardPressAt || -1e9) >= PARRY_COOLDOWN) f.parryAt = this.time; f.guardPressAt = this.time; }
     f.st += dt; f.anim.step(f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
     this.statusUpdate(f, dt);
@@ -1665,7 +1661,7 @@ class Game {
   }
   neutralUpdate(f, o, dt, L) {
     const inp = f.input;
-    if (f.grounded) f.dir = o.x >= f.x ? 1 : -1;
+    if (f.grounded) this.faceOpponent(f, o);
     if (L) { if (f.state !== 'idle') f.setState('idle', 'idle', true); return; }
     const down = inp.held('d'), up = inp.held('u');
     if (f.ch === 'rusty' && !f.feral && f.rage >= 100 && f.grounded) { f.move = null; this.endCombo(f); f.setState('transform', 'transform'); this.env.sfx('super'); this.env.say('Feral!'); return; }
@@ -1714,6 +1710,12 @@ class Game {
     else if (f.state !== 'idle') f.setState('idle', 'idle', true);
   }
   faceOpponent(f, o) {
+    // free for all: no lock-on for players — you face the way you push the stick (CPUs still face their target)
+    if (this.ffa && !this.cpu[f.id]) {
+      const r = f.input && f.input.held('r'), l = f.input && f.input.held('l'), nd = r && !l ? 1 : l && !r ? -1 : f.dir;
+      if (nd !== f.dir) { f.dir = nd; f.dirHist = []; f.fwdTaps = []; f.backTaps = []; }
+      return;
+    }
     const nd = o.x >= f.x ? 1 : -1;
     if (nd === f.dir || Math.abs(o.x - f.x) < 6) return;
     f.dir = nd; f.dirHist = []; f.fwdTaps = []; f.backTaps = []; f.vx = f.vx;   // forward/back now mean the new side
@@ -1909,6 +1911,7 @@ class Game {
         const step = 470 * s; f.x += f.dir * step; S.dist += step;
         if ((S.dustT += dt) > 120) { S.dustT = 0; this.dust(f.x - f.dir * 40, 2); }
         const reach = (o.x - f.x) * f.dir;
+        if (!f.locked && reach > -20 && reach < 120 && o.grounded && o.hurtbox() && !o.hidden && this.canParryGrab(o)) { this.timedParry(o, f, (f.x + o.x) / 2, GROUND - 140, false); return; }
         if (!f.locked && reach > -20 && reach < 120 && o.grounded && o.hurtbox() && !o.hidden) {
           S.phase = 'catch'; f.st = 0; f.anim.set('grab'); f.x = o.x - f.dir * 96;
           this.hitstop = 90; this.shake(10); this.flash = 90; this.env.sfx('hitH'); this.env.rumble(o.id, 0.9, 0.6, 260); this.env.rumble(f.id, 0.4, 0.4, 200);
@@ -1971,6 +1974,7 @@ class Game {
     };
     if (!S.caught && !S.missed && fi >= 3) {
       const hb = o.hurtbox();
+      if (hb && (o.x - f.x) * d > -40 && Math.abs(o.x - f.x) < 235 && hb[2] < 170 && this.canParryGrab(o)) { S.missed = true; this.timedParry(o, f, (f.x + o.x) / 2, GROUND - 140, false); return; }
       if (hb && (o.x - f.x) * d > -40 && Math.abs(o.x - f.x) < 235 && hb[2] < 170) {   // grab reach: in front, a bit further, catches low jumps
         S.caught = true; o.move = null; o.special = null; o.hidden = false; o.setState('carried'); o.combo = 0; o.vx = o.vy = 0;
         this.env.sfx('hitH'); this.shake(5); this.texts.push({ text: 'GOTCHA!', x: f.x, y: GROUND - 320, t: 0, life: 700, color: 'amber' });
@@ -2303,8 +2307,6 @@ class Game {
     f.anim.set('carry', true);
     const home = this.stage === 'namas';
     this.trip = { owner: f, victim: o, t: 0, scene: 'stage', home, dir: f.dir, dustT: 0 };
-    // free for all: whoever is left behind gets a lift in a pickup truck and follows them to Al Namas
-    if (this.ffa && !home) { const L = this.p.find(q => q !== f && q !== o && !q.ko && q.hp > 0 && !q.hidden); if (L) { this.trip.left = L; L.move = null; L.special = null; L.vx = L.vy = 0; if (!L.grounded) { L.h = 0; } L.setState('idle', 'idle', true); } }
     f.special.phase = 'trip';
   }
   updateTrip(dt) {
@@ -2318,9 +2320,8 @@ class Game {
         if (T.home) f.x = clamp(f.x, EDGE + 130, STAGE_W - EDGE - 130);   // at home the wall stops the run
         if ((T.dustT += dt) > 90) { T.dustT = 0; this.dust(f.x - T.dir * 40, 2); }
         if (T.home && (T.st > 800 || f.x <= EDGE + 130 || f.x >= STAGE_W - EDGE - 130)) return this.dropVictim(f, o);
-        if (!T.home && (T.st > 2400 || f.x - this.cam.x < -200 || f.x - this.cam.x > VW + 200)) next(T.left ? 'pickup' : 'wipe1');
+        if (!T.home && (T.st > 2400 || f.x - this.cam.x < -200 || f.x - this.cam.x > VW + 200)) next('wipe1');
         break;
-      case 'pickup': this.pickupUpdate(T, dt); break;
       case 'wipe1': if (T.st > 340) next('desert'); break;
       case 'desert': if (T.st > 4400) next('wipe2'); break;
       case 'wipe2':
@@ -2329,76 +2330,22 @@ class Game {
           this.cam.x = (STAGE_W - VW) / 2; this.parts = []; this.fx = [];
           // he arrives running the same way he left: from the left edge going right, or from the right going left
           f.dir = T.dir; f.x = T.dir > 0 ? this.cam.x - 160 : this.cam.x + VW + 160; T.target = STAGE_W / 2 - 40 * T.dir;
-          if (T.left) { T.truck = { x: f.x - T.dir * 1100, dir: T.dir, rider: T.left, moving: true }; this.truckRider(T.truck); }
         }
         if (T.st > 340) next('enter');
         break;
       case 'enter':
         f.x += T.dir * 520 * s;
-        if (T.truck) { T.truck.x += T.dir * 520 * s; this.truckRider(T.truck); }
         if ((T.dustT += dt) > 110) { T.dustT = 0; this.dust(f.x - T.dir * 40, 2); }
         if ((f.x - T.target) * T.dir >= 0) { f.x = T.target; this.welcome = { t: 0 }; this.env.say('Welcome to Al Namas'); return this.dropVictim(f, o); }
         break;
     }
   }
-  // ---------- the pickup truck (free for all) ----------
-  truckBedX(tk) { return tk.x - tk.dir * TRUCK.bed; }
-  truckRider(tk) { const r = tk.rider; if (r && r.inTruck) { r.x = this.truckBedX(tk); r.h = 0; r.drawH = 0; r.prevX = r.x; r.dir = tk.dir; } }
-  pickupUpdate(T, dt) {
-    const L = T.left, s = dt / 1000, d = T.dir, st = T.st;
-    if (!T.pk) {
-      const stopX = clamp(L.x, EDGE + 40, STAGE_W - EDGE - 40) + d * 150 + d * TRUCK.bed;
-      T.pk = { stopX, startX: stopX - d * 1500, x0: L.x, v: 0 };
-      T.truck = { x: T.pk.startX, dir: d, rider: L, moving: true };
-      this.env.sfx('engine'); L.dir = d;
-    }
-    const P = T.pk, tk = T.truck;
-    L.anim.step(dt); L.st += dt;
-    if (st < 1700) { const k = st / 1700, e = 1 - Math.pow(1 - k, 3); tk.x = P.startX + (P.stopX - P.startX) * e; tk.moving = k < 0.95; if (st > 1500 && !P.brake) { P.brake = true; this.env.sfx('block'); this.dust(this.truckBedX(tk) - d * 120, 6); } }
-    else if (st < 1900) { tk.x = P.stopX; tk.moving = false; }
-    else if (st < 2550) {   // he jumps up into the bed
-      if (!P.jumped) { P.jumped = true; L.setState('air', 'air', true); this.env.sfx('jump'); }
-      const k = Math.min(1, (st - 1900) / 650), bx = this.truckBedX(tk);
-      L.x = P.x0 + (bx - P.x0) * k; L.h = TRUCK.bedH * k + 4 * 110 * k * (1 - k); L.drawH = L.h;
-    } else {
-      if (!L.inTruck) { L.inTruck = true; L.hidden = true; L.setState('idle', 'idle', true); this.env.sfx('land'); this.shake(3); }
-      P.v = Math.min(980, P.v + 900 * s); tk.x += d * P.v * s; tk.moving = true;
-      this.truckRider(tk);
-      if ((P.dustT = (P.dustT || 0) + dt) > 80) { P.dustT = 0; this.dust(tk.x - d * 300, 3); }
-    }
-    // the camera stays with the one left behind
-    const target = clamp((L.inTruck ? this.truckBedX(tk) + d * 200 : L.x) - VW / 2, 0, STAGE_W - VW);
-    this.cam.x += (target - this.cam.x) * Math.min(1, dt * 0.006); this.cam.prevX = this.cam.x;
-    if (st > 4300 || (L.inTruck && (tk.x - d * 330 - this.cam.x) * d > VW + 80)) { T.scene = 'wipe1'; T.st = 0; }
-  }
-  updateTruck(dt) {
-    const tk = this.truck; if (!tk) return;
-    const s = dt / 1000, d = tk.dir, r = tk.rider; tk.t = (tk.t || 0) + dt;
-    if (tk.phase === 'arrive') {
-      const left = (tk.stopX - tk.x) * d;
-      tk.v = Math.max(60, Math.min(520, left * 2.2)); tk.x += d * Math.min(left, tk.v * s); tk.moving = left > 4;
-      if (left <= 4) { tk.x = tk.stopX; tk.phase = 'unload'; tk.t = 0; this.env.sfx('block'); }
-      this.truckRider(tk);
-    } else if (tk.phase === 'unload') {
-      tk.moving = false; this.truckRider(tk);
-      if (tk.t > 350 && r && r.inTruck) {   // jump down off the side of the bed, back into the fight
-        r.inTruck = false; r.hidden = false; r.h = TRUCK.bedH; r.plat = 0; r.vy = 520; r.vx = -d * 140; r.jdir = 0; r.airUsed = true; r.setState('air', 'air', true); this.env.sfx('jump');
-      }
-      if (tk.t > 1500) { tk.phase = 'leave'; tk.t = 0; tk.v = 0; this.env.sfx('engine'); }
-    } else {   // and off he drives, nice and easy
-      tk.v = Math.min(700, (tk.v || 0) + 420 * s); tk.x += d * tk.v * s; tk.moving = true;
-      if ((tk.dustT = (tk.dustT || 0) + dt) > 110) { tk.dustT = 0; this.dust(tk.x - d * 300, 2); }
-      if (tk.x < -900 || tk.x > STAGE_W + 900) this.truck = null;
-    }
-  }
   dropVictim(f, o) {
-    const T = this.trip;
-    if (T && T.truck && T.left) { const tk = T.truck; this.truck = { x: tk.x, dir: tk.dir, rider: T.left, phase: 'arrive', t: 0, stopX: T.target - tk.dir * 560 + tk.dir * TRUCK.bed, moving: true }; this.truckRider(this.truck); }
     this.trip = null;
-    // the trip itself does no damage: arriving home gives the Y4NK who made the run a 1.5x damage boost here
+    // the trip itself does no damage: arriving home sets the Y4NK who made the run to 0.75x damage here
     // only the first Y4NK to make the trip all match keeps it; nobody can take it back
     const dmg = 0;
-    if (this.namasBoost == null || this.namasBoost < 0) { this.namasBoost = f.id; this.texts.push({ text: 'HOME ADVANTAGE  x1.5', x: f.x, y: GROUND - 330, t: 0, life: 1600, color: 'amber' }); }
+    if (this.namasBoost == null || this.namasBoost < 0) { this.namasBoost = f.id; this.texts.push({ text: 'HOME  x0.75 DAMAGE', x: f.x, y: GROUND - 330, t: 0, life: 1600, color: 'amber' }); }
     o.hidden = false; o.x = clamp(f.x + f.dir * 118, EDGE, STAGE_W - EDGE); o.h = 0; o.drawH = 0; o.dir = -f.dir; o.vx = o.vy = 0;
     o.combo = 0; o.comboDmg = 0; f.stats.maxCombo = Math.max(f.stats.maxCombo, 1); o.meter = Math.min(100, o.meter + 10);
     this.fallDown(o, o.hp <= 0); o.downHold = 600;
@@ -2462,7 +2409,7 @@ class Game {
     if (o.combo === 0) o.comboDmg = 0;
     o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
-    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 1.5 : 1)));
+    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1)));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
     this.addRage(owner, dmg * 0.32); this.addRage(o, dmg * 0.45);
     if (this.mode === 'training' && o.hp <= 0) o.hp = 1;
@@ -2495,7 +2442,7 @@ class Game {
         else { o.lift0 = Math.max(0, o.h - (y ? 0 : 71)); o.h = 0; o.lastFall = 'koair'; o._kfi = -1; o.setState('koair', y ? 'koairko' : 'koair'); o.drawH = o.lift0; }
       }
       else { o.setState('hita', 'hita'); o.vx = away * 150; o.vy = Math.max(o.vy, 320); }
-    } else if (knock) { this.fallDown(o, ko); if (o.ch === 'y4nk' && !ko) o.slide = away * 420; }
+    } else if (knock) { this.fallDown(o, ko); if (o.ch === 'y4nk' && !ko) o.slide = away * 420; if (h.fly) { o.flyTo = clamp(o.x + away * h.fly, EDGE, STAGE_W - EDGE); o.slide = 0; } }
     else {
       const crouch = o.isCrouching;
       o.setState(crouch ? 'hitc' : 'hit', crouch ? 'hitc' : 'hit');
@@ -2510,6 +2457,7 @@ class Game {
     if (ko && !o.ko) { o.ko = true; const last = !this.ffa || this.p.filter(q => q.hp > 0).length <= 1; if (last) { this.koFx = { t: 0, loser: o }; this.cam.zoomTo = 1.14; this.cam.fx = o.x; } else { this.texts.push({ text: `${this.ffaTag(o)} OUT!`, x: o.x, y: GROUND - 300, t: 0, life: 1400, color: 'red' }); this.env.say('K O'); } }
     if (!isClone && (o.x <= EDGE + 4 || o.x >= STAGE_W - EDGE - 4 || this.atScreenEdge(o))) att.slide = -away * (h.push || 10) * 14;
   }
+  canParryGrab(o) { return o.parryAt != null && this.time - o.parryAt <= PARRY_MS && o.grounded && !o.ko && (!this.cpu[o.id] || rnd() < ({ easy: 0.15, normal: 0.35, hard: 0.6 }[this.aiLevel[o.id]] || 0.35)); }
   // a perfectly timed guard: no damage, the attacker is left reeling (a projectile or clone is just knocked away)
   timedParry(o, att, cx, cy, ranged) {
     o.parryAt = null; const away = o.x < att.x ? 1 : -1;
@@ -2530,6 +2478,7 @@ class Game {
     this.fx.push({ kind: 'spark', x: o.x - away * 40, y: GROUND - 140, mirror: away > 0, t: 0, life: 160, big: true });
   }
   statusUpdate(f, dt) {
+    if (f.flyTo != null) { const d = f.flyTo - f.x, st = Math.sign(d) * Math.min(Math.abs(d), 1100 * dt / 1000 + Math.abs(d) * 0.12); f.x += st; if (Math.abs(d) < 2 || !['knock', 'down', 'koair'].includes(f.state)) f.flyTo = null; }
     // safety: nobody is carrying him any more (the grab was interrupted) -> drop him instead of leaving him hanging
     const o = this.foe(f);
     if (f.state === 'carried' && !this.trip && !o.special && (f._carriedT = (f._carriedT || 0) + dt) > 400) { f._carriedT = 0; f.hidden = false; f.h = 0; this.fallDown(f, f.hp <= 0); }
@@ -12459,11 +12408,10 @@ class View {
       ctx.save(); ctx.translate(VW, 0); ctx.scale(-1, 1);
     }
     for (let k = 0; k < 6; k++) {
-      const age = ((t / 90 + k * 0.5) % 3) / 3, x = (T.left ? 890 : 520) - age * 140, y = GROUND - 6 - age * 10, sz = Math.round((8 + age * 10) / 4) * 4;
+      const age = ((t / 90 + k * 0.5) % 3) / 3, x = 520 - age * 140, y = GROUND - 6 - age * 10, sz = Math.round((8 + age * 10) / 4) * 4;
       ctx.fillStyle = `rgba(214,178,120,${0.6 * (1 - age)})`; ctx.fillRect(Math.round(x / 4) * 4 - sz / 2, Math.round(y / 4) * 4 - sz, sz, sz);
     }
-    const RX = T.left ? 930 : 560;   // with the truck chasing, the runner sits further ahead so the whole truck fits behind him
-    if (T.left) { const k = Math.min(1, t / 4400), e = 1 - Math.pow(1 - k, 2), gap = 1750 - 1230 * e; this.deserTruck = this.deserTruck && this.deserTruck.rider === T.left ? this.deserTruck : { rider: T.left, moving: true, dir: 1, spin: 18 }; this.drawTruck(ctx, this.deserTruck, this.g.time, RX - gap, 1); }
+    const RX = 560;
     const f = T.owner; this.shadow(ctx, RX, 0);
     this.drawCarry(ctx, f, RX, 1);
     const fg = E.road; const off = Math.round(camX * 1.3) % (fg.width * PX - VW);
@@ -12939,32 +12887,6 @@ class View {
     ctx.fillRect(Math.round(x - w), y - 3, Math.round(w * 2), 6);
     ctx.fillRect(Math.round(x - w + 8), y - 5, Math.round(w * 2 - 16), 10);
   }
-  // the pickup truck: rider in the bed first (the bed sides hide his legs), then the truck, with a little road shake
-  drawTruck(ctx, tk, t, X, dirOverride) {
-    const img = this.env.extra.pickup, wimg = this.env.extra.pickupWheel; if (!img) return;
-    const d = dirOverride || tk.dir, sc = TRUCK.sc, w = TRUCK.w * sc, h = TRUCK.h * sc;
-    // the body rides on its suspension: a soft bob while driving, a dip when it brakes to a stop
-    const bob = tk.moving ? Math.round((Math.sin(t / 55) * 1.6 + Math.sin(t / 23) * 0.8)) * 3 : 0;
-    if (tk.moving !== tk._wasMoving) { if (tk._wasMoving && !tk.moving) tk._dipT = t; tk._wasMoving = tk.moving; }
-    const dip = tk._dipT != null && t - tk._dipT < 360 ? Math.round(Math.sin((t - tk._dipT) / 360 * Math.PI) * 2) * 3 : 0, jig = bob + dip;
-    const r = tk.rider;
-    if (r && r.inTruck) { const [n, i] = r.frameName(); this.drawSprite(ctx, r.pal, n, i, X - d * TRUCK.bed, TRUCK.bedH - jig, d, {}); }
-    ctx.fillStyle = 'rgba(8,5,16,0.4)'; ctx.fillRect(Math.round(X - w / 2 + 30), GROUND - 6, Math.round(w - 60), 10);
-    ctx.save(); ctx.imageSmoothingEnabled = false;
-    ctx.translate(Math.round(X), GROUND + 3); if (d > 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, Math.round(-w / 2), -h + jig, w, h);
-    // wheels stay on the road and roll with the distance travelled
-    if (wimg) {
-      if (tk._lx == null) tk._lx = X; tk._roll = (tk._roll || 0) + (tk.moving ? Math.max(Math.abs(X - tk._lx), tk.spin || 0) : 0); tk._lx = X;
-      const ang = -(tk._roll / (TRUCK.wr * sc)), ws = wimg.width * sc;
-      for (const [wx, wy] of TRUCK.wheels) {
-        ctx.save(); ctx.translate(Math.round((wx - TRUCK.w / 2) * sc), Math.round((wy - TRUCK.h) * sc)); ctx.rotate(Math.round(ang / (Math.PI / 8)) * (Math.PI / 8));
-        ctx.drawImage(wimg, Math.round(-ws / 2), Math.round(-ws / 2), ws, ws); ctx.restore();
-      }
-    }
-    ctx.restore();
-    if (tk.moving) for (let k = 0; k < 4; k++) { const ph = ((t / 300) + k * 0.25) % 1; ctx.fillStyle = `rgba(214,178,120,${0.45 * (1 - ph)})`; const px = X - d * (w / 2 - 10 + ph * 120), sz = 8 + ph * 16; ctx.fillRect(Math.round(px - sz / 2), Math.round(GROUND - 8 - ph * 20 - sz / 2), Math.round(sz), Math.round(sz)); }
-  }
   // free-for-all platforms: floating stone slabs with a lit edge, a soft glow underneath and hanging chains
   drawPlatforms(ctx, P, t) {
     for (const p of P) {
@@ -13054,7 +12976,6 @@ class View {
     const L = this.lerp || ((p, q) => q);
     for (const r of actors) { r.ix = L(r.a.prevX, r.a.x); r.ih = (r.a.drawH != null ? L(r.a.prevH, r.a.drawH) : (r.a.h || 0)) + (r.a.plat || 0); }
     if (g.platforms) this.drawPlatforms(ctx, g.platforms, t);
-    { const tk = (g.trip && g.trip.truck) || g.truck; if (tk && g.stage !== undefined) this.drawTruck(ctx, tk, t, tk.x); }
     for (const { a, ix } of actors) if ((a.drawH || 0) > -2) this.shadow(ctx, ix, a.drawH || a.h || 0, ['down', 'knock', 'koair'].includes(a.state) && !(a.anim && ['kostand', 'koairko'].includes(a.anim.name)), a.plat || 0);
     if (g.groundBreak) this.drawGroundBreak(ctx, g.groundBreak, t);
     // afterimages
@@ -13577,7 +13498,7 @@ class View {
           for (let q = 0; q < 5; q++) { const an = (g.time / 40 + q * 1.3) % 6.28, rr = 6 + (q % 2) * 2; ctx.fillRect(Math.round(tx + Math.cos(an) * rr), Math.round(ty + Math.sin(an) * rr), 1, 2); }
         }
       }
-      if (g.stage === 'namas' && g.namasBoost === i) this.text(ctx, 'HOME x1.5', L ? bx : bx + BW, BY + BH + 62, 15, (g.time % 600) < 400 ? COL.amber : COL.paper, L ? 'left' : 'right', FS, COL.ink, 4);
+      if (g.stage === 'namas' && g.namasBoost === i) this.text(ctx, 'HOME x0.75', L ? bx : bx + BW, BY + BH + 62, 15, (g.time % 600) < 400 ? COL.amber : COL.paper, L ? 'left' : 'right', FS, COL.ink, 4);
       // name, colour, tag
       const tag = g.netTags ? g.netTags[i] : i === 0 ? (g.mode === 'watch' ? 'CPU' : 'P1') : (g.cpu[1] ? 'CPU' : g.mode === 'training' ? 'DUMMY' : 'P2');
       this.text(ctx, f.C.name, L ? bx : bx + BW, BY + BH + 36, 36, COL.paper, L ? 'left' : 'right');
@@ -14089,7 +14010,7 @@ class View {
       ['LIGHT PUNCH', B('lp'), mv('lp')], ['HEAVY PUNCH', B('hp'), mv('hp')],
       ['LIGHT KICK', B('lk'), ch === 'cowboy' ? 'Quick draw' : mv('lk')], ['HEAVY KICK', B('hk'), ch === 'cowboy' ? 'Elemental round (2 bars)' : mv('hk')],
       ['CROUCH + PUNCH', '↓ + ' + P, mv('clp')], ['CROUCH + KICK', '↓ + ' + K, mv('sweep')],
-      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dodge'), 'Back-dash on the spot · attacks pass through'], ['PARRY', 'Tap ' + B('guard') + ' just before a hit', 'Stuns the attacker'],
+      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dodge'), 'Back-dash on the spot · attacks pass through'], ['PARRY', 'Tap ' + B('guard') + ' just before a hit or grab', 'Stuns the attacker'],
     ];
     const S = {
       blitzy: [['SMOKE BOMB', `${Q} + ${P}  or  ${B('sp')}`, 'Super · full meter'], ['KUNAI', `${Q} + ${K}`, 'Quarter meter']],
@@ -14176,7 +14097,7 @@ class View {
       ['BOULDER TOSS', '↓ ↘ → + KICK', 'Half meter. Rips up a rock and hurls it across the stage.', true],
       ['CAR CALL', 'L3 + R3 (both sticks)  or  H', 'Three meter bars. His car drives through and runs the rival over.', true],
       ['HAYMAKER', 'HEAVY PUNCH', 'Big hit that knocks the rival down.'],
-      ['PARRY', 'HEAVY KICK', 'Catch a high or mid attack, counter into the wall.'],
+      ['COUNTER', 'HEAVY KICK', 'Catch a high or mid attack, counter-punch them 3 m away.'],
       ['LOW STRAIGHT', '↓ + PUNCH', 'Fast poke from the crouch.'],
       ['LOW KICK', '↓ + KICK', 'Hits low and knocks down. Block it crouching.'],
       ['JUMP ATTACKS', 'PUNCH / KICK IN THE AIR', 'Hammer punch or jump kick. Hits high.'],
@@ -15162,8 +15083,7 @@ class Net {
       n: ++this.frameNo, ph: g.phase, pt: R(g.pt), tm: g.timer === Infinity ? -1 : Math.round(g.timer * 10) / 10, rd: g.round, st: g.stage,
       bn: g.banner ? g.banner.text : 0, wc: g.welcome ? R(g.welcome.t) : -1,
       wl: (g.walls || [null, null]).map(w => (w ? [R(w.t), R(w.y)] : 0)),
-      tr: g.trip ? [g.trip.scene, R(g.trip.st || 0), g.trip.dir, g.trip.owner.id, g.trip.victim ? g.trip.victim.id : 1 - g.trip.owner.id, g.trip.left ? g.trip.left.id : -1] : 0,
-      tk: (() => { const tk = (g.trip && g.trip.truck) || g.truck; return tk ? [R(tk.x), tk.dir, tk.rider ? tk.rider.id : -1, tk.moving ? 1 : 0, tk.rider && tk.rider.inTruck ? 1 : 0] : 0; })(),
+      tr: g.trip ? [g.trip.scene, R(g.trip.st || 0), g.trip.dir, g.trip.owner.id, g.trip.victim ? g.trip.victim.id : 1 - g.trip.owner.id] : 0,
       bo: Math.round((g.blackout || 0) * 100), nb: g.namasBoost == null ? -1 : g.namasBoost, gb: g.groundBreak ? [R(g.groundBreak.x), R(g.groundBreak.t)] : 0, mb: g.mapBreak ? R(g.mapBreak.t) : -1, sf: g.superFlash ? [R(g.superFlash.t), g.superFlash.owner.id] : 0,
       kf: g.koFx ? [R(g.koFx.t), g.koFx.loser.id] : 0, fl: R(Math.max(0, g.flash)),
       cam: [R(g.cam.x), Math.round(g.cam.zoom * 1000) / 1000, R(g.cam.fx), Math.round(g.cam.shake)],
@@ -15269,9 +15189,7 @@ class Net {
       f.hp = s[5]; f.dmgTrail = s[6]; f.meter = s[7]; f.wins = s[8]; f.combo = s[9]; f.comboDmg = s[10]; f.hidden = !!s[11];
       f.hitShake = s[12] ? 30 : 0; f.special = s[13] ? { phase: s[13] } : null; f.ch = s[14]; f.pal = s[15]; f.ko = !!s[16]; f.state = s[17]; f.feral = !!s[18]; f.rage = s[19] || 0; f.bdash = !!s[20]; f.ammo = s[21] == null ? 6 : s[21]; f.element = s[22] >= 0 ? ['fire', 'water', 'air', 'earth'][s[22]] : null; f.elemAt = g.time - (s[23] || 0); f.guard = s[24] == null ? 100 : s[24]; f.burnT = s[25] ? 1 : 0; f.slowT = s[26] ? 1 : 0; f.plat = s[27] || 0; f.dodge = !!s[28]; f.trail = [];
     });
-    g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[S.tr[4] != null ? S.tr[4] : 1 - S.tr[3]], left: S.tr[5] >= 0 ? g.p[S.tr[5]] : null } : null;
-    g.truck = S.tk ? { x: S.tk[0], dir: S.tk[1], rider: S.tk[2] >= 0 ? g.p[S.tk[2]] : null, moving: !!S.tk[3] } : null;
-    if (g.truck && g.truck.rider) g.truck.rider.inTruck = !!S.tk[4]; else g.p.forEach(f => { f.inTruck = false; });
+    g.trip = S.tr ? { scene: S.tr[0], st: S.tr[1], dir: S.tr[2], owner: g.p[S.tr[3]], victim: g.p[S.tr[4] != null ? S.tr[4] : 1 - S.tr[3]] } : null;
     g.clones = S.cl.map(c => ({ x: c[0], prevX: c[0], dir: c[1], visible: true, owner: g.p[c[4]], get pal() { return this.owner.pal; }, trail: [], move: null, frameName: () => [c[2], c[3]] }));
     g.cars = (S.cr || []).map((c, i) => { const ca = (A.cr || [])[i], cb = (B.cr || [])[i], x = ca && cb && ca[1] === cb[1] ? L(ca[0], cb[0]) : c[0]; return { x, prevX: x, dir: c[1], t: c[2], live: true, kind: c[3] ? 'horse' : 'car', owner: g.p[c[4] || 0] }; });
     g.rocks = S.rk.map(r => ({ x: r[0], h: r[1], dir: r[2], t: r[3], live: true, kind: r[4] === 1 ? 'kunai' : r[4] === 2 ? 'rrock' : r[4] === 3 ? 'bullet' : 'rock', owner: r[5] >= 0 ? g.p[r[5]] : null, elem: r[6] >= 0 ? ['fire', 'water', 'air', 'earth'][r[6]] : null, vh: r[7] || 0, vx: r[8] || 0 }));
@@ -15926,7 +15844,7 @@ onmessage = e => { const m = e.data; try {
   let game = null, view = null, net = null;
   const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const fonts = document.fonts ? Promise.all(['40px "BS Blade"', '20px "BS Edge"'].map(f => document.fonts.load(f))).catch(() => {}) : Promise.resolve();
-  const EXTRA = { town: 'alnamas.jpg', sky: 'desert_sky.png', mts: 'desert_mts.png', mesa: 'desert_mesa.png', dune: 'desert_dune.png', road: 'desert_road.png', signArrow: 'sign_arrow.png', signArrowLeft: 'sign_arrow_left.png', rockSpin: 'rock_spin_strip.png', kunai: 'kunai2.png', rustyRock: 'rusty_rock.png', censor: 'censor.png', pit: 'pit.jpg', car: 'car.png', carWheels: 'car_wheels.png', rockShatter: 'rock_shatter_strip.png', signSquare: 'sign_square.png', chamber: 'chamber.png', chamberInner: 'chamber_inner.png', chamberRound: 'chamber_round.png', elem_fire: 'elem_fire.png', elem_water: 'elem_water.png', elem_air: 'elem_air.png', elem_earth: 'elem_earth.png', stageThumbs: 'stage_thumbs.png', pickup: 'pickup.png', pickupWheel: 'pickup_wheel.png' };
+  const EXTRA = { town: 'alnamas.jpg', sky: 'desert_sky.png', mts: 'desert_mts.png', mesa: 'desert_mesa.png', dune: 'desert_dune.png', road: 'desert_road.png', signArrow: 'sign_arrow.png', signArrowLeft: 'sign_arrow_left.png', rockSpin: 'rock_spin_strip.png', kunai: 'kunai2.png', rustyRock: 'rusty_rock.png', censor: 'censor.png', pit: 'pit.jpg', car: 'car.png', carWheels: 'car_wheels.png', rockShatter: 'rock_shatter_strip.png', signSquare: 'sign_square.png', chamber: 'chamber.png', chamberInner: 'chamber_inner.png', chamberRound: 'chamber_round.png', elem_fire: 'elem_fire.png', elem_water: 'elem_water.png', elem_air: 'elem_air.png', elem_earth: 'elem_earth.png', stageThumbs: 'stage_thumbs.png' };
   const extra = {};
   const bleepSrc = new Audio('bleep.mp3'); bleepSrc.preload = 'auto';
   // stage songs: Al Namas and the underground pit
@@ -15938,7 +15856,7 @@ onmessage = e => { const m = e.data; try {
   window.addEventListener('pointerdown', kick); window.addEventListener('keydown', kick);
   let songOn = false, songDuck = false;
   const masks = {};
-  Promise.all(MANIFEST.sheets.map(load).concat(Object.entries(EXTRA).map(([k, src]) => load(src).then(i => { extra[k] = i; }, err => { if (k !== 'stageThumbs' && k !== 'pickup' && k !== 'pickupWheel') throw err; })),
+  Promise.all(MANIFEST.sheets.map(load).concat(Object.entries(EXTRA).map(([k, src]) => load(src).then(i => { extra[k] = i; }, err => { if (k !== 'stageThumbs') throw err; })),
     Object.entries(MANIFEST.masks || {}).map(([k, src]) => load(src).then(i => { masks[k] = i; })))).then(async all => {
     const imgs = all.slice(0, MANIFEST.sheets.length); sheetImgs = imgs; if (!skinW) warmIndexes(); else setTimeout(() => warmSkinWorker(imgs), 1500);
     await fonts;

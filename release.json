@@ -1,136 +1,6 @@
 {
- "version": "1.6.1",
- "notes": [
-  {
-   "v": "1.6.1",
-   "date": "2026-10-29",
-   "items": [
-    "Remade the pickup truck: clean outline, solid tyres and chassis, wheels that actually roll, and a body that bounces on its suspension"
-   ]
-  },
-  {
-   "v": "1.6.0",
-   "date": "2026-10-29",
-   "items": [
-    "PARRY for everyone: tap GUARD just before a hit lands \u2014 no damage, the attacker is stunned, with a burst of light (pressing early only blocks, mashing never parries)",
-    "DODGE now turns your fighter see-through while attacks pass through",
-    "Free for all: when Y4NK carries someone to Al Namas, a pickup truck picks up the fighter left behind, chases them down the desert road, drops him off and drives on"
-   ]
-  },
-  {
-   "v": "1.5.1",
-   "date": "2026-10-29",
-   "items": [
-    "Off-screen markers: when a fighter leaves the camera view, an arrow with their face, health and distance points to them at the screen edge"
-   ]
-  },
-  {
-   "v": "1.5.0",
-   "date": "2026-10-29",
-   "items": [
-    "Free for all: floating platforms on every map \u2014 two side ledges and a high middle one",
-    "Jump up through them, land on top, hold down to drop through, walk off the edge to fall; hits only land on the same level",
-    "Free for all: fighters can spread across more of the stage; CPUs climb and drop between floors",
-    "Free for all HUD fades while someone is up behind it; Blitzy's ammo shows as pips"
-   ]
-  },
-  {
-   "v": "1.4.1",
-   "date": "2026-10-29",
-   "items": [
-    "The game no longer freezes if something goes wrong \u2014 it keeps running and shows the error on screen"
-   ]
-  },
-  {
-   "v": "1.4.0",
-   "date": "2026-10-29",
-   "items": [
-    "NEW: ONLINE FREE FOR ALL \u2014 host invites 2 friends from ONLINE MODES \u2192 FREE FOR ALL; everyone connects straight to the host (P2P)",
-    "Each player picks their own fighter on their own PC; the host picks the stage; rematch when all 3 vote",
-    "If someone leaves mid-match, a CPU takes over their fighter so the match can finish"
-   ]
-  },
-  {
-   "v": "1.3.1",
-   "date": "2026-10-29",
-   "items": [
-    "Main menu: OFFLINE MODES and ONLINE MODES",
-    "Launcher: friends now show online correctly (the online check got stuck with 2+ friends)",
-    "Launcher: asks Windows once to allow online play through the firewall, then never again"
-   ]
-  },
-  {
-   "v": "1.3.0",
-   "date": "2026-10-29",
-   "items": [
-    "NEW MODE: FREE FOR ALL \u2014 three fighters, last one standing takes the round",
-    "Up to 3 players on one PC: P2 joins from the keyboard or 2nd controller, P3 from a 3rd controller; CPUs fill empty spots (Y / I rerolls them)",
-    "Every attack, projectile, car and horse hits whoever is in the way; fighters turn on whoever hit them",
-    "Main menu fits all options again"
-   ]
-  },
-  {
-   "v": "1.2.5",
-   "date": "2026-10-29",
-   "items": [
-    "Main menu: QUIT GAME (closes the game and returns to the launcher)"
-   ]
-  },
-  {
-   "v": "1.2.4",
-   "date": "2026-10-29",
-   "items": [
-    "New: DODGE \u2014 the back-dash on the spot, attacks pass through you (keyboard Y / Num 8, controller RT / R2, remappable)",
-    "Stage select: pick the number of rounds (best of 1, 3 or 5) with Y / I / \u25b3 before the fight",
-    "Online: the guest's GUARD button now reaches the host"
-   ]
-  },
-  {
-   "v": "1.2.3",
-   "date": "2026-10-29",
-   "items": [
-    "Combos: nobody gets knocked down until the 8th hit in a row \u2014 knockdown moves now keep the combo going",
-    "Supers and ultimates still end with their own knockdown"
-   ]
-  },
-  {
-   "v": "1.2.2",
-   "date": "2026-10-29",
-   "items": [
-    "New menu music: Relaxing Hype plays on the title, character select, stage select and VS screens"
-   ]
-  },
-  {
-   "v": "1.2.1",
-   "date": "2026-10-29",
-   "items": [
-    "Pause button on screen during every fight (click it, or press Start / Esc / Options)",
-    "Online matches: a MENU with Resume, Button Guide, Move List and Leave Match \u2014 the match keeps running for your opponent",
-    "Offline: you can now also pause during the round intro and between rounds"
-   ]
-  },
-  {
-   "v": "1.2.0",
-   "date": "2026-10-29",
-   "items": [
-    "Friends: create an account in the launcher, add friends by username, see who is online and what they are doing",
-    "One-click invites: INVITE a friend from the launcher or the ONLINE screen; they ACCEPT and you both land in the character select \u2014 no codes",
-    "Fixed: the instant kick right after connecting in the app",
-    "App online: waits through short connection blips instead of dropping you"
-   ]
-  },
-  {
-   "v": "1.1.0",
-   "date": "2026-10-29",
-   "items": [
-    "New launcher: the game now updates itself \u2014 only changed files download",
-    "App online: direct P2P with a one-time code swap, no server lag",
-    "App online: no more instant kick when the connection blips while it settles",
-    "Online status shows DIRECT or RELAY and why P2P is not available",
-    "Main menu: INSTALL APP option on claude.ai"
-   ]
-  }
- ],
+ "version": "1.7.0",
+ "notes": [],
  "launcher": {
   "min": 2,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing"
@@ -253,8 +123,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "154951a863ab8ea2b04c9ebdf1044f2cf77b75b9b72682c65b969b5bb19e514a",
-   "size": 1538650
+   "sha": "4e55c8b8b93a0a3fbec99124eef6d1e2c355b6cb7d75d8ce954c82ddbf4b3e58",
+   "size": 1531997
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
@@ -263,14 +133,6 @@
   "menu_song.mp3": {
    "sha": "58a52245f961c463cbd8b085f04e28fbf81a6eef05019575a7c406aa38fe87fd",
    "size": 5144057
-  },
-  "pickup.png": {
-   "sha": "35d05041ff1fd57c2953c1cae7a5e3dec691fc25a89e1b543ffe0eef43036f77",
-   "size": 18694
-  },
-  "pickup_wheel.png": {
-   "sha": "bd364055c4f2a8fdb5b2ac6b6082b606a64c944dfd6c04407f9fe78ba0860f80",
-   "size": 2047
   },
   "pit.jpg": {
    "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",
