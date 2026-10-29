@@ -1,6 +1,13 @@
 {
- "version": "1.5.0",
+ "version": "1.5.1",
  "notes": [
+  {
+   "v": "1.5.1",
+   "date": "2026-10-29",
+   "items": [
+    "Off-screen markers: when a fighter leaves the camera view, an arrow with their face, health and distance points to them at the screen edge"
+   ]
+  },
   {
    "v": "1.5.0",
    "date": "2026-10-29",
@@ -230,8 +237,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "c290931507aa2518e7c7a670ab529f26afa0ab6f3597e955c84b6e64cefc7e1c",
-   "size": 1524605
+   "sha": "699855055a4276ebca8cc15ec0a3e8683bbd83ba133cf284fca1710e0e4a5997",
+   "size": 1526780
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",

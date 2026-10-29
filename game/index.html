@@ -13366,7 +13366,36 @@ class View {
     if (g.online && g.env.online) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
     if (g.mode === 'ffa' && g.phase === 'fight') this.text(ctx, 'LAST ONE STANDING', VW / 2, VH - 14, 12, COL.muted, 'center', FS, COL.ink, 4);
   }
+  // fighters outside the camera: a bubble with their face at the screen edge, pointing to them, with the distance
+  drawOffscreen(ctx) {
+    const g = this.g, camX = g.cam.x, t = g.time;
+    g.p.forEach((f, i) => {
+      if (f.hidden || g.trip) return;
+      const sx = f.x - camX, m = 26;
+      if (sx >= m && sx <= VW - m) return;
+      const left = sx < m, ax = left ? 40 : VW - 40, ay = Math.max(190, Math.min(GROUND - 70, GROUND - (f.h || 0) - (f.plat || 0) - 130)), col = palCss(f.pal), out = f.ko || f.hp <= 0;
+      const bob = Math.sin(t / 160) * 3 * (left ? -1 : 1);
+      ctx.save(); ctx.globalAlpha = out ? 0.5 : 1;
+      // arrow
+      ctx.fillStyle = COL.ink; ctx.beginPath(); const tip = left ? ax - 34 + bob : ax + 34 + bob, base = left ? ax - 18 + bob : ax + 18 + bob;
+      ctx.moveTo(tip, ay); ctx.lineTo(base, ay - 16); ctx.lineTo(base, ay + 16); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(tip + (left ? 5 : -5), ay); ctx.lineTo(base + (left ? 2 : -2), ay - 11); ctx.lineTo(base + (left ? 2 : -2), ay + 11); ctx.fill();
+      // portrait bubble
+      const bx = Math.round(ax - 24 + (left ? 6 : -6)), by = Math.round(ay - 24);
+      this.box(ctx, bx, by, 48, 48, COL.night, col);
+      const pt = this.portrait(f.pal, f);
+      if (left) ctx.drawImage(pt, bx + 2, by + 2, 44, 44); else { ctx.save(); ctx.translate(bx + 46, by + 2); ctx.scale(-1, 1); ctx.drawImage(pt, 0, 0, 44, 44); ctx.restore(); }
+      // tag, distance and a thin health bar
+      const tag = g.ffa ? g.ffaTag(f) : g.netTags ? g.netTags[i] : i === 0 ? 'P1' : g.cpu[1] ? 'CPU' : 'P2';
+      this.text(ctx, tag, ax + (left ? 6 : -6), by - 8, 12, col, 'center', FS, COL.ink, 3);
+      const dist = Math.round((left ? m - sx : sx - (VW - m)) / 10);
+      this.text(ctx, out ? 'K.O.' : `${dist}M`, ax + (left ? 6 : -6), by + 64, 11, out ? COL.red : COL.paper, 'center', FS, COL.ink, 3);
+      ctx.fillStyle = '#2a1e34'; ctx.fillRect(bx, by + 50, 48, 4); ctx.fillStyle = COL.amber; ctx.fillRect(bx, by + 50, 48 * Math.max(0, f.hp) / MAX_HP, 4);
+      ctx.restore();
+    });
+  }
   drawHUD(ctx) {
+    if (['fight', 'intro', 'roundEnd'].includes(this.g.phase)) this.drawOffscreen(ctx);
     if (this.g.p.length > 2) return this.drawHUD3(ctx);
     const g = this.g, BW = 456, BH = 26, BY = 34;
     g.p.forEach((f, i) => {
