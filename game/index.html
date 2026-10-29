@@ -15208,9 +15208,12 @@ onmessage = e => { const m = e.data; try {
   const extra = {};
   const bleepSrc = new Audio('bleep.mp3'); bleepSrc.preload = 'auto';
   // stage songs: Al Namas and the underground pit
-  const songs = { namas: new Audio('alnamas_song.mp3'), pit: new Audio('pit_song.mp3') };
+  const songs = { namas: new Audio('alnamas_song.mp3'), pit: new Audio('pit_song.mp3'), title: new Audio('menu_song.mp3') };   // title = the menu music (title, select, VS)
   for (const a of Object.values(songs)) { a.loop = true; a.preload = 'auto'; }
   let song = songs.namas;
+  // browsers only start audio after the player touches the page: start the waiting song on the first click or key
+  const kick = () => { if (songOn && song.paused) song.play().catch(() => {}); };
+  window.addEventListener('pointerdown', kick); window.addEventListener('keydown', kick);
   let songOn = false, songDuck = false;
   const masks = {};
   Promise.all(MANIFEST.sheets.map(load).concat(Object.entries(EXTRA).map(([k, src]) => load(src).then(i => { extra[k] = i; }, err => { if (k !== 'stageThumbs') throw err; })),
@@ -15235,7 +15238,7 @@ onmessage = e => { const m = e.data; try {
     game = new Game(env);
     view = new View(game, env);
     net = new Net(game, view, env); env.online = net;
-    window.bvb = { game, view, sound, net };
+    window.bvb = { game, view, sound, net, songs };
     applyVolumes();
     let last = performance.now(), acc = 0; const STEP = 1000 / 60;
     const pauseBtn = document.getElementById('pausebtn');

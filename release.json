@@ -1,6 +1,13 @@
 {
- "version": "1.2.1",
+ "version": "1.2.2",
  "notes": [
+  {
+   "v": "1.2.2",
+   "date": "2026-10-29",
+   "items": [
+    "New menu music: Relaxing Hype plays on the title, character select, stage select and VS screens"
+   ]
+  },
   {
    "v": "1.2.1",
    "date": "2026-10-29",
@@ -154,12 +161,16 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "ba18ccbc6022c4374ce26b2f9ac3f221c67b994b36951f807e9e11650ae8a5b8",
-   "size": 1475681
+   "sha": "13368cf16882e8e9e4056892e26ded8bb2f95228f61df6e31ab2f9ea7e784c1b",
+   "size": 1476058
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
    "size": 292
+  },
+  "menu_song.mp3": {
+   "sha": "58a52245f961c463cbd8b085f04e28fbf81a6eef05019575a7c406aa38fe87fd",
+   "size": 5144057
   },
   "pit.jpg": {
    "sha": "dc0ab01bef87d6803931019bb6b4d78d8d5e7b4b5a7babba5dda55ad1d3efdb4",
