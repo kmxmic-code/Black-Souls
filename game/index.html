@@ -970,10 +970,12 @@ class Game {
   }
   ffaClash(i) { const S = this.fsel.slots, a = S[i]; return S.some((b, j) => j !== i && b.ch === a.ch && b.pal === a.pal); }
   updateFFASelect() {
-    const F = this.fsel, S = F.slots, NC = CHAR_ORDER.length, NP = PAL_ORDER.length;
+    const F = this.fsel, S = F.slots, NC = CHAR_ORDER.length, NP = PAL_ORDER.length, O = F.online;
     if (F.doneT) { if (this.pt - F.doneT > 600) { F.doneT = 0; this.confirmFFA(); } return; }
     for (let i = 0; i < 3; i++) {
-      const m = this.mi[i], s2 = S[i];
+      if (O && i !== O.local) continue;   // online: you only drive your own card, with your own controls
+      const m = O ? this.mi[0] : this.mi[i], s2 = S[i];
+      if (O && !s2.ready && (m.pressed('back') || m.pressed('hk'))) { this.env.online && this.env.online.ffa && this.env.online.ffa.leave('You left the lobby.'); return; }
       if (!s2.human) { if (i > 0 && (m.pressed('start') || m.pressed('lp') || m.pressed('lk'))) { s2.human = true; s2.ready = false; this.env.sfx('select'); this.say(`P${i + 1} joined`); } continue; }
       if (s2.ready) { if (m.pressed('back') || m.pressed('hk')) { s2.ready = false; this.env.sfx('back'); } continue; }
       if (m.pressed('l')) { s2.ch = (s2.ch - 1 + NC) % NC; s2.moved = this.time; this.env.sfx('tick'); }
@@ -983,6 +985,7 @@ class Game {
       if (m.pressed('start') || m.pressed('lp') || m.pressed('lk')) { if (this.ffaClash(i)) { this.say('That color is taken'); this.env.sfx('back'); } else { s2.ready = true; this.env.sfx('select'); } }
       else if (m.pressed('back') || m.pressed('hk')) { if (i === 0) { this.setPlayers(2); this.goTitle(); return; } s2.human = false; this.env.sfx('back'); }
     }
+    if (O) { if (O.role === 'host' && S.every(s2 => s2.ready && s2.present !== false)) { F.doneT = this.pt; this.env.sfx('confirm'); } return; }
     // P1 rerolls the CPU fighters
     if (this.mi[0].pressed('hp')) { S.forEach((s2, i) => { if (!s2.human) { s2.ch = Math.floor(rnd() * NC); s2.pal = (s2.pal + 1 + Math.floor(rnd() * (NP - 1))) % NP; s2.moved = this.time; } }); this.env.sfx('tick'); }
     // CPUs never wear the same colours as someone on the same fighter
@@ -990,11 +993,11 @@ class Game {
     if (S.every(s2 => !s2.human || s2.ready)) { F.doneT = this.pt; this.env.sfx('confirm'); }
   }
   confirmFFA() {
-    const S = this.fsel.slots;
-    S.forEach((s2, i) => { this.p[i].ch = CHAR_ORDER[s2.ch]; this.p[i].pal = PAL_ORDER[s2.pal]; this.cpu[i] = !s2.human; this.aiLevel[i] = this.settings.difficulty; });
-    this.env.prepare(this.p.map(f => f.pal)); this.goStageSelect(() => this.startMatch());
+    const S = this.fsel.slots, O = this.fsel.online;
+    S.forEach((s2, i) => { this.p[i].ch = CHAR_ORDER[s2.ch]; this.p[i].pal = PAL_ORDER[s2.pal]; this.cpu[i] = O ? false : !s2.human; this.aiLevel[i] = this.settings.difficulty; });
+    this.env.prepare(this.p.map(f => f.pal)); this.goStageSelect(() => (O && this.env.online && this.env.online.ffa ? this.env.online.ffa.startHosting() : this.startMatch()));
   }
-  ffaTag(f) { return this.cpu[f.id] ? `CPU ${f.id + 1}` : `P${f.id + 1}`; }
+  ffaTag(f) { if (this.netTags && this.netTags[f.id]) return this.netTags[f.id]; return this.cpu[f.id] ? `CPU ${f.id + 1}` : `P${f.id + 1}`; }
 
   goSelect(mode) {
     this.setPlayers(2);
@@ -1055,7 +1058,7 @@ class Game {
         S.picked = this.chosenStage; S.done = this.pt; this.env.sfx('select'); return;
       }
       if (m.pressed('hp')) { this.settings.rounds = [1, 2, 3][(([1, 2, 3].indexOf(this.settings.rounds)) + 1) % 3]; this.saveSettings(); S.roundsT = this.time; this.env.sfx('tick'); }
-      if (m.pressed('back') || m.pressed('hk')) { this.ssel = null; if (this.mode === 'ffa') this.goFFA(true); else this.goSelect(this.mode); return; }
+      if (m.pressed('back') || m.pressed('hk')) { this.ssel = null; if (this.mode === 'ffa') { const O = this.fsel && this.fsel.online; this.goFFA(true); if (O) this.fsel.online = O; } else this.goSelect(this.mode); return; }
     }
   }
   nextArcadeFight(newStage) {
@@ -1177,17 +1180,24 @@ class Game {
     const cyc = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length];
     switch (id) {
       case 'main': return { items: [
-        { label: 'ARCADE', hint: 'Beat three CPU rivals in a row', act: () => g.goSelect('arcade') },
-        { label: 'VERSUS', hint: 'Two players head to head', act: () => g.goSelect('versus') },
-        { label: 'FREE FOR ALL', hint: 'Three fighters, last one standing · CPUs fill empty spots', act: () => g.goFFA() },
-        { label: 'ONLINE', hint: 'Fight a friend who has this page open', act: () => { if (g.env.online) g.env.online.open(); else g.say('Online is not available here'); } },
-        { label: 'TRAINING', hint: 'Practice combos on a dummy', act: () => g.goSelect('training') },
-        { label: 'WATCH CPU', hint: 'Sit back and watch two CPUs fight', act: () => g.startWatch() },
+        { label: 'OFFLINE MODES', hint: 'Arcade · Versus · Free for all · Training · Watch CPU', act: () => g.openMenu('offline') },
+        { label: 'ONLINE MODES', hint: '1 vs 1 · Free for all with friends', act: () => g.openMenu('online') },
         { label: 'MOVE LIST', hint: 'Every move and how to do it', act: () => g.openMenu('movelist') },
         { label: 'BUTTON GUIDE', hint: 'Which button does what, on your keyboard or controller', act: () => g.openMenu('guide') },
         { label: 'RECORDS', hint: 'Your wins, clears and best combos', act: () => g.openMenu('records') },
         { label: 'OPTIONS', hint: 'Difficulty, sound, controls', act: () => g.openMenu('options') }].concat(g.env.installApp ? [{ label: 'INSTALL APP (.EXE)', hint: 'Windows launcher: auto-updates, direct P2P online', act: () => g.env.installApp() }] : [])
         .concat(g.env.quit ? [{ label: 'QUIT GAME', hint: 'Close the game and go back to the launcher', act: () => g.env.quit() }] : []) };
+      case 'offline': return { title: 'OFFLINE MODES', items: [
+        { label: 'ARCADE', hint: 'Beat three CPU rivals in a row', act: () => g.goSelect('arcade') },
+        { label: 'VERSUS', hint: 'Two players head to head', act: () => g.goSelect('versus') },
+        { label: 'FREE FOR ALL', hint: 'Three fighters, last one standing · CPUs fill empty spots', act: () => g.goFFA() },
+        { label: 'TRAINING', hint: 'Practice combos on a dummy', act: () => g.goSelect('training') },
+        { label: 'WATCH CPU', hint: 'Sit back and watch two CPUs fight', act: () => g.startWatch() },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'online': return { title: 'ONLINE MODES', items: [
+        { label: '1 VS 1', hint: 'Host a game or join a friend', act: () => { if (g.env.online) g.env.online.open(); else g.say('Online is not available here'); } },
+        { label: 'FREE FOR ALL', hint: g.env.online && g.env.online.link ? 'You and 2 friends · invite them from the FRIENDS list' : 'Three players online · launcher only', act: () => { const n = g.env.online; if (n && n.link && n.openFFA) n.openFFA(); else g.say(n && n.link ? 'Online free for all arrives in the next update' : 'Online free for all works in the launcher'); } },
+        { label: 'BACK', act: () => g.menuBack() }] };
       case 'options': return { title: 'OPTIONS', items: [
         { label: 'CPU LEVEL', val: () => S.difficulty.toUpperCase(), adj: d => set('difficulty', cyc(DIFFS, S.difficulty, d)) },
         { label: 'MATCH', val: () => `BEST OF ${S.rounds * 2 - 1}`, adj: d => set('rounds', cyc([1, 2, 3], S.rounds, d)) },

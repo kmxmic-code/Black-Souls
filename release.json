@@ -1,6 +1,15 @@
 {
- "version": "1.3.0",
+ "version": "1.3.1",
  "notes": [
+  {
+   "v": "1.3.1",
+   "date": "2026-10-29",
+   "items": [
+    "Main menu: OFFLINE MODES and ONLINE MODES",
+    "Launcher: friends now show online correctly (the online check got stuck with 2+ friends)",
+    "Launcher: asks Windows once to allow online play through the firewall, then never again"
+   ]
+  },
   {
    "v": "1.3.0",
    "date": "2026-10-29",
@@ -195,8 +204,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "7d4224a9f32935e101fd4320b41d13e434d4dbe1263e619b5633809d03ff6b35",
-   "size": 1492870
+   "sha": "5f6dd922310b096e9f2a5ca0e3198c47320264ae2d884d48c9d6a2d953c8c1c1",
+   "size": 1494443
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
