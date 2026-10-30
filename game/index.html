@@ -12004,7 +12004,7 @@ const SKIN = (() => {
     // Y4NK: T-shirt + lenses (mask), skin and beard (warm, kept), cargo pants and boots (neutral / olive), belt
     y4nk(L, C, h, m) { if (m) return L > 0.62 && C > 0.06 ? 'lens' : 'shirt'; if (C < 0.03) return 'pants'; if (h >= 20 && h < 95 && C >= 0.03) return 'skin'; if (h >= 95 && h < 200) return 'pants'; return 'other'; },
     // Big Rusty: green scales, shorts (mask), leather belt and cuffs, claws/teeth (pale), mouth
-    rusty(L, C, h, m) { if (m) return 'shorts'; if (h >= 95 && h < 200 && C > 0.03) return 'scales'; if (L > 0.72 && C < 0.08) return 'ivory'; if (h >= 20 && h < 95) return C < 0.05 && L > 0.55 ? 'ivory' : 'leather'; if (h < 20 || h >= 330) return 'mouth'; if (h >= 200 && h < 330) return 'shorts2'; return 'scales'; },
+    rusty(L, C, h, m) { if (m) return 'shorts'; if (C > 0.19 && h >= 12 && h < 45) return 'eyes'; /* feral red eyes: no skin recolours them */ if (h >= 95 && h < 200 && C > 0.03) return 'scales'; if (L > 0.72 && C < 0.08) return 'ivory'; if (h >= 20 && h < 95) return C < 0.05 && L > 0.55 ? 'ivory' : 'leather'; if (h < 20 || h >= 330) return 'mouth'; if (h >= 200 && h < 330) return 'shorts2'; return 'scales'; },
     // Blitzy: red cape, scarf and boot trim (mask), leather hat/vest/holster (warm), steel body and dark pants (neutral), eye glow (cool, bright)
     cowboy(L, C, h, m) { if (m) return 'cape'; if (h > 180 && h < 280 && C > 0.06 && L > 0.5) return 'glow'; if (C < 0.025) return 'steel'; if (h >= 25 && h < 110) return 'leather'; if (h < 25 || h >= 300) return 'cape2'; return 'steel'; },
   };
@@ -12681,6 +12681,37 @@ class View {
     // loose chips of wall lying at the foot of it
     ctx.fillStyle = crack;
     for (let q = 0; q < Math.round(k * 10); q++) ctx.fillRect(Q(face + d * (8 + rr() * 60)), GROUND - 4 - Q(rr() * 8), 8, 4);
+  }
+  // Big Rusty's feral badge (like Blitzy's cylinder): an iron disc with a gator eye. 12 notches round the rim fill red
+  // with his rage; when it is full the eye turns blood-red and pulses (press FERAL); while feral the notches drain.
+  drawFeralEye(ctx, f, cx, cy, i) {
+    const g = this.g, P = 4, rage = Math.max(0, Math.min(100, f.rage || 0)), ready = !f.feral && rage >= 100, hot = ready || f.feral;
+    const X = Math.round(cx / P) * P, Y = Math.round(cy / P) * P, px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(X + x * P, Y + y * P, w * P, h * P); };
+    const pulse = ready ? 0.5 + 0.5 * Math.sin(g.time / 110) : f.feral ? 0.6 : 0;
+    // glow behind the badge when it's ready / active
+    if (hot) { ctx.save(); ctx.globalAlpha = 0.25 + 0.35 * pulse; ctx.fillStyle = '#ff2a20'; for (let y = -12; y <= 12; y++) { const w = Math.round(Math.sqrt(Math.max(0, 156 - y * y))); ctx.fillRect(X - w * P, Y + y * P, w * 2 * P, P); } ctx.restore(); }
+    // iron disc with a rim
+    for (let y = -10; y <= 10; y++) { const w = Math.round(Math.sqrt(Math.max(0, 110 - y * y))); px(-w, y, w * 2, 1, y < -6 ? '#4a3c52' : '#2c2234'); }
+    for (let y = -8; y <= 8; y++) { const w = Math.round(Math.sqrt(Math.max(0, 70 - y * y))); px(-w, y, w * 2, 1, '#140d18'); }
+    // 12 rage notches round the rim, clockwise from the top
+    const lit = Math.round(rage / 100 * 12);
+    for (let k = 0; k < 12; k++) {
+      const a = -Math.PI / 2 + k * Math.PI / 6, nx = Math.round(Math.cos(a) * 9), ny = Math.round(Math.sin(a) * 9), on = k < lit;
+      px(nx, ny, 1, 1, on ? (hot ? ((g.time / 90 + k) % 4 < 2 ? '#ff5a3c' : '#d8182a') : '#b8323a') : '#3a2c40');
+    }
+    // the gator eye: almond shape, slit pupil
+    const iris = hot ? (pulse > 0.5 ? '#ff3a24' : '#d81c2a') : '#c8b43c', irisHi = hot ? '#ffb08a' : '#f0e48a', irisLo = hot ? '#7a0a14' : '#7a6a1c';
+    const rows = [[-3, 2], [-2, 4], [-1, 5], [0, 6], [1, 5], [2, 4], [3, 2]];
+    for (const [y, w] of rows) px(-w, y, w * 2, 1, y < 0 ? iris : y > 1 ? irisLo : iris);
+    px(-4, -2, 2, 1, irisHi); px(-5, -1, 1, 1, irisHi);
+    for (const [y, w] of rows) { px(-w - 1, y, 1, 1, '#05030a'); px(w, y, 1, 1, '#05030a'); }
+    px(-2, -4, 4, 1, '#05030a'); px(-2, 4, 4, 1, '#05030a');
+    const pw = hot ? 1 : (rage > 50 ? 1 : 2);   // the slit narrows as the rage builds
+    px(-Math.floor(pw / 2), -3, pw, 7, '#05030a');
+    if (hot) px(0, -3, 1, 1, '#ffd0b0');
+    // label under it
+    if (ready) this.text(ctx, 'FERAL · ' + (window.DEV_KIND && window.DEV_KIND[i] === 'pad' ? 'L3' : i === 1 ? 'NUM +' : 'G'), X, Y + 16 * P, 12, (g.time % 500) < 280 ? '#ff5a48' : COL.amberHi, 'center', FS, COL.ink, 3);
+    else if (f.feral) this.text(ctx, 'FERAL', X, Y + 16 * P, 12, '#ff5a48', 'center', FS, COL.ink, 3);
   }
   drawWipe(ctx, p) {
     let seed = 3; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -13636,6 +13667,7 @@ class View {
           for (let q = 0; q < 5; q++) { const an = (g.time / 40 + q * 1.3) % 6.28, rr = 6 + (q % 2) * 2; ctx.fillRect(Math.round(tx + Math.cos(an) * rr), Math.round(ty + Math.sin(an) * rr), 1, 2); }
         }
       }
+      if (f.ch === 'rusty') this.drawFeralEye(ctx, f, L ? bx + 6 + 40 : bx + BW - 6 - 40, BY + BH + 50 + 40, i);
       if (g.stage === 'namas' && g.namasBoost === i) this.text(ctx, 'HOME x0.75', L ? bx : bx + BW, BY + BH + 62, 15, (g.time % 600) < 400 ? COL.amber : COL.paper, L ? 'left' : 'right', FS, COL.ink, 4);
       // name, colour, tag
       const tag = g.netTags ? g.netTags[i] : i === 0 ? (g.mode === 'watch' ? 'CPU' : 'P1') : (g.cpu[1] ? 'CPU' : g.mode === 'training' ? 'DUMMY' : 'P2');
