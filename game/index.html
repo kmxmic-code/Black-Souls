@@ -715,14 +715,14 @@ const HIT_FX = {
 };
 const ELEM_NAME = { fire: 'FIRE ROUND', water: 'WATER ROUND', air: 'AIR ROUND', earth: 'EARTH ROUND' };
 const CAR_COST = 75;   // three of the four meter segments
-const ACTIONS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'guard', 'car', 'dodge', 'start', 'back', 'reset'];
-const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'dodge', 'car'];
-const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH', dodge: 'DODGE', car: 'ULTIMATE · CAR · TORNADO' };
+const ACTIONS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'guard', 'car', 'dodge', 'feral', 'start', 'back', 'reset'];
+const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'dodge', 'car', 'feral'];
+const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH', dodge: 'DODGE', car: 'ULTIMATE · CAR · TORNADO', feral: 'FERAL (BIG RUSTY)' };
 const KEY_DEFAULT = [
-  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', dodge: 'KeyY', start: 'Enter', back: 'Escape', reset: 'KeyR' },
-  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', dodge: 'Numpad8', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
+  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', dodge: 'KeyY', feral: 'KeyG', start: 'Enter', back: 'Escape', reset: 'KeyR' },
+  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', dodge: 'Numpad8', feral: 'NumpadAdd', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
 ];
-const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7 };   // RB guards, LT super / reload, RT dodges
+const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7, feral: 10 };   // RB guards, LT super / reload, RT dodges, L3 feral
 const KD_HITS = 8;
 const PARRY_MS = 250;   // (was 150)   // press GUARD this close before a hit lands to parry it
 const PARRY_COOLDOWN = 450;   // pressing guard again sooner than this does not open a new parry window (no mashing)
@@ -1346,7 +1346,7 @@ class Game {
       this.p.forEach((f, i) => {
         let src = inputs[i] || blank();
         if (this.netPause && this.online === 'host' && i === 0) src = blank();
-        if (this.cpu[i]) { const fo = this.foe(f); src = this.ai[i].think(f, fo, this, dt); if (this.platforms) src = this.aiPlatforms(f, fo, src, dt); }
+        if (this.cpu[i]) { const fo = this.foe(f); src = this.ai[i].think(f, fo, this, dt); if (f.ch === 'rusty' && !f.feral && f.rage >= 100 && f.grounded && rnd() < 0.04) src.feral = true; if (this.platforms) src = this.aiPlatforms(f, fo, src, dt); }
         else if (this.mode === 'training' && i === 1) src = this.training.dummy === 'cpu' ? this.ai[1].think(f, this.p[0], this, dt) : this.dummy.think(f, this.p[0], this, this.training.dummy);
         f.input.feed(src);
       });
@@ -1601,7 +1601,7 @@ class Game {
     if (!L) {
       if ((f.dir > 0 && inp.pressed('r')) || (f.dir < 0 && inp.pressed('l'))) f.fwdTaps.push(f.clock);
       if ((f.dir > 0 && inp.pressed('l')) || (f.dir < 0 && inp.pressed('r'))) f.backTaps.push(f.clock);
-      for (const btn of ['lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'car', 'dodge']) if (inp.pressed(btn)) f.buf.push({ b: btn, t: f.clock });
+      for (const btn of ['lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'car', 'dodge', 'feral']) if (inp.pressed(btn)) f.buf.push({ b: btn, t: f.clock });
     }
     f.fwdTaps = f.fwdTaps.filter(t => f.clock - t < 260); f.backTaps = f.backTaps.filter(t => f.clock - t < 260);
     f.buf = f.buf.filter(e => f.clock - e.t < 150);
@@ -1686,7 +1686,8 @@ class Game {
     if (f.grounded) this.faceOpponent(f, o);
     if (L) { if (f.state !== 'idle') f.setState('idle', 'idle', true); return; }
     const down = inp.held('d'), up = inp.held('u');
-    if (f.ch === 'rusty' && !f.feral && f.rage >= 100 && f.grounded) { f.move = null; this.endCombo(f); f.setState('transform', 'transform'); this.env.sfx('super'); this.env.say('Feral!'); return; }
+    if (f.ch === 'rusty' && !f.feral && f.rage >= 100 && f.grounded && f.consume('feral')) {   // his choice now: press FERAL once the rage bar is full
+      f.move = null; this.endCombo(f); f.setState('transform', 'transform'); this.env.sfx('super'); this.env.say('Feral!'); return; }
     if (f.ch === 'rusty' && f.feral && f.feralT <= 0 && f.grounded) { f.setState('untransform', 'untransform'); return; }
     if (f.ch === 'rusty' && !f.feral && f.meter >= ROCK_COST && f.qcf() && f.peek('lk', 'hk')) { f.consume('lk', 'hk'); return this.startRustyRock(f); }
     if (f.ch === 'rusty' && f.meter >= ROCK_COST && f.peek('car')) { f.consume('car'); return this.startTornado(f, o); }   // both sticks clicked in
@@ -13651,6 +13652,7 @@ class View {
       ctx.fillRect(L ? mx : mx + MW - fill, my, fill, 16);
       ctx.fillStyle = 'rgba(18,13,28,0.5)'; for (let k = 1; k < 4; k++) ctx.fillRect(mx + k * MW / 4, my, 2, 16);
       this.text(ctx, full && !f.C.noSuper ? `${f.C.special} READY` : f.ch === 'blitzy' ? 'SMOKE' : 'POWER', L ? mx : mx + MW, my - 10, 15, full ? '#e0d6ff' : COL.muted, L ? 'left' : 'right', FS, COL.ink, 4);
+      if (f.ch === 'rusty' && !f.feral && (f.rage || 0) >= 100) this.text(ctx, 'FERAL READY · ' + (window.DEV_KIND && window.DEV_KIND[i] === 'pad' ? 'L3' : 'G'), L ? mx : mx + MW, my - 32, 15, (g.time % 500) < 280 ? '#ff5a48' : COL.amberHi, L ? 'left' : 'right', FS, COL.ink, 4);   // rage full: press FERAL
       // combo counter for hits landed on the other fighter
       const o = g.p[1 - i];
       if (o.combo >= 2) {
@@ -14148,6 +14150,7 @@ class View {
       ['LIGHT KICK', B('lk'), ch === 'cowboy' ? 'Quick draw' : mv('lk')], ['HEAVY KICK', B('hk'), ch === 'cowboy' ? 'Elemental round (2 bars)' : mv('hk')],
       ['CROUCH + PUNCH', '↓ + ' + P, mv('clp')], ['CROUCH + KICK', '↓ + ' + K, mv('sweep')],
       ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dodge'), 'Back-dash on the spot · attacks pass through'], ['PARRY', 'Tap ' + B('guard') + ' just before a hit or grab', 'Stuns the attacker'],
+      ...(ch === 'rusty' ? [['FERAL', B('feral'), 'When the rage bar is full']] : []),
     ];
     const S = {
       blitzy: [['SMOKE BOMB', `${Q} + ${P}  or  ${B('sp')}`, 'Super · full meter'], ['KUNAI', `${Q} + ${K}`, 'Quarter meter']],
@@ -14217,7 +14220,7 @@ class View {
       ['DASH / BACK DASH', '→ →  /  ← ←', 'Fast step in, or a glitch-step out.'],
       ['GUARD', 'HOLD RB / R2  ·  + ↓ FOR LOWS', 'Blocking wears the guard bar down; when it empties the guard breaks.'],
     ] : RU ? [
-      ['FERAL MODE', 'DEAL OR TAKE DAMAGE', 'The rage bar under his health fills. When full his animal side takes over.', true],
+      ['FERAL MODE', 'FERAL BUTTON  ·  L3 / G', 'The rage bar under his health fills as he deals and takes damage. When it is full, press FERAL to let his animal side take over.', true],
       ['GATOR SLAM', '↓ ↘ → + PUNCH  or  LT', 'Full meter. Grabs, lifts, slams them down, then tail-whips them into the wall.', true],
       ['TAIL TORNADO', 'L3 + R3 (both sticks)  or  H', 'Half meter. Spins forward and shreds, the last turn knocks down.', true],
       ['ROCK PUNCH', '↓ ↘ → + KICK', 'Half meter. Tail slam lifts a rock, then he punches it across the stage.', true],
@@ -14502,7 +14505,7 @@ if (false) module.exports = { Sound, buildSongs, deg };
    The host runs the real fight; the guest sends its buttons and draws what the host sends back;
    spectators just draw. Everything travels in room presence (~30 updates a second). */
 'use strict';
-const NET_BTNS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'start', 'back', 'car', 'dodge', 'guard'];
+const NET_BTNS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'start', 'back', 'car', 'dodge', 'guard', 'feral'];
 const NET_EMOTES = ['GG', '😂', '🔥', 'EZ', 'WAIT!', 'REMATCH?'];
 const NET_URL = 'https://claude.ai/artifact/8fr23orbxiRPitzHyqVukb';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -15886,6 +15889,7 @@ onmessage = e => { const m = e.data; try {
     for (const a of REMAP) s[a] = map[a] != null && B(map[a]);
     if (!Object.values(map).includes(7)) s.guard = s.guard || B(7);   // RT / R2 also guards
     s.car = s.car || (B(10) && B(11));   // its own button if bound, or click both sticks in
+    if (B(10) && B(11) && (map.feral === 10 || map.feral === 11)) s.feral = false;   // both sticks = ultimate, not feral
     s.start = B(9); s.reset = B(8);
     return s;
   }
