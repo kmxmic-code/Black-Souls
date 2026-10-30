@@ -6,9 +6,9 @@
    "date": "2026-10-30",
    "items": [
     "Dodge is now on the DASH button: dash with no direction = spot dodge, forward = dash, back = back dash",
-    "Dodge cooldown: 1 second, 1.5 seconds after escaping a combo",
+    "Dodge cooldown: 1 second, 1.5 seconds after escaping a combo, shown by a ring next to the meter",
     "True combos: dodge in a gap to escape a combo; long strings get less hitstun",
-    "Matches show only the hit counter; Training shows damage, TRUE / BREAKABLE, escapes, frame gaps and the dodge cooldown",
+    "Matches show only the hit counter and dodge ring; Training shows damage, TRUE / BREAKABLE, escapes and frame gaps",
     "CPU fighters dodge out of combos and respect the cooldown",
     "Smooth animation: frames cross-fade (never on hits), toggle in Display settings",
     "New settings: Display, Audio, Gameplay, Controls, Accessibility, Online and Reset menus",
@@ -138,7 +138,7 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "1b6bf2b8443588e9b1d2394c3145d62a6ae865951d07b40cf85697bfcbea415a",
+   "sha": "9943f609348d754ab6f1dcfcc9c9a56702b7510082e50977a98b8a099988ed4e",
    "size": 1573114
   },
   "kunai2.png": {

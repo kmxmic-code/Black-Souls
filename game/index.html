@@ -13790,11 +13790,11 @@ class View {
       this.text(ctx, full && !f.C.noSuper ? `${f.C.special} READY` : f.ch === 'blitzy' ? 'SMOKE' : 'POWER', L ? mx : mx + MW, my - 10, 15, full ? '#e0d6ff' : COL.muted, L ? 'left' : 'right', FS, COL.ink, 4);
       if (f.ch === 'rusty' && !f.feral && (f.rage || 0) >= 100) this.text(ctx, 'FERAL READY · ' + (window.DEV_KIND && window.DEV_KIND[i] === 'pad' ? 'L3' : 'G'), L ? mx : mx + MW, my - 32, 15, (g.time % 500) < 280 ? '#ff5a48' : COL.amberHi, L ? 'left' : 'right', FS, COL.ink, 4);   // rage full: press FERAL
       // dodge ready: a little ring by the meter that refills over the cooldown
-      if (g.mode === 'training') { const dx = L ? mx + MW + 18 : mx - 18, dy = my + 8, cd = Math.max(0, f.dodgeCD || 0), max = f._esc || cd > DODGE_CD ? DODGE_CD_ESC : DODGE_CD, ready = cd <= 0;
+      { const dx = L ? mx + MW + 18 : mx - 18, dy = my + 8, cd = Math.max(0, f.dodgeCD || 0), max = f._esc || cd > DODGE_CD ? DODGE_CD_ESC : DODGE_CD, ready = cd <= 0;
         ctx.lineWidth = 4; ctx.strokeStyle = '#3a2f4a'; ctx.beginPath(); ctx.arc(dx, dy, 9, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = ready ? this.cGood : COL.muted; ctx.beginPath(); ctx.arc(dx, dy, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (ready ? 1 : 1 - cd / max)); ctx.stroke();
         if (ready) { ctx.fillStyle = this.cGood; ctx.fillRect(dx - 2, dy - 2, 4, 4); }
-        this.text(ctx, 'DODGE', dx, dy - 16, 11, ready ? this.cGood : COL.muted, 'center', FS, COL.ink, 3); }
+        if (g.mode === 'training') this.text(ctx, 'DODGE', dx, dy - 16, 11, ready ? this.cGood : COL.muted, 'center', FS, COL.ink, 3); }
       // combo counter for hits landed on the other fighter
       const o = g.p[1 - i];
       if (o.combo >= 2) {
