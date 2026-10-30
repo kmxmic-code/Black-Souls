@@ -13676,7 +13676,7 @@ class View {
       // combo this fighter is landing
       const victim = g.p.find(v => v !== f && v.combo >= 2 && v.lastHitBy === f);
       ctx.restore();
-      if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); if (g.settings.hudx !== false) this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
+      if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); if (g.mode === 'training' && g.settings.hudx !== false) this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
     });
     if (g.online && g.env.online && g.settings.showPing !== false) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
     if (g.mode === 'ffa' && g.phase === 'fight') this.text(ctx, 'LAST ONE STANDING', VW / 2, VH - 14, 12, COL.muted, 'center', FS, COL.ink, 4);
@@ -13790,18 +13790,18 @@ class View {
       this.text(ctx, full && !f.C.noSuper ? `${f.C.special} READY` : f.ch === 'blitzy' ? 'SMOKE' : 'POWER', L ? mx : mx + MW, my - 10, 15, full ? '#e0d6ff' : COL.muted, L ? 'left' : 'right', FS, COL.ink, 4);
       if (f.ch === 'rusty' && !f.feral && (f.rage || 0) >= 100) this.text(ctx, 'FERAL READY · ' + (window.DEV_KIND && window.DEV_KIND[i] === 'pad' ? 'L3' : 'G'), L ? mx : mx + MW, my - 32, 15, (g.time % 500) < 280 ? '#ff5a48' : COL.amberHi, L ? 'left' : 'right', FS, COL.ink, 4);   // rage full: press FERAL
       // dodge ready: a little ring by the meter that refills over the cooldown
-      { const dx = L ? mx + MW + 18 : mx - 18, dy = my + 8, cd = Math.max(0, f.dodgeCD || 0), max = f._esc || cd > DODGE_CD ? DODGE_CD_ESC : DODGE_CD, ready = cd <= 0;
+      if (g.mode === 'training') { const dx = L ? mx + MW + 18 : mx - 18, dy = my + 8, cd = Math.max(0, f.dodgeCD || 0), max = f._esc || cd > DODGE_CD ? DODGE_CD_ESC : DODGE_CD, ready = cd <= 0;
         ctx.lineWidth = 4; ctx.strokeStyle = '#3a2f4a'; ctx.beginPath(); ctx.arc(dx, dy, 9, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = ready ? this.cGood : COL.muted; ctx.beginPath(); ctx.arc(dx, dy, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (ready ? 1 : 1 - cd / max)); ctx.stroke();
         if (ready) { ctx.fillStyle = this.cGood; ctx.fillRect(dx - 2, dy - 2, 4, 4); }
-        if (g.mode === 'training') this.text(ctx, 'DODGE', dx, dy - 16, 11, ready ? this.cGood : COL.muted, 'center', FS, COL.ink, 3); }
+        this.text(ctx, 'DODGE', dx, dy - 16, 11, ready ? this.cGood : COL.muted, 'center', FS, COL.ink, 3); }
       // combo counter for hits landed on the other fighter
       const o = g.p[1 - i];
       if (o.combo >= 2) {
         const cx = L ? 40 : VW - 40, al = L ? 'left' : 'right';
         this.text(ctx, String(o.combo), cx, 250, 92, COL.amber, al, FD, COL.ink, 10);
         this.text(ctx, 'HITS', L ? cx + (o.combo >= 10 ? 76 : 44) : cx - (o.combo >= 10 ? 76 : 44), 248, 32, COL.paper, al);
-        if (g.settings.hudx !== false) { this.text(ctx, `${o.comboDmg} DMG`, cx, 280, 16, COL.muted, al, FS, COL.ink, 4);
+        if (g.mode === 'training' && g.settings.hudx !== false) { this.text(ctx, `${o.comboDmg} DMG`, cx, 280, 16, COL.muted, al, FS, COL.ink, 4);
         if (g.mode === 'training') this.text(ctx, o.comboBroken ? 'BREAKABLE' : 'TRUE COMBO', cx, 302, 16, o.comboBroken ? this.cBad : this.cGood, al, FS, COL.ink, 4); }
       }
     });
