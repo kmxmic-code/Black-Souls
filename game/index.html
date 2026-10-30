@@ -590,9 +590,18 @@ const STAGE_LIST = [
   ['mexico', 'FIESTA MEXICANA', 'MEXICO'], ['rio', 'RIO DE JANEIRO', 'BRAZIL'], ['machupicchu', 'MACHU PICCHU', 'PERU'], ['serengeti', 'SERENGETI', 'KENYA'],
   ['outback', 'THE OUTBACK', 'AUSTRALIA'], ['rockies', 'CANADIAN ROCKIES', 'CANADA'],
 ];
-const BLITZY_TOUGH = 0.85;   // Blitzy's (the gunslinger, id 'cowboy') health buff: takes 15% less damage, like having ~700 HP instead of 600
+const DODGE_CD = 1000, DODGE_CD_ESC = 1500;   // dodge cooldown (ms), longer after escaping a combo
+const COMBO_GAP = 350, COMBO_TRUE_GAP = 34;   // a combo survives a short gap; a hit after more than ~2 frames of freedom is BREAKABLE
 const DODGE_SPEED = 1.5;   // the dodge animation plays this much faster, and the whole of it is untouchable
-const RUSTY_DMG = 0.75;   // Big Rusty's nerf: everything he does deals 25% less
+// ---------- balance: one table for every fighter ----------
+// dmg: multiplies all the damage they deal · def: multiplies all the damage they take (below 1 = tougher)
+const BALANCE = {   // auto-tuned with CPU-vs-CPU runs so every fighter wins about half the time (dmg = damage dealt, def = damage taken)
+  blitzy: { dmg: 0.72, def: 1.12 },  // Yoshida: fast and hits often, so each hit is lighter and he is a bit frailer
+  y4nk:   { dmg: 1.4, def: 0.9 },    // slow, few big hits
+  rusty:  { dmg: 0.84, def: 0.96 },  // Big Rusty
+  cowboy: { dmg: 1.3, def: 0.8 },    // Blitzy (the gunslinger): tougher, harder hits
+};
+const balMul = (att, def) => ((BALANCE[att.ch] || {}).dmg || 1) * ((BALANCE[def.ch] || {}).def || 1);
 const FERAL_TF_SPEED = 2;   // Big Rusty's feral transformation plays this many times faster
 const WALL_NEAR = 150;   // a heavy hit this close to a side wall slams the fighter into it
 const WALL_SLAMS = [3, 5];   // slams a wall takes before it breaks (each wall rolls its own number in this range)
@@ -716,14 +725,26 @@ const HIT_FX = {
 const ELEM_NAME = { fire: 'FIRE ROUND', water: 'WATER ROUND', air: 'AIR ROUND', earth: 'EARTH ROUND' };
 const CAR_COST = 75;   // three of the four meter segments
 const ACTIONS = ['l', 'r', 'u', 'd', 'lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'guard', 'car', 'dodge', 'feral', 'start', 'back', 'reset'];
-const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'dodge', 'car', 'feral'];
-const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH', dodge: 'DODGE', car: 'ULTIMATE · CAR · TORNADO', feral: 'FERAL (BIG RUSTY)' };
+const REMAP = ['lp', 'hp', 'lk', 'hk', 'guard', 'sp', 'dash', 'car', 'feral'];
+const ACTION_NAMES = { lp: 'LIGHT PUNCH', hp: 'HEAVY PUNCH', lk: 'LIGHT KICK', hk: 'HEAVY KICK', sp: 'SUPER / RELOAD', guard: 'GUARD', dash: 'DASH · DODGE', dodge: 'DODGE', car: 'ULTIMATE · CAR · TORNADO', feral: 'FERAL (BIG RUSTY)' };
 const KEY_DEFAULT = [
-  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', dodge: 'KeyY', feral: 'KeyG', start: 'Enter', back: 'Escape', reset: 'KeyR' },
-  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', dodge: 'Numpad8', feral: 'NumpadAdd', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
+  { l: 'KeyA', r: 'KeyD', u: 'KeyW', d: 'KeyS', lp: 'KeyU', hp: 'KeyI', lk: 'KeyJ', hk: 'KeyK', sp: 'KeyO', dash: 'KeyL', guard: 'KeyP', car: 'KeyH', feral: 'KeyG', start: 'Enter', back: 'Escape', reset: 'KeyR' },
+  { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown', lp: 'Numpad4', hp: 'Numpad5', lk: 'Numpad1', hk: 'Numpad2', sp: 'Numpad6', dash: 'Numpad3', guard: 'Numpad7', car: 'Numpad9', feral: 'NumpadAdd', start: 'NumpadEnter', back: 'NumpadDecimal', reset: 'Numpad0' },
 ];
-const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, dodge: 7, feral: 10 };   // RB guards, LT super / reload, RT dodges, L3 feral
+const PAD_DEFAULT = { lp: 2, hp: 3, lk: 0, hk: 1, guard: 5, sp: 6, dash: 4, feral: 10 };   // RB guards, LT super / reload, LB dash / dodge, L3 feral (RT also guards)
 const KD_HITS = 8;
+// every option and its default ('reset settings' goes back to these). Match rules marked RULE use the default online,
+// so both players always play the same game.
+const SETTING_DEFAULTS = {
+  difficulty: 'normal', rounds: 2, timer: 99, speed: 'fast',
+  master: 10, music: 6, sfx: 8, annVol: 8, announcer: true, muteBlur: false,
+  fullscreen: false, screen: 'standard', scale: 'fit', shake: true, hitFlash: true, fps: false, hudx: true, blend: true,
+  parry: 250, dmgScale: 100, startMeter: 0, buffer: 150,                       // RULE
+  rumble: true, rumbleStr: 10, deadzone: 0.5, prompts: 'auto',
+  lessFlash: false, bigText: false, cbHud: false, toggleGuard: false,
+  showPing: true, nick: '', chat: true,
+};
+const RULE_DEFAULT = { parry: 250, dmgScale: 100, startMeter: 0, buffer: 150 };
 const PARRY_MS = 250;   // (was 150)   // press GUARD this close before a hit lands to parry it
 const PARRY_COOLDOWN = 450;   // pressing guard again sooner than this does not open a new parry window (no mashing)
 // free for all: floating platforms (one-way: jump up through them, land on top, hold down to drop through)
@@ -765,7 +786,7 @@ class Fighter {
     Object.assign(this, {
       x, px: x, dir, h: 0, vx: 0, vy: 0, hp: MAX_HP, dmgTrail: MAX_HP, state: 'idle', st: 0, move: null,
       hitDone: new Set(), stun: 0, slide: 0, combo: 0, comboDmg: 0, juggle: 0, hidden: false, drawH: 0,
-      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, dodge: false, plat: 0, noLand: 0, dropT: 0, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
+      airUsed: false, jdir: 0, ko: false, feral: false, rage: 0, feralT: 0, ammo: 6, reloadT: 0, element: null, elemAt: 0, guard: 100, guardT: 0, burnT: 0, burnAcc: 0, slowT: 0, dirHist: [], fwdTaps: [], backTaps: [], bdash: false, dodge: false, dodgeCD: 0, _gapT: 0, comboBroken: false, lastGap: null, plat: 0, noLand: 0, dropT: 0, cancelN: 0, cancelCd: 0, buf: [], clock: 0, special: null, locked: false,
       connected: false, connectT: -1e9, trail: [], hitShake: 0, refill: 0, lastFall: 'ko', lift0: 0, _dfi: -1, _kfi: -1,
     });
     this.anim.set('idle', true);
@@ -830,15 +851,15 @@ class Clone {
 
 // ---------- CPU ----------
 const AI_LV = {
-  easy: { react: 420, block: 0.18, low: 0.15, aa: 0.05, cancel: 0.1, punish: 0.1, special: 0.15, jump: 0.05, poke: 0.45 },
-  normal: { react: 260, block: 0.5, low: 0.55, aa: 0.3, cancel: 0.45, punish: 0.4, special: 0.5, jump: 0.07, poke: 0.6 },
-  hard: { react: 150, block: 0.82, low: 0.9, aa: 0.65, cancel: 0.85, punish: 0.8, special: 0.85, jump: 0.06, poke: 0.75 },
+  easy: { react: 420, block: 0.18, low: 0.15, aa: 0.05, cancel: 0.1, punish: 0.1, special: 0.15, jump: 0.05, poke: 0.45, escape: 0.12, dodge: 0.05 },
+  normal: { react: 260, block: 0.5, low: 0.55, aa: 0.3, cancel: 0.45, punish: 0.4, special: 0.5, jump: 0.07, poke: 0.6, escape: 0.4, dodge: 0.14 },
+  hard: { react: 150, block: 0.82, low: 0.9, aa: 0.65, cancel: 0.85, punish: 0.8, special: 0.85, jump: 0.06, poke: 0.75, escape: 0.75, dodge: 0.25 },
 };
 class AI {
   constructor() { this.reset('normal'); }
   reset(level) {
     this.level = level; this.lv = AI_LV[level] || AI_LV.normal;
-    Object.assign(this, { hist: [], t: 0, next: 0, hold: {}, queue: [], seq: -1, blockPlan: false, lowPlan: false, cancelRoll: null, aaSeq: -1, aaPlan: false, punSeq: -1 });
+    Object.assign(this, { hist: [], t: 0, next: 0, hold: {}, queue: [], seq: -1, blockPlan: false, lowPlan: false, cancelRoll: null, aaSeq: -1, aaPlan: false, punSeq: -1, escN: -1 });
   }
   think(me, op, g, dt) {
     const s = blank(); this.t += dt;
@@ -856,11 +877,15 @@ class AI {
         return s;
       }
     } else if (me.state !== 'attack') this.cancelRoll = null;
+    // a gap in the opponent's combo: dodge out of it (only when the dodge is off cooldown)
+    if (me.combo === 0) this.escN = -1;
+    if (me.combo > 0 && me.neutral && me.grounded && me.dodgeCD <= 0 && me.combo !== this.escN) { this.escN = me.combo; if (rnd() < lv.escape) { s.dash = true; return s; } }
     // blocking what it has seen coming
     const threat = (['attack', 'airkick'].includes(seen.st) && Math.abs(seen.x - me.x) < 330) || seen.clones;
     if (threat && me.grounded && (me.neutral || ['block', 'cblock'].includes(me.state))) {
       if (seen.seq !== this.seq) { this.seq = seen.seq; this.blockPlan = rnd() < lv.block; this.lowPlan = rnd() < lv.low; }
       if (this.blockPlan && me.ch === 'y4nk' && me.neutral && seen.mv !== 'sweep' && rnd() < 0.3) { s.hk = true; this.blockPlan = false; return s; }
+      if (this.blockPlan && me.neutral && me.dodgeCD <= 0 && seen.mv !== 'sweep' && rnd() < lv.dodge * 0.25) { s.dash = true; this.blockPlan = false; return s; }
       if (this.blockPlan) { s.guard = true; if ((seen.mv === 'sweep' || seen.mv === 'clp' || seen.mv === 'yclp' || seen.mv === 'yck') && this.lowPlan) s.d = true; return s; }
     }
     // anti-air a jump-in
@@ -889,7 +914,7 @@ class AI {
       else if (me.ch === 'rusty' && !me.feral && me.meter >= ROCK_COST && d > 360 && r < lv.special * 0.45) { this.queue.push({ at: this.t, keys: ['d'] }, { at: this.t + 40, keys: ['d', fwdK] }, { at: this.t + 80, keys: [fwdK, 'lk'] }); }
       else if (me.ch === 'y4nk' && me.meter >= ROCK_COST && d > 380 && r < lv.special * 0.5) { this.queue.push({ at: this.t, keys: ['d'] }, { at: this.t + 40, keys: ['d', fwdK] }, { at: this.t + 80, keys: [fwdK, 'hk'] }); }
       else if (d > 240) {
-        if (r < 0.12) this.queue.push({ at: this.t, keys: ['dash'] });
+        if (r < 0.12) this.queue.push({ at: this.t, keys: ['dash', fwdK] });
         else if (r < 0.12 + lv.jump * 2) { this.hold.u = true; this.hold[fwdK] = true; this.next = 90; }
         else { this.hold[fwdK] = true; this.next = 120; }
       } else if (d > 165) {
@@ -938,10 +963,12 @@ class Game {
     this.p = [new Fighter(0), new Fighter(1)];
     this.ai = [new AI(), new AI()]; this.dummy = new Dummy();
     this.mi = [new Input(), new Input()];
-    this.settings = Object.assign({ difficulty: 'normal', rounds: 2, timer: 99, music: 6, sfx: 8, announcer: true, rumble: true, shake: true, speed: 'fast', screen: 'standard' }, env.store.get('settings', {}));
+    this.settings = Object.assign({}, SETTING_DEFAULTS, env.store.get('settings', {}));
+    if (this.settings.annVol == null) this.settings.annVol = this.settings.announcer === false ? 0 : 8;
     this.records = Object.assign({ matches: 0, cpuWins: 0, cpuLosses: 0, clears: { easy: 0, normal: 0, hard: 0 }, bestCombo: 0, bestComboDmg: 0, specials: 0 }, env.store.get('records', {}));
     const savedCtl = env.store.get('controls', null);
     this.controls = [0, 1].map(i => ({ key: Object.assign({}, KEY_DEFAULT[i], savedCtl && savedCtl[i] && savedCtl[i].key), pad: Object.assign({}, PAD_DEFAULT, savedCtl && savedCtl[i] && savedCtl[i].pad) }));
+    this.controls.forEach(c => { delete c.key.dodge; delete c.pad.dodge; });   // dodge now lives on the dash button
     this.controls.forEach(c => { if (c.pad.guard === c.pad.sp || c.pad.sp === 5) { c.pad.sp = 6; c.pad.guard = 5; } });
     this.cam = { x: (STAGE_W - VW) / 2, shake: 0, sx: 0, sy: 0, zoom: 1, zoomTo: 1, fx: VW / 2, fy: GROUND - 120 };
     this.fx = []; this.parts = []; this.clones = []; this.texts = [];
@@ -955,6 +982,7 @@ class Game {
   }
 
   // ---------- persistence ----------
+  rule(k) { return this.online ? RULE_DEFAULT[k] : (this.settings[k] != null ? this.settings[k] : RULE_DEFAULT[k]); }
   saveSettings() { this.env.store.set('settings', this.settings); this.env.applySettings && this.env.applySettings(this.settings); }
   saveRecords() { this.env.store.set('records', this.records); }
   saveControls() { this.env.store.set('controls', this.controls); }
@@ -1084,7 +1112,7 @@ class Game {
   fixPicks() { this.p.forEach((f, i) => { if (!CHARS[f.ch]) f.ch = CHAR_ORDER[i % CHAR_ORDER.length]; if (!PALETTES[f.pal]) f.pal = PAL_ORDER[(i * 3) % PAL_ORDER.length]; }); }
   startMatch() {
     this.fixPicks();
-    this.p.forEach(f => { f.wins = 0; f.meter = 0; f.stats = newStats(); });
+    this.p.forEach(f => { f.wins = 0; f.meter = this.rule('startMeter'); f.stats = newStats(); });
     this.stage = ARENAS.includes(this.chosenStage) ? this.chosenStage : 'roof'; this.trip = null; this.welcome = null; this.walls = [null, null]; this.wallSeq = null; this.mapBreak = null; this.blackout = 0; this.groundBreak = null; this.namasBoost = -1;
     this.ai.forEach((a, i) => a.reset(this.aiLevel[i]));
     this.round = 1; this.matchTime = 0; this.startRound(); this.env.music('fight');
@@ -1166,7 +1194,7 @@ class Game {
   }
   restartRound() {
     if (this.mode === 'training') { this.startRound(); this.phase = 'fight'; return; }
-    this.p.forEach(f => { f.meter = 0; }); this.startRound();
+    this.p.forEach(f => { f.meter = this.rule('startMeter'); }); this.startRound();
   }
 
   // ---------- menus ----------
@@ -1217,30 +1245,71 @@ class Game {
         { label: 'FREE FOR ALL', hint: g.env.online && g.env.online.link ? 'Up to 4 · invite friends, CPUs fill empty spots' : 'Up to 4 players online · launcher only', act: () => { const n = g.env.online; if (n && n.link && n.openFFA) n.openFFA(); else g.say(n && n.link ? 'Online free for all arrives in the next update' : 'Online free for all works in the launcher'); } },
         { label: 'BACK', act: () => g.menuBack() }] };
       case 'options': return { title: g.phase === 'pause' ? 'SETTINGS' : 'OPTIONS', items: [
+        { label: 'DISPLAY', hint: 'Fullscreen, screen mode, scaling, shake, flashes, FPS, HUD', act: () => g.openMenu('o_display') },
+        { label: 'AUDIO', hint: 'Master, music, sound effects, announcer', act: () => g.openMenu('o_audio') },
+        { label: 'GAMEPLAY', hint: 'CPU level, rounds, timer, speed, parry window, damage, meter', act: () => g.openMenu('o_game') },
+        { label: 'CONTROLS', hint: 'Buttons, rumble, deadzone, input buffer, button prompts', act: () => g.openMenu('controls') },
+        { label: 'ACCESSIBILITY', hint: 'Reduce flashing, bigger text, colour-blind HUD, toggle guard', act: () => g.openMenu('o_access') },
+        { label: 'ONLINE', hint: 'Ping display, nickname, quick chat', act: () => g.openMenu('o_online') },
+        { label: 'RESET', hint: 'Settings or records back to the start', act: () => g.openMenu('o_reset') },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_display': return { title: 'DISPLAY', items: [
+        { label: 'FULLSCREEN', val: () => onoff(S.fullscreen), adj: () => { set('fullscreen', !S.fullscreen); g.env.setFullscreen && g.env.setFullscreen(S.fullscreen); } },
+        { label: 'DISPLAY MODE', val: () => (S.screen === 'ultrawide' ? '5K ULTRAWIDE 32:9' : 'STANDARD 16:9'), hint: 'For 5120×1440 screens: the fight stays centred with solid black sides', adj: () => set('screen', S.screen === 'ultrawide' ? 'standard' : 'ultrawide') },
+        { label: 'SCALING', val: () => (S.scale === 'pixel' ? 'PIXEL PERFECT' : 'FIT SCREEN'), hint: 'Pixel perfect: whole-number scaling only, every pixel the same size', adj: () => set('scale', S.scale === 'pixel' ? 'fit' : 'pixel') },
+        { label: 'SMOOTH ANIMATION', val: () => onoff(S.blend), hint: 'Soft cross-fade between animation frames (never on hits)', adj: () => set('blend', !S.blend) },
+        { label: 'SCREEN SHAKE', val: () => onoff(S.shake), adj: () => set('shake', !S.shake) },
+        { label: 'HIT FLASH', val: () => onoff(S.hitFlash), hint: 'The white screen flash on big hits', adj: () => set('hitFlash', !S.hitFlash) },
+        { label: 'FPS COUNTER', val: () => onoff(S.fps), adj: () => set('fps', !S.fps) },
+        { label: 'HUD EXTRAS', val: () => onoff(S.hudx), hint: 'Combo damage and TRUE / BREAKABLE labels', adj: () => set('hudx', !S.hudx) },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_audio': return { title: 'AUDIO', items: [
+        { label: 'MASTER VOLUME', val: () => bar(S.master), adj: d => { set('master', clamp(S.master + d, 0, 10)); g.env.sfx('hit'); } },
+        { label: 'MUSIC', val: () => bar(S.music), adj: d => set('music', clamp(S.music + d, 0, 10)) },
+        { label: 'SOUND FX', val: () => bar(S.sfx), adj: d => { set('sfx', clamp(S.sfx + d, 0, 10)); g.env.sfx('hit'); } },
+        { label: 'ANNOUNCER', val: () => bar(S.annVol), adj: d => { set('annVol', clamp(S.annVol + d, 0, 10)); set('announcer', S.annVol > 0); if (S.annVol > 0) g.env.say('Fight'); } },
+        { label: 'MUTE WHEN UNFOCUSED', val: () => onoff(S.muteBlur), hint: 'Silence the game while you are in another window', adj: () => set('muteBlur', !S.muteBlur) },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_game': return { title: 'GAMEPLAY', items: [
         { label: 'CPU LEVEL', val: () => S.difficulty.toUpperCase(), adj: d => set('difficulty', cyc(DIFFS, S.difficulty, d)) },
         { label: 'MATCH', val: () => `BEST OF ${S.rounds * 2 - 1}`, adj: d => set('rounds', cyc([1, 2, 3], S.rounds, d)) },
-        { label: 'GAME SPEED', val: () => S.speed.toUpperCase(), adj: d => set('speed', cyc(Object.keys(SPEEDS), S.speed, d)) },
         { label: 'ROUND TIMER', val: () => (S.timer ? `${S.timer} SEC` : 'OFF'), adj: d => set('timer', cyc([60, 99, 0], S.timer, d)) },
-        { label: 'MUSIC', val: () => bar(S.music), adj: d => set('music', clamp(S.music + d, 0, 10)) },
-        { label: 'SOUND FX', val: () => bar(S.sfx), adj: d => { set('sfx', clamp(S.sfx + d, 0, 10)); g.env.sfx('hit'); } },
-        { label: 'ANNOUNCER', val: () => onoff(S.announcer), adj: () => { set('announcer', !S.announcer); if (S.announcer) g.env.say('Fight'); } },
-        { label: 'RUMBLE', val: () => onoff(S.rumble), adj: () => { set('rumble', !S.rumble); if (S.rumble) g.env.rumble(0, 0.6, 0.6, 200); } },
-        { label: 'SCREEN SHAKE', val: () => onoff(S.shake), adj: () => set('shake', !S.shake) },
-        { label: 'DISPLAY', val: () => (S.screen === 'ultrawide' ? '5K ULTRAWIDE 32:9' : 'STANDARD 16:9'), hint: 'For 5120×1440 screens: the fight stays centred with solid black sides', adj: () => set('screen', S.screen === 'ultrawide' ? 'standard' : 'ultrawide') },
-        { label: 'CONTROLS', act: () => g.openMenu('controls') },
-        { label: 'CHOOSE DEVICES', hint: 'Pick which controller or keyboard each player uses', act: () => { if (g.env.askDevices) g.env.askDevices(); } },
+        { label: 'GAME SPEED', val: () => S.speed.toUpperCase(), adj: d => set('speed', cyc(Object.keys(SPEEDS), S.speed, d)) },
+        { label: 'PARRY WINDOW', val: () => ({ 180: 'TIGHT', 250: 'NORMAL', 330: 'WIDE' }[S.parry] || 'NORMAL'), hint: 'How early you can tap GUARD before a hit to parry it · online uses NORMAL', adj: d => set('parry', cyc([180, 250, 330], S.parry, d)) },
+        { label: 'DAMAGE', val: () => `${S.dmgScale}%`, hint: 'Scales all damage · online uses 100%', adj: d => set('dmgScale', cyc([50, 75, 100, 125, 150, 200], S.dmgScale, d)) },
+        { label: 'STARTING METER', val: () => `${S.startMeter}%`, hint: 'Super meter at the start of a match · online uses 0%', adj: d => set('startMeter', cyc([0, 25, 50, 100], S.startMeter, d)) },
         { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_access': return { title: 'ACCESSIBILITY', items: [
+        { label: 'REDUCE FLASHING', val: () => onoff(S.lessFlash), hint: 'No screen flashes or strobing effects', adj: () => set('lessFlash', !S.lessFlash) },
+        { label: 'BIGGER TEXT', val: () => onoff(S.bigText), hint: 'Small labels and hints drawn larger', adj: () => set('bigText', !S.bigText) },
+        { label: 'COLOUR-BLIND HUD', val: () => onoff(S.cbHud), hint: 'Blue / orange health and status colours instead of green / red', adj: () => set('cbHud', !S.cbHud) },
+        { label: 'TOGGLE GUARD', val: () => onoff(S.toggleGuard), hint: 'Tap GUARD to start blocking, tap again to stop (offline)', adj: () => set('toggleGuard', !S.toggleGuard) },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_online': return { title: 'ONLINE', items: [
+        { label: 'SHOW PING', val: () => onoff(S.showPing), adj: () => set('showPing', !S.showPing) },
+        { label: 'NICKNAME', val: () => (S.nick || 'ACCOUNT NAME').toUpperCase(), hint: 'The name other players see · press to change', act: () => { if (g.env.editText) g.env.editText('Nickname (blank = your account name)', S.nick || '', v => set('nick', String(v || '').trim().slice(0, 12))); } },
+        { label: 'QUICK CHAT', val: () => onoff(S.chat), hint: 'Show the other player\'s quick chat messages', adj: () => set('chat', !S.chat) },
+        { label: 'BACK', act: () => g.menuBack() }] };
+      case 'o_reset': return { title: 'RESET', items: [
+        { label: 'RESET SETTINGS', val: () => (g._armReset === 's' ? 'PRESS AGAIN' : ''), hint: 'Every option back to its default (buttons stay)', act: () => { if (g._armReset !== 's') { g._armReset = 's'; return; } g._armReset = null; Object.keys(S).forEach(k => delete S[k]); Object.assign(S, SETTING_DEFAULTS); g.saveSettings(); g.env.setFullscreen && g.env.setFullscreen(false); g.say('Settings reset'); } },
+        { label: 'RESET RECORDS', val: () => (g._armReset === 'r' ? 'PRESS AGAIN' : ''), hint: 'Wins, clears and best combos back to zero', act: () => { if (g._armReset !== 'r') { g._armReset = 'r'; return; } g._armReset = null; g.records = { matches: 0, cpuWins: 0, cpuLosses: 0, clears: { easy: 0, normal: 0, hard: 0 }, bestCombo: 0, bestComboDmg: 0, specials: 0 }; g.saveRecords(); g.say('Records reset'); } },
+        { label: 'BACK', act: () => { g._armReset = null; g.menuBack(); } }] };
       case 'netsettings': return { title: 'SETTINGS', items: [
-        { label: 'MUSIC', val: () => bar(S.music), adj: d => set('music', clamp(S.music + d, 0, 10)) },
-        { label: 'SOUND FX', val: () => bar(S.sfx), adj: d => { set('sfx', clamp(S.sfx + d, 0, 10)); g.env.sfx('hit'); } },
-        { label: 'ANNOUNCER', val: () => onoff(S.announcer), adj: () => { set('announcer', !S.announcer); } },
-        { label: 'RUMBLE', val: () => onoff(S.rumble), adj: () => { set('rumble', !S.rumble); if (S.rumble) g.env.rumble(0, 0.6, 0.6, 200); } },
-        { label: 'SCREEN SHAKE', val: () => onoff(S.shake), adj: () => set('shake', !S.shake) },
+        { label: 'DISPLAY', act: () => g.openMenu('o_display') },
+        { label: 'AUDIO', act: () => g.openMenu('o_audio') },
+        { label: 'ACCESSIBILITY', act: () => g.openMenu('o_access') },
+        { label: 'ONLINE', act: () => g.openMenu('o_online') },
         { label: 'BACK', act: () => g.menuBack() }] };
       case 'controls': return { title: 'CONTROLS', items: [
         { label: 'PLAYER 1 BUTTONS', act: () => g.openMenu('remap0') },
         { label: 'PLAYER 2 BUTTONS', act: () => g.openMenu('remap1') },
-        { label: 'RESET TO DEFAULTS', act: () => { g.controls = [0, 1].map(i => ({ key: Object.assign({}, KEY_DEFAULT[i]), pad: Object.assign({}, PAD_DEFAULT) })); g.saveControls(); g.say('Controls reset'); } },
+        { label: 'RUMBLE', val: () => onoff(S.rumble), adj: () => { set('rumble', !S.rumble); if (S.rumble) g.env.rumble(0, 0.6, 0.6, 200); } },
+        { label: 'RUMBLE STRENGTH', val: () => bar(S.rumbleStr), adj: d => { set('rumbleStr', clamp(S.rumbleStr + d, 1, 10)); g.env.rumble(0, 0.6, 0.6, 160); } },
+        { label: 'STICK DEADZONE', val: () => `${Math.round(S.deadzone * 100)}%`, hint: 'How far the stick must move before it counts', adj: d => set('deadzone', cyc([0.2, 0.3, 0.4, 0.5, 0.6, 0.7], S.deadzone, d)) },
+        { label: 'INPUT BUFFER', val: () => ({ 100: 'SHORT', 150: 'NORMAL', 220: 'LONG' }[S.buffer] || 'NORMAL'), hint: 'How early a button press is remembered · online uses NORMAL', adj: d => set('buffer', cyc([100, 150, 220], S.buffer, d)) },
+        { label: 'BUTTON PROMPTS', val: () => ({ auto: 'AUTO', xbox: 'XBOX', ps: 'PLAYSTATION' }[S.prompts] || 'AUTO'), adj: d => set('prompts', cyc(['auto', 'xbox', 'ps'], S.prompts, d)) },
+        { label: 'CHOOSE DEVICES', hint: 'Pick which controller or keyboard each player uses', act: () => { if (g.env.askDevices) g.env.askDevices(); } },
+        { label: 'RESET BUTTONS', act: () => { g.controls = [0, 1].map(i => ({ key: Object.assign({}, KEY_DEFAULT[i]), pad: Object.assign({}, PAD_DEFAULT) })); g.saveControls(); g.say('Controls reset'); } },
         { label: 'BACK', act: () => g.menuBack() }] };
       case 'remap0': case 'remap1': {
         const pi = +id.slice(-1);
@@ -1348,6 +1417,11 @@ class Game {
         if (this.netPause && this.online === 'host' && i === 0) src = blank();
         if (this.cpu[i]) { const fo = this.foe(f); src = this.ai[i].think(f, fo, this, dt); if (f.ch === 'rusty' && !f.feral && f.rage >= 100 && f.grounded && rnd() < 0.04) src.feral = true; if (this.platforms) src = this.aiPlatforms(f, fo, src, dt); }
         else if (this.mode === 'training' && i === 1) src = this.training.dummy === 'cpu' ? this.ai[1].think(f, this.p[0], this, dt) : this.dummy.think(f, this.p[0], this, this.training.dummy);
+        if (this.settings.toggleGuard && !this.cpu[i] && !this.online && !(this.mode === 'training' && i === 1)) {   // tap GUARD to hold it, tap again to let go
+          if (src.guard && !f._gPrev) f._gTog = !f._gTog; f._gPrev = src.guard;
+          if (['hit', 'hitc', 'hita', 'knock', 'koair', 'down'].includes(f.state)) f._gTog = false;
+          src = Object.assign({}, src, { guard: !!f._gTog });
+        }
         f.input.feed(src);
       });
     }
@@ -1562,7 +1636,12 @@ class Game {
     this.keepOnScreen();
     for (const f of this.p) {
       if (f.dmgTrail > f.hp) f.dmgTrail = Math.max(f.hp, f.dmgTrail - dt * 0.3);
-      if (f.combo > 0 && ['idle', 'walk', 'walkb', 'crouch', 'guard', 'block', 'cblock', 'land', 'getup', 'air', 'prejump', 'attack', 'dash', 'carcall'].includes(f.state)) this.endCombo(f);
+      if (f.combo > 0) {
+        // free but passive: a short gap the attacker can still link through (it becomes BREAKABLE)
+        if (['idle', 'walk', 'walkb', 'crouch', 'land', 'getup'].includes(f.state)) { f._gapT += dt; if (f._gapT > COMBO_GAP) this.endCombo(f); }
+        // the defender acted (guarded, jumped, attacked, dashed): the combo is over
+        else if (['guard', 'block', 'cblock', 'air', 'prejump', 'attack', 'dash', 'carcall'].includes(f.state)) this.endCombo(f);
+      }
       this.recordTrail(f, dt);
     }
     this.fx = this.fx.filter(e => (e.t += dt) < e.life);
@@ -1572,14 +1651,21 @@ class Game {
     (this.walls || []).forEach(w => { if (w) w.t += dt; });   // cracks stay until the wall breaks or the match ends
     if (this.wallSeq && (this.wallSeq.t += dt) > 6000) this.wallSeq = null;
   }
+  startDodge(f) {
+    f.consume('dash', 'dodge'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; f._evaded = false;
+    f._esc = f.combo > 0;   // dodged out of a gap in a combo: ESCAPE
+    if (f._esc) { this.texts.push({ text: 'ESCAPE!', x: f.x, y: GROUND - 300 - (f.plat || 0), t: 0, life: 800, color: 'amber' }); this.endCombo(f); }
+    this.env.sfx('whoosh'); this.fx.push({ kind: 'dodge', x: f.x, y: GROUND - 110 - (f.h || 0) - (f.plat || 0), t: 0, life: 360, mirror: f.dir < 0, pal: f.pal, ch: f.ch });
+    return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash');
+  }
   endCombo(f) {
     const att = f.lastHitBy || this.foe(f);
     if (f.combo >= 2 && !this.cpu[att.id] && this.mode !== 'watch') {
       if (f.combo > this.records.bestCombo) { this.records.bestCombo = f.combo; this.saveRecords(); }
       if (f.comboDmg > this.records.bestComboDmg) { this.records.bestComboDmg = f.comboDmg; this.saveRecords(); }
     }
-    if (this.mode === 'training' && f.id === 1 && f.combo > 0) { this.training.lastHits = f.combo; this.training.lastDmg = f.comboDmg; }
-    f.combo = 0; f.comboDmg = 0; f.juggle = 0;
+    if (this.mode === 'training' && f.id === 1 && f.combo > 0) { this.training.lastHits = f.combo; this.training.lastDmg = f.comboDmg; this.training.lastTrue = !f.comboBroken; }
+    f.combo = 0; f.comboDmg = 0; f.juggle = 0; f._gapT = 0; f.comboBroken = false;
   }
   recordTrail(f, dt) {
     const want = ['dash', 'airkick', 'special'].includes(f.state) && !f.hidden;
@@ -1590,6 +1676,7 @@ class Game {
 
   updateFighter(f, o, dt) {
     if (f.input && f.input.pressed('guard')) { if (this.time - (f.guardPressAt || -1e9) >= PARRY_COOLDOWN) f.parryAt = this.time; f.guardPressAt = this.time; }
+    if (f.dodgeCD > 0) f.dodgeCD -= dt;
     f.st += dt; f.anim.step(f.state === 'transform' ? dt * FERAL_TF_SPEED : f.state === 'dash' && f.dodge ? dt * DODGE_SPEED : f.slowT > 0 && ['attack', 'airkick', 'dash', 'land'].includes(f.state) ? dt * 0.7 : dt); f.clock += dt;
     this.statusUpdate(f, dt);
     if (f.ch === 'rusty') this.feralUpdate(f, dt);
@@ -1604,7 +1691,7 @@ class Game {
       for (const btn of ['lp', 'hp', 'lk', 'hk', 'sp', 'dash', 'car', 'dodge', 'feral']) if (inp.pressed(btn)) f.buf.push({ b: btn, t: f.clock });
     }
     f.fwdTaps = f.fwdTaps.filter(t => f.clock - t < 260); f.backTaps = f.backTaps.filter(t => f.clock - t < 260);
-    f.buf = f.buf.filter(e => f.clock - e.t < 150);
+    f.buf = f.buf.filter(e => f.clock - e.t < this.rule('buffer'));
     if (f.slide) { f.x += f.slide * dt / 1000; f.slide *= Math.pow(0.0005, dt / 1000); if (Math.abs(f.slide) < 5) f.slide = 0; }
 
     switch (f.state) {
@@ -1624,7 +1711,7 @@ class Game {
         break;
       }
       case 'dash': {
-        const i = f.anim.fi; if (f.dodge) { if (f._dfi !== i) { f._dfi = i; if (i === 1) this.dust(f.x, 4); } if (f.anim.done) { f.dodge = false; f.setState('idle', 'idle', true); } break; }
+        const i = f.anim.fi; if (f.dodge) { if (f._dfi !== i) { f._dfi = i; if (i === 1) this.dust(f.x, 4); } if (f.anim.done) { f.dodge = false; f.dodgeCD = f._esc ? DODGE_CD_ESC : DODGE_CD; f._esc = false; f.setState('idle', 'idle', true); } break; }
         if (f._dfi !== i) { f._dfi = i; const s = f.bdash ? (f.C.bdashDX ? -1 : -0.8) : 1; f.x += (f.slowT > 0 ? 0.6 : 1) * s * f.dir * (((f.bdash && f.C.bdashDX && (f.feral || f.ch === 'cowboy' ? f.C.bdashDX : [0, 0].concat(f.C.bdashDX))) || (f.feral && f.C.fdashDX) || f.C.dashDX || DASH_DX)[i] || 0); if (i === 1) this.dust(f.x + s * -f.dir * 30, 6); }
         if (f.anim.done) f.setState('idle', 'idle', true);
         break;
@@ -1712,9 +1799,10 @@ class Game {
     if (f.ch === 'y4nk' && f.peek('car') && f.meter >= CAR_COST && !(this.cars || []).some(c => c.owner === f)) { f.consume('car'); return this.startCar(f); }
     const atk = f.consume('lp', 'hp', 'lk', 'hk');
     if (atk) return this.startMove(f, f.mv(down ? ((atk === 'lp' || atk === 'hp') ? 'clp' : 'sweep') : atk));
-    if (f.consume('dodge')) { f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = true; f._evaded = false; this.env.sfx('whoosh'); this.fx.push({ kind: 'dodge', x: f.x, y: GROUND - 110 - (f.h || 0) - (f.plat || 0), t: 0, life: 360, mirror: f.dir < 0, pal: f.pal, ch: f.ch }); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
     if (f.backTaps.length >= 2 || (f.back() && f.peek('dash'))) { f.consume('dash'); f.backTaps = []; f.fwdTaps = []; f._dfi = -1; f.bdash = true; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', (f.ch === 'rusty' || f.ch === 'cowboy') ? 'bdash' : 'dash'); }
-    if (f.consume('dash') || f.fwdTaps.length >= 2) { f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
+    if (f.fwdTaps.length >= 2 || (f.fwd() && f.peek('dash'))) { f.consume('dash'); f.fwdTaps = []; f.backTaps = []; f._dfi = -1; f.bdash = false; f.dodge = false; this.env.sfx('dash'); return f.setState('dash', 'dash'); }
+    // dash with no direction (or the old dodge input from the network): a spot dodge, on a cooldown
+    if ((f.peek('dash') || f.peek('dodge')) && f.dodgeCD <= 0) return this.startDodge(f);
     if (up) { f.jdir = f.fwd() ? 1 : f.back() ? -1 : 0; f.airUsed = false; return f.setState('prejump', 'jump_pre'); }
     if (f.input.held('guard')) {
       const want = down ? 'cblock_hold' : 'block_hold'; this.faceOpponent(f, o);
@@ -2024,7 +2112,7 @@ class Game {
           return;
         }
         if (!S.slammed) {
-          S.slammed = true; const sd = Math.round(120 * RUSTY_DMG * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
+          S.slammed = true; const sd = Math.round(120 * balMul(f, o)); o.hp = Math.max(1, o.hp - sd); o.comboDmg = sd; o.combo = 1; f.stats.hits++; f.stats.dmg += sd; o.hitShake = 200;
           this.hitstop = 180; this.shake(22); this.flash = 90; this.dust(o.x, 16); this.env.sfx('koHit'); this.env.sfx('slam'); this.env.rumble(o.id, 1, 1, 400);
           this.texts.push({ text: 'SLAM!', x: o.x, y: GROUND - 260, t: 0, life: 800, color: 'red' });
         }
@@ -2088,7 +2176,7 @@ class Game {
         const i = f.anim.fi, L = MOVES.rflp.lunge;
         if (P.lfi !== i) { P.lfi = i; f.x = clamp(f.x + f.dir * (L[i] || 0) * 1.7, EDGE, STAGE_W - EDGE); }
         if (!P.bit && i >= 3) {
-          P.bit = true; const bd = Math.round(30 * RUSTY_DMG * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
+          P.bit = true; const bd = Math.round(30 * balMul(f, o)); o.hp = Math.max(1, o.hp - bd); o.hitShake = 160; o.combo++; o.comboDmg += bd; f.stats.hits++; f.stats.dmg += bd;
           this.hitstop = 90; this.shake(9); this.env.sfx('hitH'); this.env.rumble(o.id, 0.8, 0.6, 160);
           this.fx.push({ kind: 'spark', x: o.x, y: GROUND - 110, mirror: f.dir < 0, t: 0, life: 160, big: true }); this.burst(o.x, GROUND - 110, f.dir, 'heavy');
         }
@@ -2464,7 +2552,7 @@ class Game {
   applyHit(att, o, h, cx, cy, isClone) {
     const owner = isClone ? att.owner : att, away = att.x < o.x ? 1 : -1;
     if (!isClone && !h.unblock && o.state === 'attack' && o.move === 'ypar' && o.anim.name === 'parry' && h.lvl !== 'low') return this.parry(o, att, cx, cy);
-    if (!h.unblock && !h.ult && o.parryAt != null && this.time - o.parryAt <= PARRY_MS && (!this.cpu[o.id] || rnd() < ({ easy: 0.15, normal: 0.35, hard: 0.6 }[this.aiLevel[o.id]] || 0.35)) && o.grounded && ['idle', 'walk', 'walkb', 'crouch', 'guard', 'block', 'cblock', 'land', 'dash'].includes(o.state) && !o.ko) return this.timedParry(o, isClone ? att.owner : att, cx, cy, this._projHit || isClone);
+    if (!h.unblock && !h.ult && o.parryAt != null && this.time - o.parryAt <= this.rule('parry') && (!this.cpu[o.id] || rnd() < ({ easy: 0.15, normal: 0.35, hard: 0.6 }[this.aiLevel[o.id]] || 0.35)) && o.grounded && ['idle', 'walk', 'walkb', 'crouch', 'guard', 'block', 'cblock', 'land', 'dash'].includes(o.state) && !o.ko) return this.timedParry(o, isClone ? att.owner : att, cx, cy, this._projHit || isClone);
     const mv = MOVES[att.move], heavy = !!mv.heavy;
     att.connected = true; att.connectT = att.clock;
     if (!h.unblock && this.isBlocking(o, att, h)) {
@@ -2483,10 +2571,13 @@ class Game {
       return;
     }
     const counter = !isClone && (o.state === 'attack' || o.state === 'airkick') && o.anim.fi <= (MOVES[o.move] && MOVES[o.move].hits.length ? MOVES[o.move].hits[MOVES[o.move].hits.length - 1].f : 0);
-    if (o.combo === 0) o.comboDmg = 0;
+    if (o.combo === 0) { o.comboDmg = 0; o.comboBroken = false; o.lastGap = null; }
+    else { o.lastGap = Math.round(o._gapT); if (o._gapT > COMBO_TRUE_GAP) o.comboBroken = true; }
+    o._gapT = 0;
+    if (this.mode === 'training' && o.id === 1) this.training.gap = o.lastGap;
     o.combo++; o.lastHitBy = owner; o.lastHitAt = this.time;
     const scale = Math.max(0.4, 1 - 0.1 * (o.combo - 1));
-    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * (owner.ch === 'rusty' ? RUSTY_DMG : 1) * (o.ch === 'cowboy' ? BLITZY_TOUGH : 1)));
+    const dmg = Math.max(1, Math.round(h.dmg * scale * (isClone ? 0.6 : 1) * (counter ? 1.25 : 1) * (owner.feral ? 1.15 : 1) * (this.stage === 'namas' && this.namasBoost === owner.id ? 0.75 : 1) * balMul(owner, o) * this.rule('dmgScale') / 100));
     o.hp = Math.max(0, o.hp - dmg); o.comboDmg += dmg;
     this.addRage(owner, dmg * 0.32); this.addRage(o, dmg * 0.45);
     if (this.mode === 'training' && o.hp <= 0) o.hp = 1;
@@ -2523,7 +2614,7 @@ class Game {
     else {
       const crouch = o.isCrouching;
       o.setState(crouch ? 'hitc' : 'hit', crouch ? 'hitc' : 'hit');
-      o.stun = isClone ? 950 : h.stun + (counter ? 140 : 0); o.slide = away * (h.push || 10) * (isClone ? 6 : 18);
+      o.stun = isClone ? 950 : Math.round((h.stun + (counter ? 140 : 0)) * Math.max(0.6, 1 - 0.04 * Math.max(0, o.combo - 3)));   // long strings get less hitstun o.slide = away * (h.push || 10) * (isClone ? 6 : 18);
     }
     if (h.slam) {
       // pounce: pin them and drive them into the floor
@@ -2539,7 +2630,7 @@ class Game {
     if (ko && !o.ko) { o.ko = true; const last = !this.ffa || this.p.filter(q => q.hp > 0).length <= 1; if (last) { this.koFx = { t: 0, loser: o }; this.cam.zoomTo = 1.14; this.cam.fx = o.x; } else { this.texts.push({ text: `${this.ffaTag(o)} OUT!`, x: o.x, y: GROUND - 300, t: 0, life: 1400, color: 'red' }); this.env.say('K O'); } }
     if (!isClone && (o.x <= EDGE + 4 || o.x >= STAGE_W - EDGE - 4 || this.atScreenEdge(o))) att.slide = -away * (h.push || 10) * 14;
   }
-  canParryGrab(o) { return o.parryAt != null && this.time - o.parryAt <= PARRY_MS && o.grounded && !o.ko && (!this.cpu[o.id] || rnd() < ({ easy: 0.15, normal: 0.35, hard: 0.6 }[this.aiLevel[o.id]] || 0.35)); }
+  canParryGrab(o) { return o.parryAt != null && this.time - o.parryAt <= this.rule('parry') && o.grounded && !o.ko && (!this.cpu[o.id] || rnd() < ({ easy: 0.15, normal: 0.35, hard: 0.6 }[this.aiLevel[o.id]] || 0.35)); }
   // a perfectly timed guard: no damage, the attacker is left reeling (a projectile or clone is just knocked away)
   timedParry(o, att, cx, cy, ranged) {
     o.parryAt = null; const away = o.x < att.x ? 1 : -1;
@@ -2655,7 +2746,7 @@ class Game {
 // ---------- naming helpers ----------
 const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'LS', 'RS', 'UP', 'DOWN', 'LEFT', 'RIGHT'];
 const PAD_NAMES_PS = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'CREATE', 'OPTIONS', 'L3', 'R3', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'PS', 'TOUCHPAD'];
-function padName(i) { const ps = typeof window !== 'undefined' && window.PAD_STYLE === 'ps'; return i == null ? '—' : ((ps ? PAD_NAMES_PS : PAD_NAMES)[i] || `BTN ${i}`); }
+function padName(i) { const ps = typeof window !== 'undefined' && (window.PROMPT_FORCE || window.PAD_STYLE) === 'ps'; return i == null ? '—' : ((ps ? PAD_NAMES_PS : PAD_NAMES)[i] || `BTN ${i}`); }
 function keyName(k) {
   if (!k) return '—';
   return k.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Numpad/, 'NUM ').replace(/^Arrow/, '').toUpperCase();
@@ -13047,7 +13138,12 @@ class View {
 
   // ---------- frame ----------
   render(ctx, dt) {
-    const g = this.g, cam = g.cam, t = g.time;
+    const g = this.g, cam = g.cam, t = g.time, GS = g.settings || {};
+    this.cb = !!GS.cbHud; this.big = !!GS.bigText; this.calm = !!GS.lessFlash;
+    // colour-blind HUD: blue / orange instead of green / red / amber
+    this.cGood = this.cb ? '#4fb3ff' : COL.green; this.cBad = this.cb ? '#ff9a2e' : COL.red;
+    this.cLife = this.cb ? '#4fb3ff' : COL.amber; this.cLifeHi = this.cb ? '#9ad6ff' : COL.amberHi;
+    this._fpsN = (this._fpsN || 0) + 1; this._fpsT = (this._fpsT || 0) + (dt || 16.7); if (this._fpsT >= 500) { this.fpsShown = Math.round(this._fpsN * 1000 / this._fpsT); this._fpsN = 0; this._fpsT = 0; }
     ctx.imageSmoothingEnabled = false;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const al = this.alpha == null ? 1 : this.alpha, lerp = (a, b) => (a == null || Math.abs(b - a) > 160 ? b : a + (b - a) * al);
@@ -13073,7 +13169,7 @@ class View {
       else if (shown !== 'namas' && shown !== 'pit') this.drawPetals(ctx, dt, camDx);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (g.flash > 0) { ctx.fillStyle = `rgba(255,236,214,${Math.min(0.5, g.flash / 300)})`; ctx.fillRect(0, 0, VW, VH); }
+    if (g.flash > 0 && GS.hitFlash !== false && !this.calm) { ctx.fillStyle = `rgba(255,236,214,${Math.min(0.5, g.flash / 300)})`; ctx.fillRect(0, 0, VW, VH); }
     if (g.koFx && g.koFx.t < 1300 && g.phase !== 'title') this.vignette(ctx, Math.min(1, g.koFx.t / 200) * (1 - Math.max(0, g.koFx.t - 900) / 400));
     switch (g.phase) {
       case 'title': this.drawTitle(ctx); break;
@@ -13086,7 +13182,7 @@ class View {
       case 'ending': this.drawEnding(ctx); break;
       default:
         if (inTrip && (T.scene === 'wipe1' || T.scene === 'wipe2')) this.drawWipe(ctx, T.st / 340);
-        if (g.mapBreak) { const m = g.mapBreak.t, a = m < 380 ? m / 380 : Math.max(0, 1 - (m - 380) / 440); ctx.fillStyle = `rgba(255,246,232,${a})`; ctx.fillRect(0, 0, VW, VH); }
+        if (g.mapBreak) { const m = g.mapBreak.t, a = (m < 380 ? m / 380 : Math.max(0, 1 - (m - 380) / 440)) * (this.calm ? 0.3 : 1); ctx.fillStyle = `rgba(255,246,232,${a})`; ctx.fillRect(0, 0, VW, VH); }
         if (!inTrip) this.drawHUD(ctx);
         this.drawWelcome(ctx);
         if (sf) this.drawCutIn(ctx, sf);
@@ -13095,6 +13191,7 @@ class View {
         if (g.phase === 'results') this.drawResults(ctx);
     }
     if (g.netPause) { const st = g.netPause.stack; this.dimAll(ctx, 0.45); this.drawMenuPanel(ctx, st[st.length - 1]); }
+    if (GS.fps && this.fpsShown) this.text(ctx, `${this.fpsShown} FPS`, VW - 12, VH - 8, 12, this.fpsShown >= 55 ? this.cGood : COL.amber, 'right', FS, COL.ink, 3);
     if (g.toast) { this.box(ctx, VW / 2 - 220, VH - 92, 440, 40, COL.ink, COL.line); this.text(ctx, g.toast.msg.toUpperCase(), VW / 2, VH - 64, 18, COL.amber, 'center', FS, COL.ink, 0); }
   }
   vignette(ctx, k) {
@@ -13136,20 +13233,26 @@ class View {
         const [R0, G0, B0] = palRgb(pal, a.ch), ghost = `rgba(${Math.min(255, R0 + 110)},${Math.min(255, G0 + 110)},${Math.min(255, B0 + 110)},0.92)`;
         for (const [k, al] of [[2, 0.32], [1, 0.5]]) this.drawSprite(ctx, pal, n, i, ix, ih, a.dir, { dx: (opts.dx || 0) - a.dir * Math.round(k * 26 * sp / 4) * 4, alpha: al * (0.45 + 0.55 * sp), tint: ghost });
       }   // (Blitzy's back dash has its own effect art)   // dash dust trails behind the way he actually moves
-      if (g.superFlash && g.superFlash.owner === a) opts.tint = `rgba(255,224,170,${0.25 + 0.2 * Math.sin(t / 40)})`;
+      if (g.superFlash && g.superFlash.owner === a) opts.tint = `rgba(255,224,170,${this.calm ? 0.3 : 0.25 + 0.2 * Math.sin(t / 40)})`;
       if (!clone && a.special && (a.special.phase === 'trip' || a.special.phase === 'catch')) { this.drawCarry(ctx, a, ix + (opts.dx || 0), a.dir); continue; }
-      // soft blend: the previous frame fades out under the new one for a few ms
+      // smooth frame blending: the previous frame cross-fades into the new one over part of the frame's time.
+      // Never on impacts (hit freeze, getting hit, blocking, shaking) so hits stay crisp.
+      let blendPrev = null;
       if (!clone) {
         const key = a.id, st = this.blend[key] || (this.blend[key] = {});
-        if (st.n !== n || st.i !== i) { st.pn = st.n; st.pi = st.i; st.pfd = st.fd; st.n = n; st.i = i; st.t = t; }
-        st.fd = opts.fxDir;
-        const age = t - st.t, BL = 55;
-        if (st.pn != null && age < BL && !g.hitstop && !opts.tint) this.drawSprite(ctx, pal, st.pn, st.pi, ix, ih, a.dir, { dx: opts.dx, alpha: 0.6 * (1 - age / BL), fxDir: st.pfd });
+        if (st.n !== n || st.i !== i) { st.pn = st.n; st.pi = st.i; st.pfd = st.fd; st.pa = st.an; st.n = n; st.i = i; st.t = t; }
+        st.fd = opts.fxDir; st.an = a.anim && a.anim.name;
+        const on = g.settings.blend !== false, dur = (a.anim && a.anim.durs && a.anim.durs[a.anim.fi]) || 80;
+        const BL = on ? Math.min(90, dur * 0.6) : 55, age = t - st.t;
+        const impact = g.hitstop > 0 || a.hitShake > 0 || ['hit', 'hitc', 'hita', 'block', 'cblock', 'knock', 'koair', 'wallfly'].includes(a.state) || (a.state === 'attack' && a.connected && a.clock - a.connectT < 120);
+        if (st.pn != null && age < BL && !impact && !opts.tint) blendPrev = { n: st.pn, i: st.pi, fd: st.pfd, al: (on ? 0.5 : 0.6) * (1 - age / BL), over: on && st.pa === st.an };
+        if (blendPrev && !blendPrev.over) this.drawSprite(ctx, pal, blendPrev.n, blendPrev.i, ix, ih, a.dir, { dx: opts.dx, alpha: blendPrev.al, fxDir: blendPrev.fd });
       }
       // falling through the broken floor: anything below the floor line disappears into the hole
       const sink = ih < -1;
       if (sink) { ctx.save(); ctx.beginPath(); ctx.rect(-1e4, -1e4, 3e4, 1e4 + GROUND + 4); ctx.clip(); }
       this.drawSprite(ctx, pal, n, i, ix, ih, a.dir, opts);
+      if (blendPrev && blendPrev.over) this.drawSprite(ctx, pal, blendPrev.n, blendPrev.i, ix, ih, a.dir, { dx: opts.dx, alpha: blendPrev.al, fxDir: blendPrev.fd });   // same move: a true cross-fade on top
       if (sink) ctx.restore();
     }
     this.drawFxGhosts(ctx);
@@ -13478,13 +13581,14 @@ class View {
   // ---------- text and panels ----------
   // with a PlayStation pad in hand, on-screen button names switch to PlayStation ones
   padText(s) {
-    if (typeof window === 'undefined' || window.PAD_STYLE !== 'ps' || typeof s !== 'string') return s;
+    if (typeof window === 'undefined' || (window.PROMPT_FORCE || window.PAD_STYLE) !== 'ps' || typeof s !== 'string') return s;
     return s.replace(/\bA \/ ENTER\b/g, '✕ / ENTER').replace(/\bB \/ ESC\b/g, '○ / ESC').replace(/\bB \/ ○/g, '○').replace(/\bA OR START\b/g, '✕ OR OPTIONS').replace(/\bPress A or Start\b/g, 'Press ✕ or Options')
       .replace(/\bRB \/ R2\b/g, 'R1 / R2').replace(/\bLT \/ L2\b/g, 'L2').replace(/\(O \/ LT\)/g, '(O / L2)').replace(/\bor  LT\b/g, 'or  L2').replace(/\bor  LB\b/g, 'or  L1')
       .replace(/\bPRESS START\b/g, 'PRESS OPTIONS').replace(/\bSTART: SETTINGS · VIEW \/ R: RESET\b/g, 'OPTIONS: SETTINGS · CREATE / R: RESET');
   }
   padStyleChanged() { }
   text(ctx, str, x, y, size, fill, align = 'center', font = FD, stroke = COL.ink, sw = 6) {
+    if (this.big && size < 18) size = Math.round(size * 1.25);   // accessibility: bigger small text
     this.lastTextW = PF.draw(ctx, this.padText(str), x, y, size, fill, align, font, stroke, sw);
   }
   textW(str, size, font = FD) { return PF.width(str, size, font); }
@@ -13558,8 +13662,8 @@ class View {
       // health
       ctx.fillStyle = '#2a1e34'; ctx.fillRect(bx, y + 32, bw, 16);
       const life = bw * Math.max(0, f.hp) / MAX_HP, trail = bw * Math.max(0, f.dmgTrail) / MAX_HP, low = f.hp < MAX_HP * 0.25 && f.hp > 0;
-      ctx.fillStyle = COL.red; ctx.fillRect(bx, y + 32, trail, 16);
-      ctx.fillStyle = low && (g.time % 360) < 180 ? COL.amberHi : COL.amber; ctx.fillRect(bx, y + 32, life, 16);
+      ctx.fillStyle = this.cBad; ctx.fillRect(bx, y + 32, trail, 16);
+      ctx.fillStyle = low && (g.time % 360) < 180 ? this.cLifeHi : this.cLife; ctx.fillRect(bx, y + 32, life, 16);
       ctx.fillStyle = 'rgba(255,240,200,0.28)'; ctx.fillRect(bx, y + 34, life, 3);
       ctx.fillStyle = 'rgba(18,13,28,0.5)'; for (let k = 1; k < 10; k++) ctx.fillRect(bx + k * bw / 10, y + 32, 1, 16);
       // guard, rage (Big Rusty), meter
@@ -13572,9 +13676,9 @@ class View {
       // combo this fighter is landing
       const victim = g.p.find(v => v !== f && v.combo >= 2 && v.lastHitBy === f);
       ctx.restore();
-      if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); this.text(ctx, `${victim.comboDmg} DMG`, x + w / 2, y + h + 64, 13, COL.muted, 'center', FS, COL.ink, 4); }
+      if (victim) { this.text(ctx, `${victim.combo} HITS`, x + w / 2, y + h + 44, 40, COL.amber, 'center', FD, COL.ink, 6); if (g.settings.hudx !== false) this.text(ctx, `${victim.comboDmg} DMG · ${victim.comboBroken ? 'BREAKABLE' : 'TRUE'}`, x + w / 2, y + h + 64, 13, victim.comboBroken ? this.cBad : COL.muted, 'center', FS, COL.ink, 4); }
     });
-    if (g.online && g.env.online) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
+    if (g.online && g.env.online && g.settings.showPing !== false) { const n = g.env.online; this.text(ctx, `ONLINE${n.pingMs ? ' · ' + n.pingMs + ' MS' : ''} · ${n.linkLabel ? n.linkLabel() : ''}`, VW / 2, 158, 11, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 3); }
     if (g.mode === 'ffa' && g.phase === 'fight') this.text(ctx, 'LAST ONE STANDING', VW / 2, VH - 14, 12, COL.muted, 'center', FS, COL.ink, 4);
   }
   // fighters outside the camera: a bubble with their face at the screen edge, pointing to them, with the distance
@@ -13618,9 +13722,9 @@ class View {
       // health
       this.box(ctx, bx, BY, BW, BH, '#2a1e34', COL.line);
       const life = BW * Math.max(0, f.hp) / MAX_HP, trail = BW * Math.max(0, f.dmgTrail) / MAX_HP;
-      ctx.fillStyle = COL.red; ctx.fillRect(L ? bx + BW - trail : bx, BY, trail, BH);
+      ctx.fillStyle = this.cBad; ctx.fillRect(L ? bx + BW - trail : bx, BY, trail, BH);
       const low = f.hp < MAX_HP * 0.25 && f.hp > 0, pulse = low && (g.time % 360) < 180;
-      ctx.fillStyle = pulse ? COL.amberHi : COL.amber; ctx.fillRect(L ? bx + BW - life : bx, BY, life, BH);
+      ctx.fillStyle = pulse ? this.cLifeHi : this.cLife; ctx.fillRect(L ? bx + BW - life : bx, BY, life, BH);
       ctx.fillStyle = 'rgba(255,240,200,0.28)'; ctx.fillRect(L ? bx + BW - life : bx, BY + 3, life, 4);
       ctx.fillStyle = 'rgba(18,13,28,0.25)'; ctx.fillRect(L ? bx + BW - life : bx, BY + BH - 5, life, 5);
       ctx.fillStyle = 'rgba(18,13,28,0.5)'; for (let k = 1; k < 10; k++) ctx.fillRect(bx + k * BW / 10, BY, 2, BH);
@@ -13685,13 +13789,20 @@ class View {
       ctx.fillStyle = 'rgba(18,13,28,0.5)'; for (let k = 1; k < 4; k++) ctx.fillRect(mx + k * MW / 4, my, 2, 16);
       this.text(ctx, full && !f.C.noSuper ? `${f.C.special} READY` : f.ch === 'blitzy' ? 'SMOKE' : 'POWER', L ? mx : mx + MW, my - 10, 15, full ? '#e0d6ff' : COL.muted, L ? 'left' : 'right', FS, COL.ink, 4);
       if (f.ch === 'rusty' && !f.feral && (f.rage || 0) >= 100) this.text(ctx, 'FERAL READY · ' + (window.DEV_KIND && window.DEV_KIND[i] === 'pad' ? 'L3' : 'G'), L ? mx : mx + MW, my - 32, 15, (g.time % 500) < 280 ? '#ff5a48' : COL.amberHi, L ? 'left' : 'right', FS, COL.ink, 4);   // rage full: press FERAL
+      // dodge ready: a little ring by the meter that refills over the cooldown
+      { const dx = L ? mx + MW + 18 : mx - 18, dy = my + 8, cd = Math.max(0, f.dodgeCD || 0), max = f._esc || cd > DODGE_CD ? DODGE_CD_ESC : DODGE_CD, ready = cd <= 0;
+        ctx.lineWidth = 4; ctx.strokeStyle = '#3a2f4a'; ctx.beginPath(); ctx.arc(dx, dy, 9, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = ready ? this.cGood : COL.muted; ctx.beginPath(); ctx.arc(dx, dy, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (ready ? 1 : 1 - cd / max)); ctx.stroke();
+        if (ready) { ctx.fillStyle = this.cGood; ctx.fillRect(dx - 2, dy - 2, 4, 4); }
+        this.text(ctx, 'DODGE', dx, dy - 16, 11, ready ? this.cGood : COL.muted, 'center', FS, COL.ink, 3); }
       // combo counter for hits landed on the other fighter
       const o = g.p[1 - i];
       if (o.combo >= 2) {
         const cx = L ? 40 : VW - 40, al = L ? 'left' : 'right';
         this.text(ctx, String(o.combo), cx, 250, 92, COL.amber, al, FD, COL.ink, 10);
         this.text(ctx, 'HITS', L ? cx + (o.combo >= 10 ? 76 : 44) : cx - (o.combo >= 10 ? 76 : 44), 248, 32, COL.paper, al);
-        this.text(ctx, `${o.comboDmg} DMG`, cx, 280, 16, COL.muted, al, FS, COL.ink, 4);
+        if (g.settings.hudx !== false) { this.text(ctx, `${o.comboDmg} DMG`, cx, 280, 16, COL.muted, al, FS, COL.ink, 4);
+        this.text(ctx, o.comboBroken ? 'BREAKABLE' : 'TRUE COMBO', cx, 302, 16, o.comboBroken ? this.cBad : this.cGood, al, FS, COL.ink, 4); }
       }
     });
     // timer
@@ -13701,20 +13812,26 @@ class View {
     if (g.mode === 'training') this.drawTrainingPanel(ctx);
     if (g.online && g.env.online) {
       const n = g.env.online, pg = n.role === 'spec' ? (n.pingMs ? `${n.pingMs} MS` : '') : `${n.pingMs ? n.pingMs + ' MS · ' : ''}${n.linkLabel ? n.linkLabel() : ''}`, sp = n.spectators ? ` · ${n.spectators} WATCHING` : '';
-      this.text(ctx, `ONLINE${pg ? ' · ' + pg : ''}${sp}`, VW / 2, 108, 12, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 4);
+      if (g.settings.showPing !== false) this.text(ctx, `ONLINE${pg ? ' · ' + pg : ''}${sp}`, VW / 2, 108, 12, n.pingMs > 160 ? COL.amber : COL.green, 'center', FS, COL.ink, 4);
       if (g.online !== 'spec' && g.phase === 'fight') this.text(ctx, 'KEYS 1–6: GG · 😂 · 🔥 · EZ · WAIT · REMATCH?', VW / 2, VH - 16, 11, COL.muted, 'center', FS, COL.ink, 4);
     }
     if (g.mode === 'watch' && g.phase === 'fight') this.text(ctx, 'WATCHING CPU · PRESS START FOR MENU', VW / 2, VH - 16, 14, COL.muted, 'center', FS, COL.ink, 4);
   }
   drawTrainingPanel(ctx) {
+    const big = this.big; this.big = false; try { this.drawTrainingPanel2(ctx); } finally { this.big = big; }
+  }
+  drawTrainingPanel2(ctx) {
     const T = this.g.training, x = VW / 2 - 170, y = 104;
-    this.box(ctx, x, y, 340, T.boxes ? 98 : 70, 'rgba(27,20,48,0.9)', COL.line);
+    this.box(ctx, x, y, 340, T.boxes ? 114 : 86, 'rgba(27,20,48,0.9)', COL.line);
     this.text(ctx, 'TRAINING', x + 12, y + 24, 16, COL.amber, 'left', FS, COL.ink, 0);
     this.text(ctx, `DUMMY: ${T.dummy.toUpperCase()}`, x + 328, y + 24, 14, COL.muted, 'right', FS, COL.ink, 0);
     this.text(ctx, `LAST COMBO  ${T.lastHits} HITS · ${T.lastDmg} DMG`, x + 12, y + 50, 14, COL.paper, 'left', FS, COL.ink, 0);
+    // was the last combo TRUE, and the last link: how many frames the dummy was free before the next hit (0 = a true link)
+    if (T.lastHits >= 2) this.text(ctx, T.lastTrue ? 'TRUE COMBO' : 'BREAKABLE COMBO', x + 12, y + 80, 12, T.lastTrue ? this.cGood : this.cBad, 'left', FS, COL.ink, 0);
+    if (T.gap != null) { const fr = Math.round(T.gap / 16.67), tl = T.gap <= COMBO_TRUE_GAP; this.text(ctx, tl ? 'LAST LINK: TRUE' : `LAST LINK: ${fr}F GAP · DODGEABLE`, x + 328, y + 80, 12, tl ? this.cGood : COL.amber, 'right', FS, COL.ink, 0); }
     this.text(ctx, 'START: SETTINGS · VIEW / R: RESET', x + 12, y + 64, 11, COL.muted, 'left', FS, COL.ink, 0);
-    if (T.boxes) { ctx.fillStyle = 'rgba(111,211,255,0.9)'; ctx.fillRect(x + 12, y + 78, 12, 10); this.text(ctx, 'HURTBOX', x + 30, y + 88, 11, COL.paper, 'left', FS, COL.ink, 0);
-      ctx.fillStyle = 'rgba(255,90,90,1)'; ctx.fillRect(x + 120, y + 78, 12, 10); this.text(ctx, 'HITBOX', x + 138, y + 88, 11, COL.paper, 'left', FS, COL.ink, 0); }
+    if (T.boxes) { ctx.fillStyle = 'rgba(111,211,255,0.9)'; ctx.fillRect(x + 12, y + 94, 12, 10); this.text(ctx, 'HURTBOX', x + 30, y + 104, 11, COL.paper, 'left', FS, COL.ink, 0);
+      ctx.fillStyle = 'rgba(255,90,90,1)'; ctx.fillRect(x + 120, y + 94, 12, 10); this.text(ctx, 'HITBOX', x + 138, y + 104, 11, COL.paper, 'left', FS, COL.ink, 0); }
   }
   drawBanner(ctx) {
     const b = this.g.banner; b.t = (b.t || 0) + 16;
@@ -13975,10 +14092,10 @@ class View {
   drawSelect(ctx) {
     const g = this.g, S = g.sel, t = g.time, NC = CHAR_ORDER.length;
     const INFO = {
-      blitzy: { sub: 'THE SHADOW NINJA', move: 'SMOKE BOMB', st: [3, 5, 3, 2, 3] },
-      y4nk: { sub: 'THE BRAWLER', move: 'AL NAMAS EXPRESS', st: [5, 3, 2, 4, 3] },
-      rusty: { sub: 'THE SWAMP KING', move: 'GATOR SLAM', st: [4, 2, 4, 5, 3] },
-      cowboy: { sub: 'THE IRON GUNSLINGER', move: 'ELEMENTAL ROUND', st: [3, 3, 5, 3, 4] },
+      blitzy: { sub: 'THE SHADOW NINJA', move: 'SMOKE BOMB', st: [2, 5, 3, 2, 2] },
+      y4nk: { sub: 'THE BRAWLER', move: 'AL NAMAS EXPRESS', st: [5, 3, 2, 4, 4] },
+      rusty: { sub: 'THE SWAMP KING', move: 'GATOR SLAM', st: [3, 2, 4, 5, 3] },
+      cowboy: { sub: 'THE IRON GUNSLINGER', move: 'ELEMENTAL ROUND', st: [4, 3, 5, 3, 5] },
     };
     const HEAD = { blitzy: 137, y4nk: 150, rusty: 164, cowboy: 140 }, KEY = ch => ch === 'y4nk' ? 'y:idle' : ch === 'rusty' ? 'r:idle' : ch === 'cowboy' ? 'c:idle' : 'idle';
     const pcol = p => p === 0 ? COL.amber : COL.cyan, pal = p => PAL_ORDER[S.idx[p]], chOf = p => CHAR_ORDER[S.ch[p]];
@@ -14181,7 +14298,7 @@ class View {
       ['LIGHT PUNCH', B('lp'), mv('lp')], ['HEAVY PUNCH', B('hp'), mv('hp')],
       ['LIGHT KICK', B('lk'), ch === 'cowboy' ? 'Quick draw' : mv('lk')], ['HEAVY KICK', B('hk'), ch === 'cowboy' ? 'Elemental round (2 bars)' : mv('hk')],
       ['CROUCH + PUNCH', '↓ + ' + P, mv('clp')], ['CROUCH + KICK', '↓ + ' + K, mv('sweep')],
-      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dodge'), 'Back-dash on the spot · attacks pass through'], ['PARRY', 'Tap ' + B('guard') + ' just before a hit or grab', 'Stuns the attacker'],
+      ['GUARD (HOLD)', B('guard'), 'Hold ↓ too for lows'], ['DASH', B('dash') + '  or  → →', 'Back dash: ← ← '], ['DODGE', B('dash') + ' (no direction)', 'Attacks pass through · 1s cooldown · escape combo gaps'], ['PARRY', 'Tap ' + B('guard') + ' just before a hit or grab', 'Stuns the attacker'],
       ...(ch === 'rusty' ? [['FERAL', B('feral'), 'When the rage bar is full']] : []),
     ];
     const S = {
@@ -14391,7 +14508,7 @@ class Sound {
     return this.ac;
   }
   resume() { this.init(); if (this.ac && this.ac.state === 'suspended') this.ac.resume().catch(() => {}); }
-  setVolumes(music, sfx, announcer) { this.musicVol = music / 10; this.sfxVol = sfx / 10; this.announcer = announcer; this.applyVol(); }
+  setVolumes(music, sfx, announcer, ann) { this.musicVol = music / 10; this.sfxVol = sfx / 10; this.announcer = announcer; this.annVol = ann; this.applyVol(); }
   applyVol() { if (!this.ac) return; const t = this.ac.currentTime; this.mg.gain.setTargetAtTime(this.musicVol * 0.55 * (this.ducked ? 0.3 : 1), t, 0.05); this.sg.gain.setTargetAtTime(this.sfxVol, t, 0.02); }
   duck(on) { this.ducked = on; this.applyVol(); }
   get ok() { return this.ac && this.ac.state === 'running'; }
@@ -14518,14 +14635,14 @@ class Sound {
     }
   }
   say(text) {
-    if (!this.announcer || !this.sfxVol) return;
+    if (!this.announcer || !(this.annVol != null ? this.annVol : this.sfxVol)) return;
     const spoken = text.replace(/\bK O\b/g, 'Kay oh').replace('Double Kay oh', 'Double Kay oh');
     try {
       if (!window.speechSynthesis) throw 0;
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(spoken);
       if (this.voice) u.voice = this.voice;
-      u.pitch = 0.55; u.rate = 0.95; u.volume = Math.min(1, this.sfxVol * 1.1);
+      u.pitch = 0.55; u.rate = 0.95; u.volume = Math.min(1, (this.annVol != null ? this.annVol : this.sfxVol) * 1.1);
       speechSynthesis.speak(u);
     } catch (e) { if (this.ok) { const t = this.ac.currentTime; this.osc(t, 0.12, 'square', 300, 200, 0.06, this.sg); } }
   }
@@ -14549,6 +14666,8 @@ class Net {
       snaps: [], frameNo: 0, events: [], evNext: 1, ackSeen: 0, lastPlayed: 0, remote: { bits: {}, pc: {} }, remoteQueue: {}, tapState: {},
       pressCount: {}, prevLocal: {}, lastSnapAt: 0, ready: false, oppPres: null, names: {}, myId: null, emoSeq: 0, emoSeen: {}, pingMs: 0,
       votes: [false, false], countdown: 0, codeEntry: ['a', 'a', 'a', 'a', 'a'], navPrev: {}, navRep: {}, record: env.store.get('netRecord', { w: 0, l: 0 }), spectators: 0 });
+    // a nickname from the settings replaces the account name everywhere
+    let acct = this.myName; Object.defineProperty(this, 'myName', { configurable: true, get: () => (game.settings.nick || acct), set: v => { acct = v; } });
     this.ui = this.buildUi();
     this.ffa = new OnlineFFA(this);
     this.link = window.bsasLink || null;
@@ -15164,6 +15283,7 @@ class Net {
   showEmote(side, k) {
     const t = NET_EMOTES[k]; if (!t) return;
     if (side < 0) return;
+    if (this.game.settings.chat === false && side !== (this.role === 'host' ? 0 : 1)) return;   // quick chat turned off
     const g = this.game; g.netEmo = g.netEmo || [null, null]; g.netEmo[side] = { text: t, t: g.time };
     if (!this.playing) { this.lastChat = (side === (this.role === 'host' ? 0 : 1) ? 'You: ' : (this.oppName || 'Opponent') + ': ') + t; this.renderUi(); }
     this.env.sfx('tick');
@@ -15916,8 +16036,8 @@ onmessage = e => { const m = e.data; try {
   function readPad(pad, map) {
     const s = blank(); if (!pad) return s;
     const B = i => !!(pad.buttons[i] && (pad.buttons[i].pressed || pad.buttons[i].value > 0.5));
-    const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0;
-    s.l = B(14) || ax < -0.5; s.r = B(15) || ax > 0.5; s.u = B(12) || ay < -0.6; s.d = B(13) || ay > 0.5;
+    const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0, dz = (game && game.settings.deadzone) || 0.5;   // stick deadzone from the settings
+    s.l = B(14) || ax < -dz; s.r = B(15) || ax > dz; s.u = B(12) || ay < -Math.min(0.9, dz + 0.1); s.d = B(13) || ay > dz;
     for (const a of REMAP) s[a] = map[a] != null && B(map[a]);
     if (!Object.values(map).includes(7)) s.guard = s.guard || B(7);   // RT / R2 also guards
     s.car = s.car || (B(10) && B(11));   // its own button if bound, or click both sticks in
@@ -16052,25 +16172,58 @@ onmessage = e => { const m = e.data; try {
   function rumble(id, strong, weak, ms) {
     if (!game || !game.settings.rumble || game.cpu[id] || (game.mode === 'training' && id === 1)) return;
     const pl = padList(), d = devAssign && devAssign[id], pad = d ? (d.startsWith('pad:') ? pl.find(q => 'pad:' + q.index === d) : null) : pl[id];
-    try { if (pad && pad.vibrationActuator) pad.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: Math.min(1, strong), weakMagnitude: Math.min(1, weak) }).catch(() => {}); } catch (e) {}
+    const k = (game.settings.rumbleStr == null ? 10 : game.settings.rumbleStr) / 10;
+    try { if (pad && pad.vibrationActuator) pad.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: Math.min(1, strong * k), weakMagnitude: Math.min(1, weak * k) }).catch(() => {}); } catch (e) {}
   }
 
   // ---------- page controls ----------
   const muteBtn = document.getElementById('mute');
   function applyVolumes() {
     if (!game) return;
-    const S = game.settings;
-    sound.setVolumes(muted ? 0 : S.music, muted ? 0 : S.sfx, S.announcer && !muted);
-    for (const a of Object.values(songs)) a.volume = muted ? 0 : Math.min(1, S.music / 10 * 0.9 * (songDuck ? 0.35 : 1));
+    const S = game.settings, M = (S.master == null ? 10 : S.master) / 10, off = muted || (S.muteBlur && blurred);
+    sound.setVolumes(off ? 0 : S.music * M, off ? 0 : S.sfx * M, S.announcer !== false && (S.annVol == null || S.annVol > 0) && !off, (S.annVol == null ? 8 : S.annVol) / 10 * M);
+    for (const a of Object.values(songs)) a.volume = off ? 0 : Math.min(1, S.music / 10 * M * 0.9 * (songDuck ? 0.35 : 1));
+    window.PROMPT_FORCE = S.prompts && S.prompts !== 'auto' ? S.prompts : null;
+    document.documentElement.classList.toggle('pixperfect', S.scale === 'pixel'); fitPixel();
     if (songOn && song.paused) song.play().catch(() => {});
   }
   const syncMute = () => { muteBtn.textContent = muted ? 'Sound off' : 'Sound on'; muteBtn.setAttribute('aria-pressed', String(!muted)); };
   muteBtn.addEventListener('click', () => { muted = !muted; store.set('muted', muted); wake(); syncMute(); applyVolumes(); });
   syncMute();
-  document.getElementById('full').addEventListener('click', () => {
-    const el = document.getElementById('stage'), req = el.requestFullscreen || el.webkitRequestFullscreen;
+  function setFullscreen(on) {
+    const el = document.getElementById('stage');
+    if (!on) { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); return; }
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
     if (req) Promise.resolve(req.call(el)).catch(() => flash('Fullscreen is not available here')); else flash('Fullscreen is not available here');
-  });
+  }
+  document.getElementById('full').addEventListener('click', () => setFullscreen(true));
+  document.addEventListener('fullscreenchange', () => { if (game && game.settings.fullscreen !== !!document.fullscreenElement) { game.settings.fullscreen = !!document.fullscreenElement; store.set('settings', game.settings); } });
+  // mute when the window is not focused (setting)
+  let blurred = false;
+  window.addEventListener('blur', () => { blurred = true; applyVolumes(); });
+  window.addEventListener('focus', () => { blurred = false; applyVolumes(); });
+  // pixel-perfect scaling: the canvas is shown at the largest whole-number multiple that fits
+  function fitPixel() {
+    const on = game && game.settings.scale === 'pixel', st = document.getElementById('stage');
+    if (!on) { canvas.style.width = canvas.style.height = ''; canvas.style.margin = ''; return; }
+    const W = st.clientWidth, H = st.clientHeight, dpr = window.devicePixelRatio || 1;
+    let k = Math.floor(Math.min(W * dpr / VW, H * dpr / VH) * 4) / 4; if (k >= 1) k = Math.floor(k); k = Math.max(0.25, k) / dpr;
+    canvas.style.width = Math.round(VW * k) + 'px'; canvas.style.height = Math.round(VH * k) + 'px'; canvas.style.margin = `${Math.max(0, (H - VH * k) / 2)}px auto 0`;
+  }
+  window.addEventListener('resize', () => fitPixel());
+  document.addEventListener('fullscreenchange', () => setTimeout(fitPixel, 50));
+  // a small text box over the game (nickname)
+  function editText(label, cur, done) {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,6,18,0.7);z-index:20';
+    box.innerHTML = `<form style="background:#1b1430;border:3px solid #4a3d66;padding:16px;display:grid;gap:10px;min-width:260px;font:14px var(--f-label,monospace);color:#efe2c8"><label>${label}</label><input maxlength="12" style="font:inherit;padding:8px;background:#120d1c;color:#efe2c8;border:2px solid #4a3d66"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" data-x>Cancel</button><button>Save</button></div></form>`;
+    const inp = box.querySelector('input'), close = () => { box.remove(); };
+    inp.value = cur; box.querySelector('[data-x]').onclick = close;
+    box.querySelector('form').onsubmit = e => { e.preventDefault(); done(inp.value); close(); };
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') close(); });
+    inp.addEventListener('keyup', e => e.stopPropagation());
+    document.getElementById('stage').appendChild(box); setTimeout(() => inp.focus(), 30);
+  }
 
   // ---------- boot ----------
   let game = null, view = null, net = null;
@@ -16103,7 +16256,7 @@ onmessage = e => { const m = e.data; try {
         if (n === 'bleep' && bleepSrc) { if (muted || !game) return; const b = bleepSrc.cloneNode(); b.volume = Math.min(1, game.settings.sfx / 10 * 0.55); b.play().catch(() => {}); return; }
         sound.sfx(n);
       }, music: n => sound.music(n), musicTempo: k => sound.setTempo(k), musicDuck: on => sound.duck(on),
-      say: t => sound.say(t), rumble, prepare: pals => view && view.prepare(pals), skinsReady: () => !view || view.skinsReady(), askDevices: () => { devAskedSig = null; startDeviceAsk(); }, applySettings: () => applyVolumes(),
+      say: t => sound.say(t), rumble, prepare: pals => view && view.prepare(pals), skinsReady: () => !view || view.skinsReady(), askDevices: () => { devAskedSig = null; startDeviceAsk(); }, applySettings: () => applyVolumes(), setFullscreen, editText,
       extra,
     };
     env.music = n => {

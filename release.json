@@ -1,6 +1,21 @@
 {
  "version": "BETA",
- "notes": [],
+ "notes": [
+  {
+   "v": "BETA",
+   "date": "2026-10-30",
+   "items": [
+    "Dodge is now on the DASH button: dash with no direction = spot dodge, forward = dash, back = back dash",
+    "Dodge cooldown: 1 second, 1.5 seconds after escaping a combo, with a DODGE ready ring by the meter",
+    "True combos: combo counter shows TRUE or BREAKABLE; dodge in a gap to ESCAPE; long strings get less hitstun",
+    "Training shows if your last combo and last link were true, and the frame gap",
+    "CPU fighters dodge out of combos and respect the cooldown",
+    "Smooth animation: frames cross-fade (never on hits), toggle in Display settings",
+    "New settings: Display, Audio, Gameplay, Controls, Accessibility, Online and Reset menus",
+    "Balance pass: every fighter tuned toward a 50% win rate; select-screen stats updated"
+   ]
+  }
+ ],
  "launcher": {
   "min": 2,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing"
@@ -123,8 +138,8 @@
    "size": 5877
   },
   "index.html": {
-   "sha": "5d0d229442b41d0672cf3317b7b3b17a713af8c8d1e1a883dee7aaff928d7e8e",
-   "size": 1555616
+   "sha": "143d2e7dbba7c6d34519b936fff026cceb54e2a0485e7fe62c4d07ee0bd72114",
+   "size": 1573081
   },
   "kunai2.png": {
    "sha": "aef048aacbdf3686ac0f4c88095334bb001f2051845fb5402ad5fd752cc8fe56",
