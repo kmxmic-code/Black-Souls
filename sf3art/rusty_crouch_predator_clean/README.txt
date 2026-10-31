@@ -1,3 +1,3 @@
-Big Rusty crouch (predator pose), from user's sheet:
-frames 00-04 = crouch down (stand up = 04..00)
-frames 05-16 = crouch idle (play 05..16 then 15..06, ping-pong)
+Big Rusty crouch (predator pose):
+down_00-04 = crouch down (user sheet); stand up = down_04..00
+idle_00-15 = crouch idle loop (PixelLab, version A)
