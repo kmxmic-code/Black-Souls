@@ -1,4 +1,5 @@
 BIG RUSTY - PIXELLAB ANIMATION PROMPTS
+Progress: 3 done
 Tool: Animate with Text (PixMiniMax). Start image: sprite_big_rusty.png (side view, facing right) unless the line says otherwise.
 For every animation set:  Direction = east   View = side
 Subject description (paste the same text every time):
@@ -10,7 +11,7 @@ Effects (hit sparks, dust, trails, muzzle flash, smoke) are always drawn separat
 ===================================================================
 SHARED MOVES (every fighter)
 ===================================================================
-1. IDLE  (24 frames, loop) [same last frame]
+[DONE] 1. IDLE  (24 frames, loop) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall, knees flex slightly, clawed hands stay up on guard, his long tail swaying behind him. Feet stay planted. Body size identical every frame. No effects. Seamless loop.
 
 2. WALK FORWARD  (16 frames, loop) [same last frame]
@@ -19,13 +20,13 @@ Strict side-view profile facing right, never turning toward the camera. He walks
 3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
 Strict side-view profile facing right, never turning toward the camera, chest always facing right. He steps backward to the left away from an opponent: rear foot slides back first, then the front foot follows, clawed hands up. Walking in place. Same size. No effects. Seamless loop.
 
-4. CROUCH DOWN  (16 frames)
+[DONE] 4. CROUCH DOWN  (16 frames)
 Strict side-view profile facing right, never turning toward the camera. He drops into a low crouching guard: knees bend deeply, hips drop, clawed hands stay up in front of his face. Ends holding the crouch. No effects.
 
 5. CROUCH IDLE  (24 frames, loop (start image = last frame of CROUCH DOWN)) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. Holding a low crouch, breathing slowly, shoulders rise and fall, clawed hands up. Body stays low and the same size. No effects. Seamless loop.
 
-6. STAND UP  (use CROUCH DOWN reversed)
+[DONE] 6. STAND UP  (use CROUCH DOWN reversed)
 No prompt needed.
 
 7. STANDING BLOCK  (16 frames (hold the middle frame for a long press)) [same last frame]
