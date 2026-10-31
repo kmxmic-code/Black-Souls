@@ -1,5 +1,5 @@
 BIG RUSTY - PIXELLAB ANIMATION PROMPTS
-Progress: 3 done
+Progress: 6 done
 Tool: Animate with Text (PixMiniMax). Start image: sprite_big_rusty.png (side view, facing right) unless the line says otherwise.
 For every animation set:  Direction = east   View = side
 Subject description (paste the same text every time):
@@ -14,10 +14,10 @@ SHARED MOVES (every fighter)
 [DONE] 1. IDLE  (24 frames, loop) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall, knees flex slightly, clawed hands stay up on guard, his long tail swaying behind him. Feet stay planted. Body size identical every frame. No effects. Seamless loop.
 
-2. WALK FORWARD  (16 frames, loop) [same last frame]
+[DONE] 2. WALK FORWARD  (16 frames, loop) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. He walks forward to the right in his fighting stance: front foot steps forward, rear foot follows, clawed hands stay up on guard, his long tail swaying behind him. Walking in place. Same size every frame. No effects. Seamless loop.
 
-3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
+[DONE] 3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
 Strict side-view profile facing right, never turning toward the camera, chest always facing right. He steps backward to the left away from an opponent: rear foot slides back first, then the front foot follows, clawed hands up. Walking in place. Same size. No effects. Seamless loop.
 
 [DONE] 4. CROUCH DOWN  (16 frames)
@@ -32,7 +32,7 @@ No prompt needed.
 7. STANDING BLOCK  (16 frames (hold the middle frame for a long press)) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. He brings both forearms up in front of his face and chest to absorb a hit, leans back slightly, knees bent, feet planted, holds the guard, then lowers back into his stance. Same size. No effects.
 
-8. CROUCHING BLOCK  (16 frames (start = crouch pose; hold the middle frame)) [same last frame]
+[DONE] 8. CROUCHING BLOCK  (16 frames (start = crouch pose; hold the middle frame)) [same last frame]
 Strict side-view profile facing right, never turning toward the camera. In a low crouch he raises both forearms in front of his face to block, head tucked, holds, then returns to the crouch. No effects.
 
 9. LIGHT PUNCH  (16 frames) [same last frame]

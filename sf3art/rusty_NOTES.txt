@@ -1,0 +1,1 @@
+Walk back = rusty_walk_clean played in reverse. Crouch block: frames 05-06 dropped (impact burst), hold 08-12.
