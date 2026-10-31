@@ -1,0 +1,110 @@
+ASH SHOGUN - PIXELLAB ANIMATION PROMPTS
+Tool: Animate with Text (PixMiniMax). Start image: sprite_ash_shogun.png (side view, facing right) unless the line says otherwise.
+For every animation set:  Direction = east   View = side
+Subject description (paste the same text every time):
+  a dark samurai warrior in black lacquered armour plates with red cords, a horned black oni demon mask helmet, a long red scarf, red sash belt, purple hakama trousers and armoured shin guards
+Tip: put the start image as the LAST frame too on anything marked [same last frame], so it ends back in the stance and loops cleanly.
+Every prompt already says: strict side view, never turns, same size, no effects. Keep that wording - it stops spinning, turning to the camera and baked effects.
+Effects (hit sparks, dust, trails, muzzle flash, smoke) are always drawn separately - never in the sprite.
+
+===================================================================
+SHARED MOVES (every fighter)
+===================================================================
+1. IDLE  (24 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall, knees flex slightly, armoured fists stay up on guard, red scarf trailing behind. Feet stay planted. Body size identical every frame. No effects. Seamless loop.
+
+2. WALK FORWARD  (16 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He walks forward to the right in his fighting stance: front foot steps forward, rear foot follows, armoured fists stay up on guard, red scarf trailing behind. Walking in place. Same size every frame. No effects. Seamless loop.
+
+3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. He steps backward to the left away from an opponent: rear foot slides back first, then the front foot follows, armoured fists up. Walking in place. Same size. No effects. Seamless loop.
+
+4. CROUCH DOWN  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He drops into a low crouching guard: knees bend deeply, hips drop, armoured fists stay up in front of his face. Ends holding the crouch. No effects.
+
+5. CROUCH IDLE  (24 frames, loop (start image = last frame of CROUCH DOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Holding a low crouch, breathing slowly, shoulders rise and fall, armoured fists up. Body stays low and the same size. No effects. Seamless loop.
+
+6. STAND UP  (use CROUCH DOWN reversed)
+No prompt needed.
+
+7. STANDING BLOCK  (16 frames (hold the middle frame for a long press)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He brings both forearms up in front of his face and chest to absorb a hit, leans back slightly, knees bent, feet planted, holds the guard, then lowers back into his stance. Same size. No effects.
+
+8. CROUCHING BLOCK  (16 frames (start = crouch pose; hold the middle frame)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. In a low crouch he raises both forearms in front of his face to block, head tucked, holds, then returns to the crouch. No effects.
+
+9. LIGHT PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Two fast jabs: the front armoured fist snaps straight forward to the right at head height to full extension, snaps back, then a second jab straight forward and back. Rear hand stays up. Feet planted. No effects, no motion trails.
+
+10. HEAVY PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turning his back. Two heavy straight punches: rear fist drives forward at chest height, then the lead fist follows at head height, each held briefly at impact, then back to guard. Only one attack. No effects, no motion trails.
+
+11. LIGHT KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A quick low kick to the shin with the front armoured foot, the foot returns, then a fast front snap kick at stomach height, and he settles back into his stance. Armoured fists stay up. No effects, no motion trails.
+
+12. HEAVY KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turns his back, no spin. A two-hit kick: a front kick at stomach height, then a high spinning-style finisher that stays side-on, ending back in his stance. Only one kick. No effects, no motion trails.
+
+13. CROUCHING PUNCH  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he jabs the front armoured fist straight forward at waist height to full extension and pulls it back to the crouching guard. Body stays low. No effects.
+
+14. SWEEP  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he drops one hand to the floor and swings his front leg out in a fast low sweep along the ground to the right, then pulls it back into the crouch. No effects, no dust.
+
+15. JUMP  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A neutral jump: he crouches to load, springs straight up with arms raised, tucks his knees up at the top, falls with legs extending, lands in a crouch and stands back into his stance, red scarf trailing behind. No effects, no dust.
+
+16. JUMP ATTACK  (16 frames (start = the tucked mid-jump frame from JUMP))
+Strict side-view profile facing right, never turning toward the camera. In mid-air he drives one leg diagonally down and forward to the right in a diving kick, the other leg tucked, scarf streaming behind. Stays in the air. No effects, no motion trails.
+
+17. FORWARD DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A fast forward dash: he leans forward and bursts ahead in two quick low steps, armoured fists up, red scarf trailing behind, then settles into his stance. No effects, no speed lines, no dust.
+
+18. BACK DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. A quick backward hop: he springs back off both feet away from the opponent, leans back, armoured fists still up, and lands in his stance. No effects, no dust.
+
+19. HIT IN THE FACE  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, body still facing right. He gets punched in the face: head snaps back, shoulders jolt back, knees buckle slightly, then he shakes it off and returns to his guard. No effects, no sparks, no blood.
+
+20. HIT IN THE STOMACH  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He is hit hard in the stomach: doubles over forward, arms pulled in, pushed back on his heels, then straightens up into his guard. No effects, no sparks.
+
+21. CROUCH HIT  (12 frames (start and end = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Hit while crouching: his head and shoulders jolt back, he stays low, then returns to the crouching guard. No effects.
+
+22. AIR HIT  (12 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Hit in mid-air: his body jolts backward, arms and legs flail, he twists slightly but stays side-on as he falls. No effects.
+
+23. KNOCKDOWN / K.O.  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. A heavy blow knocks him off his feet: he is blown backward, body arching, then crashes flat on his back on the floor with arms limp. Ends lying still. No effects, no dust, no blood.
+
+24. MID-AIR K.O.  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Knocked out in mid-air: his body goes limp, he falls backward and lands flat on his back. Ends lying still. No effects, no dust.
+
+25. GET UP  (16 frames (start = last frame of KNOCKDOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Lying on his back, he rolls onto one knee, pushes himself up and stands back into his fighting stance. No effects.
+
+26. INTRO  (24 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Pre-fight intro: he steps out of a crouch, slowly raises his head, the red scarf snaps in the wind, he clenches one armoured fist in front of his mask, then drops into his fighting stance. No effects.
+
+27. WIN POSE  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. Victory: he turns his back halfway, raises one armoured fist high, then lowers it and folds his arms, scarf blowing. No effects.
+
+===================================================================
+ASH SHOGUN'S OWN MOVES
+===================================================================
+28. SMOKE BOMB (special)  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He reaches into his sash, throws a small bomb down at his feet, crouches low as if vanishing, then rises back into his stance. No smoke, no explosion (drawn separately).
+
+29. SHADOW CLONE COMBO  (use his LIGHT PUNCH, HEAVY PUNCH, LIGHT KICK and HEAVY KICK (the clones are the same sprites tinted))
+No prompt needed.
+
+30. KUNAI THROW  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He draws a kunai from his sash and snaps his arm forward, throwing it straight to the right at chest height, then returns to his stance. No kunai in the air, no effects (drawn separately).
+
+31. DIVING AIR KICK + LANDING  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. From the top of a jump he dives diagonally down and forward with one leg extended, lands on the floor in a crouch and rises back into his stance. No effects, no dust.
+
+32. KIP-UP (get up after K.O.)  (16 frames (start = last frame of KNOCKDOWN))
+Strict side-view profile facing right, never turning toward the camera. Lying on his back, he rolls back onto his shoulders and kips up onto his feet in one fast motion, landing in his fighting stance. No effects.

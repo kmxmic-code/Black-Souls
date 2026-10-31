@@ -1,0 +1,128 @@
+BIG RUSTY - PIXELLAB ANIMATION PROMPTS
+Tool: Animate with Text (PixMiniMax). Start image: sprite_big_rusty.png (side view, facing right) unless the line says otherwise.
+For every animation set:  Direction = east   View = side
+Subject description (paste the same text every time):
+  a huge muscular green crocodile man with a long thick tail, cream belly scales, purple shorts with a brown belt and brown wristbands
+Tip: put the start image as the LAST frame too on anything marked [same last frame], so it ends back in the stance and loops cleanly.
+Every prompt already says: strict side view, never turns, same size, no effects. Keep that wording - it stops spinning, turning to the camera and baked effects.
+Effects (hit sparks, dust, trails, muzzle flash, smoke) are always drawn separately - never in the sprite.
+
+===================================================================
+SHARED MOVES (every fighter)
+===================================================================
+1. IDLE  (24 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall, knees flex slightly, clawed hands stay up on guard, his long tail swaying behind him. Feet stay planted. Body size identical every frame. No effects. Seamless loop.
+
+2. WALK FORWARD  (16 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He walks forward to the right in his fighting stance: front foot steps forward, rear foot follows, clawed hands stay up on guard, his long tail swaying behind him. Walking in place. Same size every frame. No effects. Seamless loop.
+
+3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. He steps backward to the left away from an opponent: rear foot slides back first, then the front foot follows, clawed hands up. Walking in place. Same size. No effects. Seamless loop.
+
+4. CROUCH DOWN  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He drops into a low crouching guard: knees bend deeply, hips drop, clawed hands stay up in front of his face. Ends holding the crouch. No effects.
+
+5. CROUCH IDLE  (24 frames, loop (start image = last frame of CROUCH DOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Holding a low crouch, breathing slowly, shoulders rise and fall, clawed hands up. Body stays low and the same size. No effects. Seamless loop.
+
+6. STAND UP  (use CROUCH DOWN reversed)
+No prompt needed.
+
+7. STANDING BLOCK  (16 frames (hold the middle frame for a long press)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He brings both forearms up in front of his face and chest to absorb a hit, leans back slightly, knees bent, feet planted, holds the guard, then lowers back into his stance. Same size. No effects.
+
+8. CROUCHING BLOCK  (16 frames (start = crouch pose; hold the middle frame)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. In a low crouch he raises both forearms in front of his face to block, head tucked, holds, then returns to the crouch. No effects.
+
+9. LIGHT PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Two fast jabs: the front clawed fist snaps straight forward to the right at head height to full extension, snaps back, then a second jab straight forward and back. Rear hand stays up. Feet planted. No effects, no motion trails.
+
+10. HEAVY PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turning his back. One huge hammer straight: he loads his weight back, then drives the rear clawed fist straight forward at chest height to full extension, whole body leaning in, holds at impact, then pulls back into his guard. Only one attack. No effects, no motion trails.
+
+11. LIGHT KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A quick low kick to the shin with the front clawed foot, the foot returns, then a fast front snap kick at stomach height, and he settles back into his stance. Clawed hands stay up. No effects, no motion trails.
+
+12. HEAVY KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turns his back, no spin. One heavy stomp kick: he lifts the front knee high, then drives the clawed foot forward and down at knee height, holds at impact, then pulls the leg back into his stance. Only one kick. No effects, no motion trails.
+
+13. CROUCHING PUNCH  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he jabs the front clawed fist straight forward at waist height to full extension and pulls it back to the crouching guard. Body stays low. No effects.
+
+14. SWEEP  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he swings his front leg out in a heavy low sweep along the floor to the right, then pulls it back into the crouch. No effects, no dust.
+
+15. JUMP  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A neutral jump: he crouches to load, springs straight up with arms raised, tucks his knees up at the top, falls with legs extending, lands in a crouch and stands back into his stance, his long tail swaying behind him. No effects, no dust.
+
+16. JUMP ATTACK  (16 frames (start = the tucked mid-jump frame from JUMP))
+Strict side-view profile facing right, never turning toward the camera. In mid-air he swings both clawed fists together downward and forward to the right in a big hammer blow, legs tucked, tail curled. Stays in the air. No effects, no motion trails.
+
+17. FORWARD DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A fast forward dash: he leans forward and bursts ahead in two quick low steps, clawed hands up, his long tail swaying behind him, then settles into his stance. No effects, no speed lines, no dust.
+
+18. BACK DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. A quick backward hop: he springs back off both feet away from the opponent, leans back, clawed hands still up, and lands in his stance. No effects, no dust.
+
+19. HIT IN THE FACE  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, body still facing right. He gets punched in the face: head snaps back, shoulders jolt back, knees buckle slightly, then he shakes it off and returns to his guard. No effects, no sparks, no blood.
+
+20. HIT IN THE STOMACH  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He is hit hard in the stomach: doubles over forward, arms pulled in, pushed back on his heels, then straightens up into his guard. No effects, no sparks.
+
+21. CROUCH HIT  (12 frames (start and end = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Hit while crouching: his head and shoulders jolt back, he stays low, then returns to the crouching guard. No effects.
+
+22. AIR HIT  (12 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Hit in mid-air: his body jolts backward, arms and legs flail, he twists slightly but stays side-on as he falls. No effects.
+
+23. KNOCKDOWN / K.O.  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. A heavy blow knocks him off his feet: he is blown backward, body arching, then crashes flat on his back on the floor with arms limp. Ends lying still. No effects, no dust, no blood.
+
+24. MID-AIR K.O.  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Knocked out in mid-air: his body goes limp, he falls backward and lands flat on his back. Ends lying still. No effects, no dust.
+
+25. GET UP  (16 frames (start = last frame of KNOCKDOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Lying on his back, he rolls onto one knee, pushes himself up and stands back into his fighting stance. No effects.
+
+26. INTRO  (24 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Pre-fight intro: he snaps his huge jaws open and shut, beats his chest once with both fists, cracks his neck, then drops into his fighting stance. No effects.
+
+27. WIN POSE  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. Victory: he throws his head back and roars with his jaws wide open, flexes both huge arms, then thumps his tail on the floor. No effects.
+
+===================================================================
+BIG RUSTY'S OWN MOVES
+===================================================================
+28. FERAL TRANSFORM  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. He hunches forward and roars with his jaws wide open, his muscles swell, then he drops down onto all fours like a real crocodile, tail stretched behind him, and holds the four-legged stance. No effects, no glow (the red eyes are added separately).
+
+29. FERAL UNTRANSFORM  (use FERAL TRANSFORM reversed)
+No prompt needed.
+
+30. FERAL IDLE  (16 frames, loop (start = last frame of FERAL TRANSFORM))
+Strict side-view profile facing right, never turning toward the camera. On all fours like a crocodile, low to the ground, he breathes heavily, shoulders rising and falling, tail swaying slowly behind. Same size. No effects. Seamless loop.
+
+31. FERAL WALK  (16 frames, loop (feral walk back = this reversed))
+Strict side-view profile facing right, never turning toward the camera. On all fours he crawls forward to the right like a crocodile: legs stepping in a low sprawl, body swaying side to side, tail swinging. Walking in place. No effects. Seamless loop.
+
+32. FERAL LUNGING BITE (light attacks)  (16 frames (start = feral idle))
+Strict side-view profile facing right, never turning toward the camera. On all fours he lunges forward and snaps his huge jaws shut at head height, then pulls back into the crawl stance. No effects.
+
+33. FERAL TAIL WHIP (heavy attacks)  (16 frames (start = feral idle))
+Strict side-view profile facing right, never turning toward the camera, never turning to the camera. On all fours he twists his hips and whips his long tail around low and then high behind him, then settles back. No effects, no motion trails.
+
+34. FERAL TAIL SWEEP  (16 frames (start = feral idle))
+Strict side-view profile facing right, never turning toward the camera. On all fours he sweeps his tail along the floor in a wide low arc, then settles back. No effects, no dust.
+
+35. FERAL POUNCE (air attack)  (16 frames (start = feral idle))
+Strict side-view profile facing right, never turning toward the camera. From all fours he springs forward through the air with jaws open and claws out, then slams down onto the floor on all fours. No effects, no dust.
+
+36. SPECIAL - TAIL SLAM + ROCK PUNCH  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. He spins his body half around and slams his tail down hard on the floor, then turns back and punches straight forward with his rear fist as if smashing a rock ahead of him. No rock, no effects (drawn separately).
+
+37. GATOR SLAM - GRAB  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He lunges forward, grabs an opponent with both clawed hands at chest height, lifts them high over his head and slams them down on the floor in front of him. Show only Rusty (the opponent is drawn separately). No effects.
+
+38. TAIL TORNADO  (24 frames)
+Strict side-view profile facing right, never turning toward the camera as much as possible. He crouches and spins on the spot with his tail stretched out like a whirling blade, then stops back in his stance. No effects, no wind lines.

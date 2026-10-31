@@ -1,92 +1,122 @@
-BLITZY - PIXELLAB ANIMATION PROMPTS
-Tool: Animate with Text (PixMiniMax). Start image: blitzy_base.png (side view, facing right).
+BLITZY (robot cowboy) - PIXELLAB ANIMATION PROMPTS
+Tool: Animate with Text (PixMiniMax). Start image: sprite_blitzy.png (side view, facing right) unless the line says otherwise.
 For every animation set:  Direction = east   View = side
 Subject description (paste the same text every time):
   a steampunk robot cowboy gunslinger with a brown cowboy hat, silver-blue robot face with glowing cyan eyes, red scarf-cape, brass and steel armour plates, long brown duster coat, purple trousers, armoured boots with spurs and a revolver on his belt
-Tip: put the start image as the LAST frame too on anything that should return to the stance (idle, walk, attacks), so it loops cleanly.
-Every prompt already says: strict side view, never turns, same size, no effects. Keep that wording - it stops spinning, shimmering and glowing trails.
+Tip: put the start image as the LAST frame too on anything marked [same last frame], so it ends back in the stance and loops cleanly.
+Every prompt already says: strict side view, never turns, same size, no effects. Keep that wording - it stops spinning, turning to the camera and baked effects.
+Effects (hit sparks, dust, trails, muzzle flash, smoke) are always drawn separately - never in the sprite.
 
--------------------------------------------------------------------
-1. IDLE  (24 frames, loop: last frame = start image)
-Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall a little, knees flex slightly, mechanical fists stay up on guard, the red cape and duster coat sway gently. Feet stay planted. Body size, hat, armour and belt stay identical every frame. No effects, no glow, no sparks. Seamless loop.
+===================================================================
+SHARED MOVES (every fighter)
+===================================================================
+1. IDLE  (24 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Fighting idle loop: he breathes slowly, shoulders rise and fall, knees flex slightly, mechanical fists stay up on guard, cape and coat swaying. Feet stay planted. Body size identical every frame. No effects. Seamless loop.
 
-2. WALK FORWARD  (24 frames, loop)
-Strict side-view profile facing right, never turning. He walks forward to the right in a fighting stance with heavy steady steps: front foot steps forward, rear foot follows, spurs swing, fists stay up on guard, cape and coat tails swing behind him. Walking in place. Same size every frame. No effects. Seamless loop.
+2. WALK FORWARD  (16 frames, loop) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He walks forward to the right in his fighting stance: front foot steps forward, rear foot follows, mechanical fists stay up on guard, cape and coat swaying. Walking in place. Same size every frame. No effects. Seamless loop.
 
-3. WALK BACKWARD  (24 frames, loop)
-Strict side-view profile facing right, chest and face always facing right, never turning. He walks backward to the left, away from an opponent: rear foot slides back first, then the front foot follows, knees bent, fists up on guard, coat swings forward slightly. Walking in place. Same size. No effects. Seamless loop.
+3. WALK BACKWARD  (16 frames, loop (or just play the forward walk reversed)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. He steps backward to the left away from an opponent: rear foot slides back first, then the front foot follows, mechanical fists up. Walking in place. Same size. No effects. Seamless loop.
 
-4. CROUCH DOWN  (8 frames, last frame = his crouch pose if you have one)
-Strict side view facing right. He drops quickly into a low crouching guard: knees bend deeply, hips drop, back stays straight, fists stay up in front of his chest, coat settles on the floor. No effects.
+4. CROUCH DOWN  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He drops into a low crouching guard: knees bend deeply, hips drop, mechanical fists stay up in front of his face. Ends holding the crouch. No effects.
 
-5. CROUCH IDLE  (16 frames, loop)
-Strict side view facing right. Holding a low crouch, breathing slowly, shoulders rise and fall slightly, fists up, cape sways a little. Body stays low and the same size. No effects. Seamless loop.
+5. CROUCH IDLE  (24 frames, loop (start image = last frame of CROUCH DOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Holding a low crouch, breathing slowly, shoulders rise and fall, mechanical fists up. Body stays low and the same size. No effects. Seamless loop.
 
-6. STAND UP  (8 frames)
-Strict side view facing right. He rises from the low crouch back into his standing fighting stance, fists stay up. No effects.
+6. STAND UP  (use CROUCH DOWN reversed)
+No prompt needed.
 
-7. STANDING BLOCK  (8 frames)
-Strict side view facing right. He brings both armoured forearms up in front of his face and chest to absorb a hit, leans back slightly, knees bent, feet planted. Holds the guard. Same size. No effects.
+7. STANDING BLOCK  (16 frames (hold the middle frame for a long press)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He brings both forearms up in front of his face and chest to absorb a hit, leans back slightly, knees bent, feet planted, holds the guard, then lowers back into his stance. Same size. No effects.
 
-8. CROUCHING BLOCK  (8 frames)
-Strict side view facing right. In a low crouch he raises both armoured forearms in front of his face to block, head tucked. No effects.
+8. CROUCHING BLOCK  (16 frames (start = crouch pose; hold the middle frame)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. In a low crouch he raises both forearms in front of his face to block, head tucked, holds, then returns to the crouch. No effects.
 
-9. LIGHT PUNCH - two quick jabs  (16 frames, last frame = start image)
-Strict side-view profile facing right, never turning. Two fast boxing jabs: the front mechanical fist snaps straight forward to the right at head height to full extension, snaps back to the guard, then a second identical jab straight forward and back. Rear hand stays up guarding the face. Feet planted. No effects, no motion trails.
+9. LIGHT PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Two fast jabs: the front mechanical fist snaps straight forward to the right at head height to full extension, snaps back, then a second jab straight forward and back. Rear hand stays up. Feet planted. No effects, no motion trails.
 
-10. HEAVY PUNCH - one big straight punch  (16 frames, last frame = start image)
-Strict side-view profile facing right, never turning his back. One powerful straight right: he turns his hips and drives the rear mechanical fist straight forward at chest height to full extension, rear heel lifts, the arm holds at impact for a moment, then he pulls back into his guard. Only one punch. No effects, no motion trails.
+10. HEAVY PUNCH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turning his back. One powerful shoulder bash: he lowers his armoured shoulder and drives forward a short step, slamming the shoulder plate into the opponent at chest height, holds at impact, then steps back into his stance. Only one attack. No effects, no motion trails.
 
-11. LIGHT KICK - two kicks  (16 frames, last frame = start image)
-Strict side-view profile facing right, never turning. A quick low front kick to the shin with the front boot, the foot returns, then a fast front snap kick at stomach height, and he settles back into his stance. Arms stay up on guard. No effects, no motion trails.
+11. LIGHT KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A quick low kick to the shin with the front armoured boot, the foot returns, then a fast front snap kick at stomach height, and he settles back into his stance. Mechanical fists stay up. No effects, no motion trails.
 
-12. HEAVY KICK - one big kick  (16 frames, last frame = start image)
-Strict side-view profile facing right, never turns his back, no spin. One heavy roundhouse kick: he lifts the rear knee, turns his hips over and swings the armoured boot forward to the right at head height, holds at impact, then pulls the leg back down into his stance. Only one kick. No effects, no motion trails.
+12. HEAVY KICK  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, never turns his back, no spin. One heavy roundhouse kick: he lifts the rear knee, turns his hips over and swings the armoured boot forward at head height, holds at impact, then pulls the leg back down. Only one kick. No effects, no motion trails.
 
-13. CROUCHING PUNCH  (16 frames)
-Strict side view facing right. From a low crouch he jabs the front mechanical fist straight forward at waist height to full extension and pulls it back to the crouching guard. Body stays low. No effects.
+13. CROUCHING PUNCH  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he jabs the front mechanical fist straight forward at waist height to full extension and pulls it back to the crouching guard. Body stays low. No effects.
 
-14. SWEEP  (16 frames)
-Strict side view facing right. From a low crouch he drops one hand to the floor and swings his front leg out in a low sweep along the ground to the right, spur leading, then pulls the leg back into the crouch. No effects, no dust.
+14. SWEEP  (16 frames (start = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he drops one hand to the floor and swings his front leg out in a low sweep along the ground to the right, spur leading, then pulls it back into the crouch. No effects, no dust.
 
-15. JUMP  (16 frames)
-Strict side view facing right. A neutral jump: he crouches to load, springs straight up with arms raised, tucks his knees up at the top of the jump with the cape flowing up, falls with legs extending, and lands in a crouch before standing back into his stance. No effects, no dust.
+15. JUMP  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A neutral jump: he crouches to load, springs straight up with arms raised, tucks his knees up at the top, falls with legs extending, lands in a crouch and stands back into his stance, cape and coat swaying. No effects, no dust.
 
-16. JUMP KICK  (16 frames)
-Strict side view facing right. In mid-air he extends one leg diagonally down and forward to the right in a flying kick, boot leading, the other leg tucked, arms pulled back, cape streaming behind. Stays in the air. No effects, no motion trails.
+16. JUMP ATTACK  (16 frames (start = the tucked mid-jump frame from JUMP))
+Strict side-view profile facing right, never turning toward the camera. In mid-air he jabs one mechanical fist down and forward to the right, coat and cape streaming up behind him. Stays in the air. No effects, no motion trails.
 
-17. FORWARD DASH  (8 frames)
-Strict side view facing right. A fast forward dash: he leans far forward and bursts ahead in two quick low steps, cape and coat streaming straight back, fists up. No effects, no speed lines, no dust.
+17. FORWARD DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. A fast forward dash: he leans forward and bursts ahead in two quick low steps, mechanical fists up, cape and coat swaying, then settles into his stance. No effects, no speed lines, no dust.
 
-18. BACK DASH  (8 frames)
-Strict side view facing right, never turning. A quick backward hop away from the opponent: he springs back off both feet, leans back, fists still up, coat flaps forward, and lands in his stance. No effects.
+18. BACK DASH  (16 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, chest always facing right. A quick backward hop: he springs back off both feet away from the opponent, leans back, mechanical fists still up, and lands in his stance. No effects, no dust.
 
-19. HIT IN THE FACE  (12 frames, last frame = start image)
-Strict side view, body still facing right. He gets punched in the face: his head snaps back, torso bends backward, arms flung out, knees buckle, then he recovers back into his guard. No effects, no sparks, no blood.
+19. HIT IN THE FACE  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera, body still facing right. He gets punched in the face: head snaps back, shoulders jolt back, knees buckle slightly, then he shakes it off and returns to his guard. No effects, no sparks, no blood.
 
-20. HIT IN THE STOMACH / CROUCH HIT  (12 frames)
-Strict side view facing right. He is hit hard in the stomach: doubles over forward, head down, arms pulled in, pushed back on his heels, then recovers. No effects, no sparks.
+20. HIT IN THE STOMACH  (12 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. He is hit hard in the stomach: doubles over forward, arms pulled in, pushed back on his heels, then straightens up into his guard. No effects, no sparks.
 
-21. AIR HIT  (12 frames)
-Strict side view. Hit in mid-air: his body jolts backward, arms and legs flail, hat tilts, he twists slightly as he falls. No effects.
+21. CROUCH HIT  (12 frames (start and end = crouch pose)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Hit while crouching: his head and shoulders jolt back, he stays low, then returns to the crouching guard. No effects.
 
-22. KNOCKDOWN / K.O.  (16 frames)
-Strict side view. A heavy blow knocks him off his feet: he is blown backward through the air, body arching, then crashes flat on his back on the floor with arms limp, hat falling beside him. Ends lying still. No effects, no dust, no blood.
+22. AIR HIT  (12 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Hit in mid-air: his body jolts backward, arms and legs flail, he twists slightly but stays side-on as he falls. No effects.
 
-23. GET UP  (24 frames)
-Strict side view facing right. Lying on his back, he rolls onto one knee, pushes up with one hand on his knee, grabs his hat and puts it back on, and stands back up into his fighting stance. No effects.
+23. KNOCKDOWN / K.O.  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. A heavy blow knocks him off his feet: he is blown backward, body arching, then crashes flat on his back on the floor with arms limp. Ends lying still. No effects, no dust, no blood.
 
-24. GUN SHOT  (16 frames, last frame = start image)
-Strict side-view profile facing right, never turning. Quick-draw: his hand drops to the holster, draws the revolver and fires straight forward to the right at chest height with a sharp recoil of the arm, then spins the revolver and re-holsters it. No muzzle flash, no bullet, no smoke (effects are added separately).
+24. MID-AIR K.O.  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. Knocked out in mid-air: his body goes limp, he falls backward and lands flat on his back. Ends lying still. No effects, no dust.
 
-25. RELOAD  (16 frames)
-Strict side view facing right. He opens the revolver cylinder, knocks the empty shells out, thumbs in new rounds one by one, snaps the cylinder shut, and returns to his guard. No effects.
+25. GET UP  (16 frames (start = last frame of KNOCKDOWN)) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Lying on his back, he rolls onto one knee, pushes himself up and stands back into his fighting stance. No effects.
 
-26. ELEMENTAL CANNON (special)  (24 frames)
-Strict side view facing right, never turning. He plants his feet wide, brings both armoured arms forward together at chest height with the forearm plates opening like a cannon, braces as if firing a huge blast, his body is pushed back slightly by the recoil, then the plates close and he returns to his stance. No beam, no fire, no glow (effects are added separately).
+26. INTRO  (24 frames) [same last frame]
+Strict side-view profile facing right, never turning toward the camera. Pre-fight intro: he tips his cowboy hat down with one finger, his eyes flicker on, he cracks his mechanical knuckles, then drops into his fighting stance. No effects.
 
-27. INTRO  (24 frames)
-Strict side view facing right. Pre-fight intro: he tips his cowboy hat down with one finger, his cyan eyes flicker on, he cracks his mechanical knuckles, and drops into his fighting stance with the cape settling. No effects, no glow.
+27. WIN POSE  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. Victory: he twirls his revolver on one finger, blows across the barrel, holsters it and tips his hat, standing tall with the cape blowing. No effects.
 
-28. WIN POSE  (24 frames)
-Strict side view facing right. Victory: he twirls his revolver on one finger, blows across the barrel, holsters it and tips his hat to the crowd, standing tall with the cape blowing. No effects, no smoke.
+===================================================================
+BLITZY (robot cowboy)'S OWN MOVES
+===================================================================
+28. QUICK DRAW (gun shot)  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. Quick-draw: his hand drops to the holster, draws the revolver and fires straight forward to the right at chest height with a sharp recoil, then spins it and re-holsters. No muzzle flash, no bullet, no smoke.
+
+29. LEAD RAIN (heavy kick button)  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He draws the revolver and fans the hammer, firing several fast shots forward with quick recoils, then re-holsters. No muzzle flash, no bullets, no smoke.
+
+30. LOW SHOT (sweep button)  (16 frames (start = crouch pose))
+Strict side-view profile facing right, never turning toward the camera. From a low crouch he draws and fires the revolver forward and slightly down along the floor, then re-holsters. No muzzle flash, no smoke.
+
+31. AIR SHOT  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. In mid-air he draws and fires the revolver straight forward to the right, coat streaming. Stays in the air. No muzzle flash, no smoke.
+
+32. AIR DOWN SHOT  (16 frames (start = mid-jump frame))
+Strict side-view profile facing right, never turning toward the camera. In mid-air he points the revolver diagonally down and forward and fires. Stays in the air. No muzzle flash, no smoke.
+
+33. RELOAD  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He opens the revolver cylinder, knocks the empty shells out, thumbs in new rounds one by one, snaps it shut and returns to his guard. No effects.
+
+34. ELEMENTAL CANNON (special)  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. He plants his feet wide, brings both armoured arms forward together at chest height with the forearm plates opening like a cannon, braces as if firing a huge blast, is pushed back slightly by the recoil, then the plates close and he returns to his stance. No beam, no fire, no glow.
+
+35. ROBERTO CALL (shout)  (16 frames)
+Strict side-view profile facing right, never turning toward the camera. He puts two fingers to his mouth plate and whistles, then waves his arm forward toward the right calling his ride in, then drops back into his stance. No effects, no car.
+
+36. ELEMENTAL ROUND (ult)  (24 frames)
+Strict side-view profile facing right, never turning toward the camera. He loads one glowing round into the revolver, snaps the cylinder shut, takes a wide stance and fires one huge shot forward with heavy recoil, then re-holsters. No glow, no flash, no smoke.
