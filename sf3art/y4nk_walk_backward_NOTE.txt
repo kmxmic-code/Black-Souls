@@ -1,0 +1,1 @@
+Y4NK walk backward = sheet_y4nk_walk_forward_17f.png played in reverse (frame 1, then frames 17..2).
