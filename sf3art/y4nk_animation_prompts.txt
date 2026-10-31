@@ -1,0 +1,110 @@
+Y4NK - PIXELLAB ANIMATION PROMPTS
+Tool: Animate with Text (PixMiniMax). Start image: sprite_y4nk.png (side view, facing right).
+For every animation set:  Direction = east   View = side
+Subject description (paste the same text every time):
+  a hulking biker brawler in a glossy black full-face motorcycle helmet with a smoked visor, black studded leather vest over a black sleeveless shirt with a white winged emblem, huge muscular arms, black fingerless studded gloves, taped wrists, a chain hanging from his belt, grey cargo pants with knee pads and black combat boots
+Tip: set the start image as the LAST frame too on anything that should end back in his stance (idle, walks, attacks), so it loops cleanly.
+Every prompt already says: strict side view, never turns, same size, no effects. Keep that wording.
+Y4NK rules from your game: he NEVER falls down - knockdowns and K.O. keep him on his feet; his heavy kick button is his PARRY (no separate heavy kick).
+
+===================================================================
+CORE MOVES
+===================================================================
+1. IDLE  (24 frames, loop)
+Strict side-view profile facing right, never turning toward the camera. Heavy brawler idle loop: he rolls his big shoulders, breathes slowly, bounces very slightly on his knees, fists up in a boxer's guard, the belt chain sways a little. Feet stay planted. Body size, helmet and vest stay identical every frame. No effects. Seamless loop.
+
+2. WALK FORWARD  (24 frames, loop)
+Strict side-view profile facing right, never turning. He stalks forward to the right with heavy, confident steps, shoulders rolling, fists up in a boxer's guard, chain swinging. Walking in place. Same size every frame. No effects. Seamless loop.
+
+3. WALK BACKWARD  (24 frames, loop)
+Strict side-view profile facing right, chest and helmet always facing right, never turning. He steps backward to the left away from an opponent: rear boot slides back first, then the front boot follows, fists up, chin tucked. Walking in place. Same size. No effects. Seamless loop.
+
+4. CROUCH DOWN  (8 frames)
+Strict side view facing right. He drops quickly into a low crouching guard: knees bend deeply, hips drop, big fists up in front of his helmet. No effects.
+
+5. CROUCH IDLE  (16 frames, loop)
+Strict side view facing right. Holding a low crouch, breathing heavily, shoulders rise and fall, fists up. Body stays low and the same size. No effects. Seamless loop.
+
+6. STAND UP  (8 frames)
+Strict side view facing right. He rises from the low crouch back into his standing boxer's guard. No effects.
+
+7. STANDING BLOCK  (8 frames)
+Strict side view facing right. He tucks his helmet down and raises both thick forearms in front of his face and chest like a boxer covering up, knees bent, feet planted. Holds the guard. No effects.
+
+8. CROUCHING BLOCK  (8 frames)
+Strict side view facing right. In a low crouch he covers up with both forearms in front of his helmet. No effects.
+
+9. LIGHT PUNCH - two quick jabs  (16 frames, last frame = start image)
+Strict side-view profile facing right, never turning. Two fast boxing jabs: the lead fist snaps straight forward to the right at head height to full extension, snaps back, then a second jab straight forward and back. Rear fist stays up guarding the helmet. Feet planted. No effects, no motion trails.
+
+10. HEAVY PUNCH - one huge haymaker  (16 frames, last frame = start image)
+Strict side-view profile facing right, never turning his back. One massive overhand right: he loads his weight back, then swings the rear fist forward and slightly down in a huge haymaker at head height, whole body leaning into it, holds at impact for a moment, then recovers into his guard. Only one punch. No effects, no motion trails.
+
+11. LIGHT KICK - two kicks  (16 frames, last frame = start image)
+Strict side-view profile facing right, never turning. A quick low stomp kick to the shin with the front boot, the foot returns, then a fast front push kick with the boot sole at stomach height, and he settles back into his guard. Fists stay up. No effects.
+
+12. PARRY (his heavy kick button)  (16 frames, last frame = start image)
+Strict side-view profile facing right, never turning. A boxing parry: he sharply slaps the incoming attack aside with his lead forearm and glove, leaning back slightly with his weight on the rear foot, holds the deflection for a moment, then snaps back into his guard ready to counter. No effects, no flash.
+
+13. CROUCHING PUNCH  (16 frames)
+Strict side view facing right. From a low crouch he throws a quick straight punch to the body at waist height with the lead fist, then pulls it back to the crouching guard. Body stays low. No effects.
+
+14. SWEEP  (16 frames)
+Strict side view facing right. From a low crouch he swings his front boot out in a heavy low sweep along the floor to the right, then drags it back into the crouch. No effects, no dust.
+
+15. JUMP  (16 frames)
+Strict side view facing right. A heavy neutral jump: he crouches to load, springs up with fists raised, tucks his knees up at the top, falls with legs extending, lands heavily in a crouch and stands back into his guard. No effects, no dust.
+
+16. JUMP ATTACK  (16 frames)
+Strict side view facing right. In mid-air he swings a big hammer-fist punch downward and forward to the right with both fists clasped together, body leaning into it, legs tucked. Stays in the air. No effects, no motion trails.
+
+17. FORWARD DASH  (8 frames)
+Strict side view facing right. A heavy forward rush: he lowers his helmet and charges two big quick steps forward like a linebacker, fists up, chain flying back. No effects, no speed lines.
+
+18. BACK DASH  (8 frames)
+Strict side view facing right, never turning. A quick backward hop: he springs back off both boots, leans back, fists still up, and lands in his guard. No effects.
+
+19. HIT IN THE FACE  (12 frames, last frame = start image)
+Strict side view, body still facing right. He takes a punch to the helmet: his head snaps back, visor tilts up, shoulders jolt back, knees buckle slightly, then he shakes it off and returns to his guard. No effects, no sparks, no cracks.
+
+20. HIT IN THE STOMACH  (12 frames)
+Strict side view facing right. He takes a hard hit to the stomach: doubles over forward, arms pulled in, pushed back on his heels, then straightens up. No effects.
+
+21. AIR HIT  (12 frames)
+Strict side view. Hit in mid-air: his body jolts backward, arms and legs flail, he twists slightly but drops back down feet first. No effects.
+
+22. KNOCKDOWN - he stays on his feet  (16 frames)
+Strict side view facing right. A huge blow sends him staggering backward: he is pushed back several steps, arms flung out, body bent back, his boots skid but he does NOT fall; he catches himself bent over with hands on his knees. No effects, no dust.
+
+23. RECOVER (his get up)  (16 frames, last frame = start image)
+Strict side view facing right. Bent over with hands on his knees, he shakes his helmet, cracks his neck, straightens up and raises his fists back into his boxer's guard. No effects.
+
+24. INTRO  (24 frames)
+Strict side view facing right. Pre-fight intro: he cracks his knuckles, rolls his neck, slams his fists together once and drops into his boxer's guard. No effects.
+
+25. WIN POSE  (24 frames)
+Strict side view facing right. Victory: he flexes both huge arms in a bodybuilder double-biceps pose, then points at the opponent and taps the side of his helmet. No effects.
+
+===================================================================
+Y4NK'S OWN MOVES
+===================================================================
+26. CHARGE START  (16 frames)
+Strict side view facing right, never turning. He plants his feet, lowers his helmet like a bull, digs his rear boot into the floor twice, then bursts forward into a run. No effects, no dust.
+
+27. CHARGE RUN LOOP  (16 frames, loop)
+Strict side view facing right. A heavy shoulder-charge run: helmet down, lead shoulder forward, arms tucked, big pounding strides, chain flying behind. Running in place. Same size every frame. No effects, no speed lines. Seamless loop.
+
+28. CHARGE GRAB  (16 frames)
+Strict side view facing right. At the end of his charge he reaches forward with both big arms, grabs an opponent at waist height, and heaves them up over his right shoulder. Show only Y4NK with his arms in the lifting motion (the opponent is drawn separately). No effects.
+
+29. CARRY RUN LOOP  (16 frames, loop)
+Strict side view facing right. He runs forward with heavy strides carrying someone over his right shoulder: right arm wrapped up and holding them on the shoulder, left arm pumping. Show only Y4NK in the carrying pose (the opponent is drawn separately). Running in place. No effects. Seamless loop.
+
+30. PARRY COUNTER PUNCH  (16 frames, last frame = start image)
+Strict side-view profile facing right, never turning his back. Straight after a parry he steps in and throws a devastating rear uppercut-cross to the jaw at head height, whole body twisting into it, holds the follow-through, then recovers to his guard. No effects, no motion trails.
+
+31. CAR CALL  (24 frames)
+Strict side view facing right. He puts two fingers to the bottom of his helmet like a whistle, then raises his right arm high and waves it forward toward the right, calling his car in, then drops back into his guard. No effects, no car (drawn separately).
+
+32. STANDING K.O.  (24 frames)
+Strict side view facing right. He is knocked out but stays standing: his arms drop limp at his sides, his helmet sags forward, his knees sway, he wobbles back and forth on his feet and ends frozen upright, slumped and unconscious. No effects (the black shade over his face is added separately).
