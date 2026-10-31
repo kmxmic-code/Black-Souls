@@ -1,1 +1,1 @@
-Big Rusty walk back: PixelLab version B played in reverse (16-frame loop). Tail sweeps up from between his legs and back out behind.
+Big Rusty walk back (16-frame loop): version B reversed, with jaw snaps. Play clean_00..15 in order.
