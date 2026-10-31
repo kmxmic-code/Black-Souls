@@ -1,1 +1,2 @@
-Big Rusty standing block (version B, shield arm). 17 frames: 00-08 into guard, hold 08 while blocking, 09-16 back to stance.
+Big Rusty standing block (version B, shield arm).
+clean_00-08 = raise guard; hold_00-15 = block-hold idle loop (version A, plays while block is held); clean_09-16 = lower guard back to stance.
