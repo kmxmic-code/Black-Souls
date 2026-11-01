@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 5;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 6;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -48,31 +48,35 @@ async function update(win, rel) {
   const { changed, bytes } = plan(rel);
   const stage = path.join(app.getPath('userData'), 'staging');
   await fsp.rm(stage, { recursive: true, force: true }); await fsp.mkdir(stage, { recursive: true });
-  let got = 0;
-  const send = (extra) => { if (!win.isDestroyed()) win.webContents.send('progress', Object.assign({ got, bytes, files: changed.length }, extra)); };
-  for (const [p, f] of changed) {
-    let ok = false, lastErr;
-    for (let tryN = 0; tryN < 3 && !ok; tryN++) {
+  // up to 4 files at once (much faster on many small files), each retried 3 times and checked against its SHA-256
+  let got = 0; const live = {}, t0 = Date.now(); let lastSend = 0;
+  const send = (extra, force) => { const now = Date.now(); if (!force && now - lastSend < 80) return; lastSend = now; if (!win.isDestroyed()) win.webContents.send('progress', Object.assign({ got, bytes, files: changed.length, now: got + Object.values(live).reduce((a, b) => a + b, 0), ms: now - t0 }, extra)); };
+  const one = async ([p, f]) => {
+    let lastErr;
+    for (let tryN = 0; tryN < 3; tryN++) {
       try {
+        live[p] = 0;
         const r = await net.fetch(RAW + 'game/' + p.split('/').map(encodeURIComponent).join('/') + '?v=' + f.sha.slice(0, 12), { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        const chunks = []; let n = 0; const rd = r.body.getReader();
-        for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(Buffer.from(value)); n += value.length; send({ now: got + n, file: p }); }
+        const chunks = []; const rd = r.body.getReader();
+        for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(Buffer.from(value)); live[p] += value.length; send({ file: p }); }
         const buf = Buffer.concat(chunks);
         if (buf.length !== f.size || sha256(buf) !== f.sha) throw new Error('bad file ' + p);
         await fsp.mkdir(path.dirname(path.join(stage, p)), { recursive: true });
-        await fsp.writeFile(path.join(stage, p), buf); got += f.size; ok = true;
-      } catch (e) { lastErr = e; }
+        await fsp.writeFile(path.join(stage, p), buf); delete live[p]; got += f.size; send({ file: p }); return;
+      } catch (e) { lastErr = e; delete live[p]; }
     }
-    if (!ok) throw lastErr;
-  }
+    throw lastErr;
+  };
+  const queue = changed.slice().sort((a, b) => b[1].size - a[1].size);   // big files first keeps all 4 lanes busy
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => { while (queue.length) await one(queue.shift()); }));
   // everything arrived and checked: swap it in, drop files the new version no longer has
   for (const [p] of changed) { const dst = path.join(GAME, p); await fsp.mkdir(path.dirname(dst), { recursive: true }); await fsp.rm(dst, { force: true }); await fsp.rename(path.join(stage, p), dst); }
   const inst = readJSON(INSTALLED) || { files: {} };
   for (const p of Object.keys(inst.files || {})) if (!rel.files[p] && safe(p)) await fsp.rm(path.join(GAME, p), { force: true });
   await fsp.writeFile(INSTALLED, JSON.stringify({ version: rel.version, files: rel.files }));
   await fsp.rm(stage, { recursive: true, force: true });
-  send({ now: bytes, done: true });
+  send({ now: bytes, done: true }, true);
 }
 
 // ---------- desktop + Start menu shortcuts (Windows) ----------
@@ -199,6 +203,17 @@ ipcMain.handle('update', async e => {
   return updating;
 });
 ipcMain.handle('play', () => { createGame(); });
+// repair: hash every installed file again; anything damaged or missing is dropped from the record so the next update re-downloads it
+ipcMain.handle('verify', async () => {
+  const inst = readJSON(INSTALLED) || { files: {} }; let bad = 0;
+  for (const [p, f] of Object.entries(inst.files || {})) {
+    if (!safe(p)) continue;
+    let ok = false; try { const buf = await fsp.readFile(path.join(GAME, p)); ok = buf.length === f.size && sha256(buf) === f.sha; } catch (e) {}
+    if (!ok) { delete inst.files[p]; bad++; }
+  }
+  await fsp.writeFile(INSTALLED, JSON.stringify(inst)); return { bad };
+});
+ipcMain.handle('folder', () => shell.openPath(GAME));
 // launcher <-> game messages (friends, invites, connection codes). Messages that need the game start it.
 ipcMain.on('l2g', (e, msg) => {
   if (!msg) return;

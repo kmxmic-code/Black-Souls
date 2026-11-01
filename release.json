@@ -28,18 +28,18 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 5,
+   "version": 6,
    "files": {
     "preload.js": {
-     "sha": "026c8f2f6905db207838e49eb4768d2babc91883426bd68d1238d9cdce3bcfa2",
-     "size": 998
+     "sha": "8747d27498a46c5ca8dfcfbea0589e87f5c1d34f1dd330bf76cf1c99fb36661a",
+     "size": 1090
     },
     "icon.png": {
-     "sha": "b754a97c56c23533b2a1d13f1953ff972233440cfc7eb2cf43d6866625946158",
-     "size": 2594
+     "sha": "7a97fb0daa1ea36053773d55828316bf32a76f06f00f4e61b7bfa00b8acfbf93",
+     "size": 6412
     },
     "version.json": {
-     "sha": "c5980bb4de98c51aa0dd33bb9d809cb8d954b64099f8cf2b013dea7c25b82371",
+     "sha": "6292bb7b1b7efbe51d34065ac34f623ecf1fe9fec7ae2f07d1af910ad1a66788",
      "size": 14
     },
     "game_preload.js": {
@@ -47,8 +47,8 @@
      "size": 302
     },
     "main.js": {
-     "sha": "e427e529cb5bafee306aa75f42c23e3699eca049212155e5ce5a238b6532d501",
-     "size": 16527
+     "sha": "99920a03544904a022ff5540e22b1ac5b0dcd5e6d7e6fbdc51934d1c4b1dda20",
+     "size": 17789
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -59,32 +59,36 @@
      "size": 14818
     },
     "launcher/hero3.png": {
-     "sha": "b251bf6aae004f5b3a85f6c499b0b6fd79df8bc368a080625641ca44b5b82f3c",
-     "size": 43838
+     "sha": "86866f4443c377ed67968a199f87d1808e9278c9956031c23f3c90675edf0aa8",
+     "size": 185468
     },
     "launcher/icon.png": {
-     "sha": "b754a97c56c23533b2a1d13f1953ff972233440cfc7eb2cf43d6866625946158",
-     "size": 2594
+     "sha": "3d206c1af4e156b076dfb620ec4a93f7fdfb537716f9ef2449b2f43c486a103b",
+     "size": 5570
     },
     "launcher/social.js": {
      "sha": "7cd2073e46cec1881bd100d6dc5e2ca84e744612084eadeff65bbc407a0c992e",
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "2b4967f949ebfb509e1edcb76527d4ce754b18b9f08a93dc08fb36ead36ddf4d",
-     "size": 14890
+     "sha": "f3c17f63d6b1ac16c487e503f95b6e74fc046968a4bcbdd1da24babf388a5d2f",
+     "size": 22923
     },
     "launcher/hero2.png": {
-     "sha": "471fa5a68b0d29386436269147d61b284acc81d359495242401941e7022967da",
-     "size": 52378
+     "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
+     "size": 280152
     },
     "launcher/hero1.png": {
-     "sha": "e9fa526ab77263a20bb8e0cbd5a7bd62468a0e5c59589feaefdc7f328f96bc80",
-     "size": 40185
+     "sha": "fb5881166965a9219b551a31b26af7bf1f61e8c5ebd5d8931ff57bec4c9fd89b",
+     "size": 323588
     },
     "launcher/hero0.png": {
-     "sha": "84c5dcf09caef505de240e509f71f5b54d79c00f981aac99c3158457ae4e9dcd",
-     "size": 41248
+     "sha": "6554b150f8978ae0674b3deca3a295615f73b09e5baf513f71a3e5d50e56e1d6",
+     "size": 206421
+    },
+    "launcher/bks.png": {
+     "sha": "824290a3428a07bdf918f591605d5820e8108c9ef318281a238211bd2cf51cca",
+     "size": 5160
     }
    }
   }
