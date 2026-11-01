@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>BKS</title>
+<link rel="stylesheet" href="pixfont.css">
+<style>
+  :root { --ink: #07040d; --panel: #140b1f; --panel2: #1d1030; --line: #3a2752; --paper: #f4e9da; --muted: #a48fb8; --red: #e5413a; --amber: #f2b33d; --amberHi: #ffd977; --green: #63d27a;
+    --f-display: 'BS Blade', monospace; --f-label: 'BS Edge', monospace; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; user-select: none; font: 400 13px/1.4 var(--f-label); }
+  .top { position: absolute; inset: 0 0 auto 0; height: 34px; display: flex; align-items: center; gap: 12px; padding: 0 0 0 14px; background: rgba(7,4,13,.92); border-bottom: 2px solid var(--line); -webkit-app-region: drag; z-index: 5; }
+  .top .ic { width: 20px; height: 20px; image-rendering: pixelated; margin-right: -4px; }
+  .top .t { font: 400 15px/1 var(--f-display); letter-spacing: .06em; }
+  .top .t b { color: var(--red); font-weight: 400; }
+  .top .v { color: var(--muted); font-size: 11px; }
+  .top .sp { flex: 1; }
+  .top button { -webkit-app-region: no-drag; width: 46px; height: 34px; border: 0; background: none; color: var(--muted); font: 400 16px/1 var(--f-label); cursor: pointer; }
+  .top button:hover { background: var(--panel2); color: var(--paper); } .top button.x:hover { background: var(--red); color: #fff; }
+  .hero { position: absolute; inset: 34px 0 0 0; overflow: hidden; }
+  .hero img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: 88% top; image-rendering: pixelated; opacity: 0; transition: opacity 1.1s; }
+  .hero img.on { opacity: 1; }
+  .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,4,13,0) 52%, rgba(7,4,13,.55) 70%), linear-gradient(0deg, rgba(7,4,13,.95) 0, rgba(7,4,13,0) 150px); }
+  .side { position: absolute; right: 18px; top: 208px; bottom: 112px; width: 340px; display: grid; grid-template-rows: minmax(0, 1fr) 116px; gap: 10px; z-index: 2; }
+  .card { background: rgba(20,11,31,.9); border: 2px solid var(--line); padding: 12px 14px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .card h2 { margin: 0 0 8px; font: 400 18px/1 var(--f-display); letter-spacing: .05em; color: var(--paper); display: flex; justify-content: space-between; align-items: baseline; }
+  .card h2 small { font: 400 10px/1 var(--f-label); color: var(--muted); }
+  .notes { overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .note { margin-bottom: 12px; } .note .h { color: var(--amber); font-size: 12px; margin-bottom: 4px; } .note .h span { color: var(--muted); }
+  .note ul { margin: 0; padding-left: 16px; color: var(--paper); font-size: 12px; } .note li { margin: 2px 0; }
+  .empty { color: var(--muted); font-size: 12px; }
+  .social { gap: 7px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .social h2 { margin-bottom: 2px; }
+  .social input { width: 100%; padding: 7px 8px; background: var(--ink); color: var(--paper); border: 2px solid var(--line); font: 400 12px/1 var(--f-label); text-transform: none; outline: none; }
+  .social input:focus { border-color: var(--amber); }
+  .social button { padding: 6px 10px; background: var(--panel2); color: var(--paper); border: 2px solid var(--line); font: 400 11px/1 var(--f-label); cursor: pointer; letter-spacing: .04em; }
+  .social button:hover:not(:disabled) { border-color: var(--amber); }
+  .social button:disabled { opacity: .4; cursor: default; }
+  .social button.go { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+  .social button.sm { padding: 4px 7px; font-size: 10px; }
+  .social .link { padding: 0; border: 0; background: none; color: var(--muted); text-decoration: underline; font-size: 10px; }
+  .tabs { display: flex; gap: 6px; } .tabs button { flex: 1; } .tabs button.on { border-color: var(--amber); color: var(--amberHi); }
+  .authf, .addf { display: grid; gap: 6px; } .addf { grid-template-columns: 1fr auto; }
+  .social .err { margin: 0; color: var(--amber); font-size: 11px; } .social .ok { margin: 0; color: var(--green); font-size: 11px; }
+  .social .hint { margin: 0; color: var(--muted); font-size: 11px; }
+  .me, .fr { display: flex; align-items: center; gap: 7px; font-size: 12px; min-height: 26px; }
+  .me span:last-child, .fr .act { color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fr b, .me b { font-weight: 400; } .fr.off b { color: var(--muted); }
+  .fr .sp { flex: 1; } .fr button + button { margin-left: 4px; }
+  .dot { width: 8px; height: 8px; flex: none; background: var(--line); } .dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .sec { color: var(--amber); font-size: 10px; letter-spacing: .08em; margin-top: 4px; }
+  .list { display: grid; gap: 2px; }
+  .inv { border: 2px solid var(--amber); background: rgba(242,179,61,.1); padding: 8px; font-size: 12px; animation: pulse 1.2s infinite alternate; }
+  .inv b { color: var(--amberHi); font-weight: 400; } .inv .row { display: flex; gap: 6px; margin-top: 6px; }
+  @keyframes pulse { from { box-shadow: 0 0 0 rgba(242,179,61,0); } to { box-shadow: 0 0 14px rgba(242,179,61,.45); } }
+  .pn .note ul { font-size: 11px; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 96px; display: flex; align-items: center; gap: 22px; padding: 0 18px 0 26px; z-index: 3; border-top: 2px solid var(--line); background: rgba(7,4,13,.88); }
+  .who { width: 270px; } .who b { display: block; font: 400 30px/1 var(--f-display); letter-spacing: .03em; } .who span { color: var(--amber); font-size: 12px; }
+  .status { flex: 1; min-width: 0; }
+  .status .s { font-size: 13px; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status .s.err { color: var(--amber); } .status .s.ok::before { content: '● '; color: var(--green); }
+  .status .d { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prog { height: 10px; margin-top: 8px; background: var(--ink); border: 2px solid var(--line); visibility: hidden; } .prog.on { visibility: visible; }
+  .prog i { display: block; height: 100%; width: 0; background: var(--amber); transition: width .15s; }
+  .play { position: relative; width: 250px; height: 64px; border: 0; cursor: pointer; background: none; padding: 0; outline: none; }
+  .play::before { content: ''; position: absolute; inset: 0; background: var(--amber); clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); transition: filter .15s, transform .15s; }
+  .play::after { content: ''; position: absolute; left: 18px; right: 18px; top: 6px; height: 3px; background: #fff0b8; }
+  .play span { position: relative; font: 400 34px/64px var(--f-display); color: var(--ink); letter-spacing: .06em; }
+  .play:hover::before, .play:focus-visible::before { filter: brightness(1.12); transform: scale(1.03); }
+  .play:disabled { cursor: default; } .play:disabled::before { background: var(--line); filter: none; transform: none; } .play:disabled::after { background: rgba(255,255,255,.12); } .play:disabled span { color: var(--muted); font-size: 24px; }
+  .link { background: none; border: 0; color: var(--amberHi); font: inherit; font-size: 11px; cursor: pointer; padding: 0; text-decoration: underline; }
+  .pips { position: absolute; left: 26px; bottom: 108px; display: flex; gap: 8px; z-index: 3; } .pips i { width: 16px; height: 6px; background: var(--line); } .pips i.on { background: var(--amber); }
+  @media (max-width: 980px) { .side { width: 300px; } .who { width: 200px; } .who b { font-size: 24px; } }
+</style></head>
+<body>
+  <div class="top"><img src="icon.png" alt="" class="ic"><span class="t">BKS</span><span class="v" id="ver"></span><span class="sp"></span><button type="button" id="min" aria-label="Minimize">—</button><button type="button" class="x" id="close" aria-label="Close">✕</button></div>
+  <div class="hero" id="hero"></div>
+  <div class="pips" id="pips"></div>
+  <div class="side">
+    <div class="card social" id="social"></div>
+    <div class="card pn"><h2>PATCH NOTES <small id="latest"></small></h2><div class="notes" id="notes"><p class="empty">Checking for news…</p></div></div>
+  </div>
+  <div class="bar">
+    <div class="who"><b id="whoN">YOSHIDA</b><span id="whoS">THE SHADOW NINJA</span></div>
+    <div class="status"><div class="s" id="st">Starting…</div><div class="d" id="det"></div><div class="prog" id="prog"><i id="pbar"></i></div></div>
+    <button type="button" class="play" id="play" disabled><span id="playT">WAIT</span></button>
+  </div>
+<script src="cloud.js"></script>
+<script src="social.js"></script>
+<script>
+'use strict';
+const L = window.launcher, $ = id => document.getElementById(id);
+const ROSTER = [['YOSHIDA', 'THE SHADOW NINJA'], ['Y4NK', 'THE BRAWLER'], ['BIG RUSTY', 'THE SWAMP KING'], ['BLITZY', 'THE IRON GUNSLINGER']];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const mb = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB';
+
+// ----- the roster takes turns, like the game's title screen -----
+let heroI = 0;
+ROSTER.forEach((r, i) => { const im = new Image(); im.src = `hero${i}.png`; im.alt = ''; if (!i) im.className = 'on'; $('hero').appendChild(im); $('pips').insertAdjacentHTML('beforeend', `<i class="${i ? '' : 'on'}"></i>`); });
+setInterval(() => {
+  heroI = (heroI + 1) % ROSTER.length;
+  document.querySelectorAll('.hero img').forEach((im, i) => im.classList.toggle('on', i === heroI));
+  document.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i === heroI));
+  $('whoN').textContent = ROSTER[heroI][0]; $('whoS').textContent = ROSTER[heroI][1];
+}, 5200);
+
+// ----- status -----
+let state = 'start', installed = '0', canPlay = false;
+function show(s, d, kind) { const e = $('st'); e.textContent = s; e.className = 's' + (kind ? ' ' + kind : ''); $('det').innerHTML = d || ''; }
+function button(label, enabled) { $('playT').textContent = label; $('play').disabled = !enabled; canPlay = enabled && label === 'PLAY'; if (enabled && !/INPUT/.test(document.activeElement && document.activeElement.tagName)) $('play').focus(); }
+function progress(on, k) { $('prog').classList.toggle('on', on); $('pbar').style.width = (100 * (k || 0)).toFixed(1) + '%'; }
+// numbers get a v (v2.0); a name like BETA shows as it is
+const V = v => (/^\d/.test(String(v)) ? 'v' + v : String(v || '').toUpperCase());
+function renderNotes(notes) {
+  if (!notes || !notes.length) { $('notes').innerHTML = '<p class="empty">No patch notes yet.</p>'; return; }
+  $('notes').innerHTML = notes.slice(0, 12).map(n => `<div class="note"><div class="h">${esc(V(n.v))} <span>· ${esc(n.date || '')}</span></div><ul>${(n.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+  $('latest').textContent = 'LATEST ' + V(notes[0].v);
+}
+
+async function check(auto) {
+  state = 'checking'; button('WAIT', false); progress(false); show('Checking for updates…');
+  let info;
+  try { info = await L.check(); }
+  catch (e) {
+    state = 'offline'; button('PLAY', true);
+    show(`Offline — playing installed version ${V(installed)}`, 'Could not reach the update server. <button class="link" id="retry">Try again</button>', 'err');
+    $('retry').onclick = () => check(); if ($('notes').querySelector('.empty')) $('notes').innerHTML = '<p class="empty">Patch notes show up when you are online.</p>';
+    return;
+  }
+  renderNotes(info.notes);
+  if (info.needLauncher) {
+    show('A new launcher is needed for the latest version', `<button class="link" id="getl">Download the new launcher</button> · you can still play ${V(installed)}`, 'err');
+    $('getl').onclick = () => L.open(info.launcherUrl); state = 'ready'; button('PLAY', true); return;
+  }
+  if (!info.files) { state = 'ready'; button('PLAY', true); show(`Up to date · ${V(info.version)}`, 'Press PLAY or Enter. Controllers work too.', 'ok'); return; }
+  state = 'updating'; button('UPDATING', false); progress(true, 0);
+  show(`Updating to ${V(info.version)}…`, `${info.files} file${info.files === 1 ? '' : 's'} · ${mb(info.bytes)}`);
+  try {
+    await L.update();
+    const i = await L.info(); installed = i.installed; $('ver').textContent = V(installed);
+    progress(false); state = 'ready'; button('PLAY', true); show(`Up to date · v${installed}`, 'Update installed. Press PLAY.', 'ok');
+  } catch (e) {
+    progress(false); state = 'error'; button('PLAY', true);
+    show('The update did not finish', `Your current version ${V(installed)} still works. <button class="link" id="retry">Try again</button>`, 'err');
+    $('retry').onclick = () => check();
+  }
+}
+L.onProgress(p => { if (state !== 'updating') return; const k = p.bytes ? p.now / p.bytes : 1; progress(true, k); $('det').textContent = `${mb(p.now)} / ${mb(p.bytes)}${p.file ? ' · ' + p.file : ''}`; });
+L.onGame(g => { if (g.running) { state = 'running'; button('RUNNING', false); show('Game running'); } else check(); });
+
+$('play').onclick = () => { if (canPlay) { button('STARTING', false); L.play(); } };
+$('min').onclick = () => L.win('min'); $('close').onclick = () => L.win('close');
+addEventListener('keydown', e => { if (/INPUT|BUTTON/.test(document.activeElement && document.activeElement.tagName) && document.activeElement !== $('play')) return; if ((e.key === 'Enter' || e.key === ' ') && canPlay) { e.preventDefault(); $('play').click(); } });
+// controller: ✕ / A starts the game
+let padPrev = false;
+(function poll() { const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : []; const a = pads.some(p => p.buttons[0] && p.buttons[0].pressed || p.buttons[9] && p.buttons[9].pressed); if (a && !padPrev && canPlay && document.hasFocus()) $('play').click(); padPrev = a; requestAnimationFrame(poll); })();
+
+if (L.onFirewall) L.onFirewall(st => {
+  const msg = { asking: 'Windows will ask once to let online play through the firewall — click Yes.', ok: 'Online play is allowed through Windows Firewall.', declined: 'Firewall permission skipped — Windows may ask when you play online.' }[st];
+  if (msg && (state === 'ready' || state === 'offline' || st === 'asking')) $('det').textContent = msg;
+});
+if (L.onLauncherUpdated) L.onLauncherUpdated(() => { if (state === 'ready' || state === 'offline') $('det').textContent = 'BKS updated itself. The new version starts next time you open it.'; });
+L.info().then(i => { installed = i.installed; $('ver').textContent = V(installed); check(true); });
+setInterval(() => { if (state === 'ready' || state === 'offline') check(); }, 30 * 60 * 1000);
+</script>
+</body></html>

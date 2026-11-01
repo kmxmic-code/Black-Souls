@@ -3,6 +3,14 @@
  "notes": [
   {
    "v": "BETA",
+   "date": "2026-11-01",
+   "items": [
+    "The launcher is now called BKS and updates itself: no more downloading new launchers",
+    "No more admin / command window prompt when the launcher opens"
+   ]
+  },
+  {
+   "v": "BETA",
    "date": "2026-10-30",
    "items": [
     "Dodge is now on the DASH button: dash with no direction = spot dodge, forward = dash, back = back dash",
@@ -17,8 +25,69 @@
   }
  ],
  "launcher": {
-  "min": 2,
-  "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing"
+  "min": 5,
+  "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
+  "core": {
+   "version": 5,
+   "files": {
+    "preload.js": {
+     "sha": "026c8f2f6905db207838e49eb4768d2babc91883426bd68d1238d9cdce3bcfa2",
+     "size": 998
+    },
+    "icon.png": {
+     "sha": "b754a97c56c23533b2a1d13f1953ff972233440cfc7eb2cf43d6866625946158",
+     "size": 2594
+    },
+    "version.json": {
+     "sha": "c5980bb4de98c51aa0dd33bb9d809cb8d954b64099f8cf2b013dea7c25b82371",
+     "size": 14
+    },
+    "game_preload.js": {
+     "sha": "33538cf3cf051c3172c107450db62692261bb8023f24826845e135dc1aa1b244",
+     "size": 302
+    },
+    "main.js": {
+     "sha": "e427e529cb5bafee306aa75f42c23e3699eca049212155e5ce5a238b6532d501",
+     "size": 16527
+    },
+    "launcher/pixfont.css": {
+     "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
+     "size": 51835
+    },
+    "launcher/cloud.js": {
+     "sha": "a57ddddb31e2eb4411880e9d57e34fcc4b185775ea2bb32086b190040b577cff",
+     "size": 14818
+    },
+    "launcher/hero3.png": {
+     "sha": "b251bf6aae004f5b3a85f6c499b0b6fd79df8bc368a080625641ca44b5b82f3c",
+     "size": 43838
+    },
+    "launcher/icon.png": {
+     "sha": "b754a97c56c23533b2a1d13f1953ff972233440cfc7eb2cf43d6866625946158",
+     "size": 2594
+    },
+    "launcher/social.js": {
+     "sha": "7cd2073e46cec1881bd100d6dc5e2ca84e744612084eadeff65bbc407a0c992e",
+     "size": 8959
+    },
+    "launcher/index.html": {
+     "sha": "2b4967f949ebfb509e1edcb76527d4ce754b18b9f08a93dc08fb36ead36ddf4d",
+     "size": 14890
+    },
+    "launcher/hero2.png": {
+     "sha": "471fa5a68b0d29386436269147d61b284acc81d359495242401941e7022967da",
+     "size": 52378
+    },
+    "launcher/hero1.png": {
+     "sha": "e9fa526ab77263a20bb8e0cbd5a7bd62468a0e5c59589feaefdc7f328f96bc80",
+     "size": 40185
+    },
+    "launcher/hero0.png": {
+     "sha": "84c5dcf09caef505de240e509f71f5b54d79c00f981aac99c3158457ae4e9dcd",
+     "size": 41248
+    }
+   }
+  }
  },
  "files": {
   "alnamas.jpg": {
