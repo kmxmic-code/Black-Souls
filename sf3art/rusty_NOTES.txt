@@ -1,6 +1,0 @@
-Walk back = rusty_walk_clean played in reverse. Crouch block: frames 05-06 dropped (impact burst), hold 08-12.
-
-NO-PAUSE RULE (2026-10-31): never play two identical frames in a row and never repeat the last frame of one animation as the first frame of the next.
-- idle / walk / crouch idle / feral idle loops: play frames 00-15 (00-23 for feral idle); the 17th frame repeats frame 00.
-- crouch down: 00-04; stand up = 04..00.
-- feral transform: 00,01,05-18,20-26.
