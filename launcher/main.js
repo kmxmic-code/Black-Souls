@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 6;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 7;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -184,6 +184,9 @@ function coreUpdate(rel) {
     await fsp.rm(dir, { recursive: true, force: true }); await fsp.rename(tmp, dir);
     await fsp.writeFile(path.join(base, 'current.json'), JSON.stringify({ version: C.version, dir }));
     if (launcher && !launcher.isDestroyed()) launcher.webContents.send('launcher-updated', { version: C.version });
+    // apply it right away: if nobody is playing, BKS restarts itself into the new version (a game in progress is never interrupted;
+    // then it simply starts next time)
+    if (!game) setTimeout(() => { if (!game && !updating) { quitting = true; app.relaunch(); app.exit(0); } }, 1500);
   })().finally(() => { coreBusy = null; });
   return coreBusy;
 }

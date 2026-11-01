@@ -210,7 +210,7 @@ if (L.onFirewall) L.onFirewall(st => {
   const msg = { asking: 'Windows will ask once to let online play through the firewall — click Yes.', ok: 'Online play is allowed through Windows Firewall.', declined: 'Firewall permission skipped — Windows may ask when you play online.' }[st];
   if (msg && (state === 'ready' || state === 'offline' || st === 'asking')) $('det').textContent = msg;
 });
-if (L.onLauncherUpdated) L.onLauncherUpdated(() => { if (state === 'ready' || state === 'offline') $('det').textContent = 'BKS updated itself. The new version starts next time you open it.'; });
+if (L.onLauncherUpdated) L.onLauncherUpdated(() => { if (state === 'ready' || state === 'offline') $('det').textContent = state === 'running' ? 'BKS updated itself. The new version starts next time you open it.' : 'BKS updated itself. Restarting into the new version…'; });
 L.info().then(i => { installed = i.installed; $('ver').textContent = V(installed); check(true); });
 setInterval(() => { if (state === 'ready' || state === 'offline') check(); }, 30 * 60 * 1000);
 
