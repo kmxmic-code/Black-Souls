@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 8;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 9;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -228,6 +228,12 @@ ipcMain.handle('verify', async () => {
 });
 ipcMain.handle('folder', () => shell.openPath(GAME));
 ipcMain.handle('shortcut', () => desktopShortcut());
+// launcher settings: look for a new BKS version right now (it installs itself and restarts if nobody is playing)
+ipcMain.handle('lcheck', async () => {
+  const rel = await fetchRelease(), C = rel.launcher && rel.launcher.core, latest = C ? C.version : LAUNCHER_VERSION;
+  if (latest > LAUNCHER_VERSION) await coreUpdate(rel);
+  return { version: LAUNCHER_VERSION, latest, needRuntime: !!(rel.launcher && rel.launcher.min > BOOT.runtime), url: rel.launcher && rel.launcher.url };
+});
 // launcher <-> game messages (friends, invites, connection codes). Messages that need the game start it.
 ipcMain.on('l2g', (e, msg) => {
   if (!msg) return;

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('launcher', {
   verify: () => ipcRenderer.invoke('verify'),
   folder: () => ipcRenderer.invoke('folder'),
   shortcut: () => ipcRenderer.invoke('shortcut'),
+  lcheck: () => ipcRenderer.invoke('lcheck'),
   open: url => ipcRenderer.invoke('open', url),
   win: a => ipcRenderer.invoke('win', a),
   onProgress: cb => ipcRenderer.on('progress', (e, d) => cb(d)),

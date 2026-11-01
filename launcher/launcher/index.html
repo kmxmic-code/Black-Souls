@@ -27,7 +27,7 @@
   .game .th { width: 40px; height: 40px; border-radius: 6px; flex: none; background: #222 center/cover; image-rendering: pixelated; }
   .game b { display: block; font-size: 13px; font-weight: 600; } .game span { font-size: 11px; color: var(--muted); }
   .game.soon b { color: var(--muted); } .game .tag { margin-left: auto; font-size: 9px; letter-spacing: .1em; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
-  .lib .foot { margin-top: auto; padding: 8px; color: var(--dim); font-size: 11px; display: flex; justify-content: space-between; }
+  .lib .foot { padding: 8px; color: var(--dim); font-size: 11px; display: flex; justify-content: space-between; }
   /* game page */
   .page { position: absolute; left: 236px; right: 0; top: 36px; bottom: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
   .banner { position: relative; overflow: hidden; background: #0a0b10; }
@@ -92,6 +92,12 @@
   .menu { position: absolute; right: 0; bottom: 42px; min-width: 210px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 6px; box-shadow: 0 12px 30px rgba(0,0,0,.5); z-index: 9; }
   .menu button { display: block; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 6px; background: none; color: var(--text); font-size: 12px; cursor: pointer; }
   .menu button:hover { background: var(--panel); } .menu small { display: block; color: var(--dim); font-size: 10px; }
+  .menu .mh { padding: 6px 10px 4px; font-size: 10px; letter-spacing: .14em; color: var(--dim); font-weight: 600; }
+  .lset { position: relative; margin-top: auto; }
+  .lset > button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: none; color: var(--dim); font-size: 11px; cursor: pointer; text-align: left; }
+  .lset > button:hover, .lset > button[aria-expanded="true"] { background: var(--panel); color: var(--text); }
+  .lset > button .gear { font-size: 14px; } .lset > button .sp { flex: 1; }
+  .lset .menu { left: 0; right: auto; bottom: 40px; min-width: 230px; }
   .soonart small { display: block; margin-top: 14px; color: var(--dim); font-size: 12px; letter-spacing: .06em; }
   @media (max-width: 1000px) { .below { grid-template-columns: minmax(0, 1fr) 270px; } .cap .gl { font-size: 42px; } }
 </style></head>
@@ -102,7 +108,12 @@
     <h3>LIBRARY</h3>
     <button type="button" class="game on" data-g="bsas"><span class="th" style="background-image:url(hero1.png)"></span><div><b>B.S.A.S</b><span>Fighting</span></div></button>
     <button type="button" class="game soon" data-g="crown"><span class="th" style="background:#241628"></span><div><b>The Hollow Crown</b><span>Roguelike</span></div><span class="tag">SOON</span></button>
-    <div class="foot"><span>BKS Launcher</span><span id="lver"></span></div>
+    <div class="lset"><button type="button" id="lsetB" aria-haspopup="true" aria-expanded="false" title="BKS launcher settings"><span class="gear">⚙</span><span>BKS Launcher</span><span class="sp"></span><span id="lver"></span></button>
+      <div class="menu hide" id="lmenu" role="menu">
+        <div class="mh">BKS LAUNCHER</div>
+        <button type="button" id="lUpd" role="menuitem">Check for launcher updates<small id="lUpdS">Get the newest BKS</small></button>
+        <button type="button" id="mShortcut" role="menuitem">Create desktop shortcut<small>Put a BKS icon on your desktop</small></button>
+      </div></div>
   </nav>
   <main class="page">
     <section class="banner" id="banner">
@@ -116,12 +127,12 @@
         <button type="button" class="play" id="play" disabled><i class="fill" id="pfill"></i><span id="playT">WAIT</span></button>
         <div class="status"><div class="s" id="st">Starting…</div><div class="d" id="det"></div><div class="prog" id="prog"><i id="pbar"></i></div></div>
         <div class="ver">INSTALLED<b id="ver">—</b></div>
-        <div class="more"><button type="button" id="moreB" aria-label="More options" aria-haspopup="true">⋯</button>
+        <div class="more"><button type="button" id="moreB" aria-label="B.S.A.S options" title="B.S.A.S options" aria-haspopup="true">⋯</button>
           <div class="menu hide" id="menu" role="menu">
-            <button type="button" id="mCheck" role="menuitem">Check for updates<small>Look for a new version now</small></button>
+            <div class="mh">B.S.A.S</div>
+            <button type="button" id="mCheck" role="menuitem">Check for game updates<small>Look for a new B.S.A.S version now</small></button>
             <button type="button" id="mRepair" role="menuitem">Repair game files<small>Re-check every file and fix damaged ones</small></button>
             <button type="button" id="mFolder" role="menuitem">Open game folder<small>Where B.S.A.S is installed</small></button>
-            <button type="button" id="mShortcut" role="menuitem">Create desktop shortcut<small>Put a BKS icon on your desktop</small></button>
           </div></div>
       </div>
       <div class="card pn"><h2>WHAT'S NEW <small id="latest"></small></h2><div class="notes" id="notes"><p class="empty">Checking for news…</p></div></div>
@@ -224,17 +235,32 @@ document.querySelectorAll('.game').forEach(b => b.onclick = () => {
 });
 L.info().then(i => { $('lver').textContent = 'v' + i.launcher; });
 // ----- more menu: check, repair, open folder -----
-const menu = $('menu'), closeMenu = () => menu.classList.add('hide');
-$('moreB').onclick = e => { e.stopPropagation(); menu.classList.toggle('hide'); };
-addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
+// two separate menus: ⋯ next to PLAY is the game's, ⚙ in the sidebar is the launcher's
+const menu = $('menu'), lmenu = $('lmenu');
+const closeMenu = () => { menu.classList.add('hide'); lmenu.classList.add('hide'); $('lsetB').setAttribute('aria-expanded', 'false'); };
+$('moreB').onclick = e => { e.stopPropagation(); const open = menu.classList.contains('hide'); closeMenu(); if (open) menu.classList.remove('hide'); };
+$('lsetB').onclick = e => { e.stopPropagation(); const open = lmenu.classList.contains('hide'); closeMenu(); if (open) { lmenu.classList.remove('hide'); $('lsetB').setAttribute('aria-expanded', 'true'); } };
+addEventListener('click', e => { if (!menu.contains(e.target) && !lmenu.contains(e.target)) closeMenu(); });
 addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 $('mCheck').onclick = () => { closeMenu(); if (state !== 'updating' && state !== 'running') check(); };
 $('mFolder').onclick = () => { closeMenu(); L.folder && L.folder(); };
 if (!L.shortcut || !/Windows/.test(navigator.userAgent)) $('mShortcut').classList.add('hide');
-$('mShortcut').onclick = async () => {
-  closeMenu(); let r = null; try { r = await L.shortcut(); } catch (e) {}
-  if (state === 'updating' || state === 'checking') return;   // don't cover update progress
-  $('det').textContent = r && r.ok ? (r.existed ? 'Desktop shortcut refreshed — BKS is on your desktop.' : 'Desktop shortcut created — BKS is on your desktop.') : 'Could not create the desktop shortcut.';
+if (!L.lcheck) $('lUpd').classList.add('hide');
+// launcher-menu results show inside the launcher menu itself, so they never mix with the game's status line
+const shortS = $('mShortcut').querySelector('small');
+$('mShortcut').onclick = async e => {
+  e.stopPropagation(); let r = null; try { r = await L.shortcut(); } catch (err) {}
+  shortS.textContent = r && r.ok ? (r.existed ? '✓ Shortcut refreshed on your desktop' : '✓ Shortcut added to your desktop') : 'Could not create the shortcut';
+};
+let lBusy = false;
+$('lUpd').onclick = async e => {
+  e.stopPropagation(); if (lBusy || !L.lcheck) return; lBusy = true; $('lUpdS').textContent = 'Checking…';
+  try {
+    const r = await L.lcheck();
+    $('lUpdS').textContent = r.needRuntime ? 'A new installer is needed — opening download' : r.latest > r.version ? `Updated to v${r.latest} — restarting…` : `Up to date · v${r.version}`;
+    if (r.needRuntime && r.url) L.open(r.url);
+  } catch (err) { $('lUpdS').textContent = 'Could not reach the update server'; }
+  lBusy = false;
 };
 $('mRepair').onclick = async () => {
   closeMenu(); if (state === 'updating' || state === 'running' || !L.verify) return;
