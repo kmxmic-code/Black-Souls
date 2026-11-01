@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 12;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 13;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -137,6 +137,18 @@ function firewallRule() {
   });
 }
 
+// ---------- full screen: B.S.A.S opens full screen unless the player turned it off; the last choice is remembered ----------
+const displayFile = () => path.join(app.getPath('userData'), 'display.json');
+const fullPref = () => { const d = readJSON(displayFile()); return !d || d.fullscreen !== false; };
+const saveFull = on => { try { fs.writeFileSync(displayFile(), JSON.stringify({ fullscreen: !!on })); } catch (e) {} };
+// the game's own FULLSCREEN option (Display menu) drives the window instead of the page, so it matches F11 / Alt+Enter
+const GAME_FS = `(() => { const L = window.bsasLink; if (!L || !L.fullscreen || window.__bksFS) return; window.__bksFS = 1; let on = L.isFull();
+  const st = () => document.getElementById('stage') || document.documentElement;
+  Object.defineProperty(Document.prototype, 'fullscreenElement', { configurable: true, get() { return on ? st() : null; } });
+  Element.prototype.requestFullscreen = function () { L.fullscreen(true); return Promise.resolve(); };
+  Document.prototype.exitFullscreen = function () { L.fullscreen(false); return Promise.resolve(); };
+  L.onFullscreen(v => { if (v === on) return; on = v; document.dispatchEvent(new Event('fullscreenchange')); }); })();`;
+
 // ---------- windows ----------
 let launcher = null, game = null, quitting = false, gameReady = false, toGame = [];
 function createLauncher() {
@@ -155,12 +167,15 @@ function createGame() {
   if (game) { game.focus(); return; }
   game = new BrowserWindow({
     width: 1280, height: 720, useContentSize: true, minWidth: 640, minHeight: 360, backgroundColor: '#07040d',
-    title: 'B.S.A.S', icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'bsas_icon.png')) ? 'bsas_icon.png' : 'icon.png'), autoHideMenuBar: true,
+    title: 'B.S.A.S', icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'bsas_icon.png')) ? 'bsas_icon.png' : 'icon.png'), autoHideMenuBar: true, fullscreen: fullPref(),
     webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: path.join(__dirname, 'game_preload.js') },
   });
   gameReady = false;
   game.setMenuBarVisibility(false);
   game.webContents.on('did-finish-load', () => game.webContents.insertCSS(GAME_CSS));
+  game.webContents.on('dom-ready', () => game.webContents.executeJavaScript(GAME_FS).catch(() => {}));
+  const fsChanged = on => { saveFull(on); if (game && !game.isDestroyed()) game.webContents.send('fs', on); if (launcher) launcher.webContents.send('fs', on); };
+  game.on('enter-full-screen', () => fsChanged(true)); game.on('leave-full-screen', () => fsChanged(false));
   game.webContents.on('before-input-event', (e, input) => {
     if (input.type !== 'keyDown') return;
     if (input.key === 'F11' || (input.alt && input.key === 'Enter')) { game.setFullScreen(!game.isFullScreen()); e.preventDefault(); }
@@ -228,6 +243,11 @@ ipcMain.handle('verify', async () => {
 });
 ipcMain.handle('folder', () => shell.openPath(GAME));
 ipcMain.handle('shortcut', () => desktopShortcut());
+// full screen: read / set from the launcher menu, and from the game window
+ipcMain.handle('getfs', () => fullPref());
+ipcMain.handle('setfs', (e, on) => { saveFull(on); if (game) game.setFullScreen(!!on); return !!on; });
+ipcMain.on('fs-get', e => { e.returnValue = game ? game.isFullScreen() : fullPref(); });
+ipcMain.on('fs-set', (e, on) => { if (game) game.setFullScreen(!!on); });
 // launcher settings: look for a new BKS version right now (it installs itself and restarts if nobody is playing)
 ipcMain.handle('lcheck', async () => {
   const rel = await fetchRelease(), C = rel.launcher && rel.launcher.core, latest = C ? C.version : LAUNCHER_VERSION;
