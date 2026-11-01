@@ -145,7 +145,7 @@
 'use strict';
 const L = window.launcher, $ = id => document.getElementById(id);
 // banner slides: the two PixelLab key arts first, then a fighter on his stage
-const ROSTER = [['key1.png', '', 'FOUR FIGHTERS · 14 STAGES'], ['key2.png', '', 'ONLINE · VERSUS · ARCADE · TRAINING'], ['hero0.png', 'YOSHIDA', 'THE SHADOW NINJA'], ['hero1.png', 'Y4NK', 'THE BRAWLER'], ['hero2.png', 'BIG RUSTY', 'THE SWAMP KING'], ['hero3.png', 'BLITZY', 'THE IRON GUNSLINGER']];
+const ROSTER = [['key1.png', '', 'FOUR FIGHTERS · 14 STAGES'], ['hero0.png', 'YOSHIDA', 'THE SHADOW NINJA'], ['hero1.png', 'Y4NK', 'THE BRAWLER'], ['hero2.png', 'BIG RUSTY', 'THE SWAMP KING'], ['hero3.png', 'BLITZY', 'THE IRON GUNSLINGER']];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const mb = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB';
 
