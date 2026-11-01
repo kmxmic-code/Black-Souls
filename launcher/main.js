@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 7;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 8;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -96,6 +96,16 @@ function shortcuts() {
     } catch (e) {}
   }
   try { fs.writeFileSync(flag, JSON.stringify(made)); } catch (e) {}
+}
+// "Create desktop shortcut" from the launcher menu: (re)makes BKS.lnk on the desktop on request, even if the player deleted it before
+function desktopShortcut() {
+  if (process.platform !== 'win32') return { ok: false, reason: 'windows' };
+  const lnk = path.join(app.getPath('desktop'), 'BKS.lnk'), existed = fs.existsSync(lnk);
+  const opts = { target: process.execPath, cwd: path.dirname(process.execPath), icon: process.execPath, iconIndex: 0, description: 'BKS', appUserModelId: 'com.blacksouls.allstar' };
+  try { if (!shell.writeShortcutLink(lnk, existed ? 'replace' : 'create', opts)) return { ok: false }; } catch (e) { return { ok: false }; }
+  const flag = path.join(app.getPath('userData'), 'shortcuts.json'), made = readJSON(flag) || {};
+  made.desktop = true; try { fs.writeFileSync(flag, JSON.stringify(made)); } catch (e) {}
+  return { ok: true, existed };
 }
 
 // ---------- Windows Firewall: allow online play once, so Windows stops asking ----------
@@ -217,6 +227,7 @@ ipcMain.handle('verify', async () => {
   await fsp.writeFile(INSTALLED, JSON.stringify(inst)); return { bad };
 });
 ipcMain.handle('folder', () => shell.openPath(GAME));
+ipcMain.handle('shortcut', () => desktopShortcut());
 // launcher <-> game messages (friends, invites, connection codes). Messages that need the game start it.
 ipcMain.on('l2g', (e, msg) => {
   if (!msg) return;

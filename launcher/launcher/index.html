@@ -121,6 +121,7 @@
             <button type="button" id="mCheck" role="menuitem">Check for updates<small>Look for a new version now</small></button>
             <button type="button" id="mRepair" role="menuitem">Repair game files<small>Re-check every file and fix damaged ones</small></button>
             <button type="button" id="mFolder" role="menuitem">Open game folder<small>Where B.S.A.S is installed</small></button>
+            <button type="button" id="mShortcut" role="menuitem">Create desktop shortcut<small>Put a BKS icon on your desktop</small></button>
           </div></div>
       </div>
       <div class="card pn"><h2>WHAT'S NEW <small id="latest"></small></h2><div class="notes" id="notes"><p class="empty">Checking for news…</p></div></div>
@@ -229,6 +230,12 @@ addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
 addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 $('mCheck').onclick = () => { closeMenu(); if (state !== 'updating' && state !== 'running') check(); };
 $('mFolder').onclick = () => { closeMenu(); L.folder && L.folder(); };
+if (!L.shortcut || !/Windows/.test(navigator.userAgent)) $('mShortcut').classList.add('hide');
+$('mShortcut').onclick = async () => {
+  closeMenu(); let r = null; try { r = await L.shortcut(); } catch (e) {}
+  if (state === 'updating' || state === 'checking') return;   // don't cover update progress
+  $('det').textContent = r && r.ok ? (r.existed ? 'Desktop shortcut refreshed — BKS is on your desktop.' : 'Desktop shortcut created — BKS is on your desktop.') : 'Could not create the desktop shortcut.';
+};
 $('mRepair').onclick = async () => {
   closeMenu(); if (state === 'updating' || state === 'running' || !L.verify) return;
   state = 'checking'; button('WAIT', false); show('Checking every game file…', 'This takes a few seconds.');

@@ -5,6 +5,13 @@
    "v": "BETA",
    "date": "2026-11-01",
    "items": [
+    "Launcher: new \"Create desktop shortcut\" option in the ⋯ menu — brings the BKS icon back to your desktop anytime"
+   ]
+  },
+  {
+   "v": "BETA",
+   "date": "2026-11-01",
+   "items": [
     "New name: B.S.A.S (Black Souls All Star)",
     "Full PixelLab overhaul: new fonts, HUD, menus, title, screens and logo",
     "14 stages with new PixelLab backdrops; new Al Namas, The Pit and desert road",
@@ -41,18 +48,18 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 7,
+   "version": 8,
    "files": {
     "preload.js": {
-     "sha": "8747d27498a46c5ca8dfcfbea0589e87f5c1d34f1dd330bf76cf1c99fb36661a",
-     "size": 1090
+     "sha": "734d9198ded9a6f6399d227bb31b39aba9c7a31c66414b6e8210d7d65c10fdb0",
+     "size": 1140
     },
     "icon.png": {
      "sha": "7a97fb0daa1ea36053773d55828316bf32a76f06f00f4e61b7bfa00b8acfbf93",
      "size": 6412
     },
     "version.json": {
-     "sha": "bf32a9b6239d24409778a030d085661cdbbe11a0b88302fc6da6136cc3ab54db",
+     "sha": "765b4282ab7a5adb7480e06369d26c5ed3ad6ad84a3260231dc06d2920a26b65",
      "size": 14
     },
     "game_preload.js": {
@@ -60,8 +67,8 @@
      "size": 302
     },
     "main.js": {
-     "sha": "3aaf4a7efa3a6dea4d4a503fc8f729c086def961db983dfb0e4500a8b11f1a17",
-     "size": 18080
+     "sha": "02277a635f8ded522186faf0de765597462cd0b5060b665008cb1fbf11d2d1c8",
+     "size": 19009
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -84,8 +91,8 @@
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "6b3f3db3b14de81d2b2ec97880c6171d7346b41750f18ec3fb8d18af878ae6ca",
-     "size": 23004
+     "sha": "aaf8b7ec4469c9eaf58d19da4e4fca65d4f9ab41005aa4bb3718726edd18631e",
+     "size": 23660
     },
     "launcher/hero2.png": {
      "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
