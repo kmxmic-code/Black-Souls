@@ -108,7 +108,6 @@
     <div class="brand"><img src="bks.png" alt="BKS"><div><b>BKS</b><span>GAMES</span></div></div>
     <h3>LIBRARY</h3>
     <button type="button" class="game on" data-g="bsas"><span class="th" style="background-image:url(bsas_icon.png);background-color:transparent;background-size:contain;background-repeat:no-repeat"></span><div><b>B.S.A.S</b><span>Fighting</span></div></button>
-    <button type="button" class="game soon" data-g="crown"><span class="th" style="background:#241628"></span><div><b>The Hollow Crown</b><span>Roguelike</span></div><span class="tag">SOON</span></button>
     <div class="lset"><button type="button" id="lsetB" aria-haspopup="true" aria-expanded="false" title="BKS launcher settings"><span class="gear">⚙</span><span>BKS Launcher</span><span class="sp"></span><span id="lver"></span></button>
       <div class="menu hide" id="lmenu" role="menu">
         <div class="mh">BKS LAUNCHER</div>
@@ -122,7 +121,6 @@
       <div id="hero"></div>
       <div class="cap" id="cap"><div class="gl">B.S.A.S</div><div class="gs">BLACK SOULS ALL STAR</div><div class="who"><b id="whoN"></b><span id="whoDot" class="hide"> · </span><span id="whoS">FOUR FIGHTERS · 14 STAGES</span></div></div>
       <div class="pips" id="pips"></div>
-      <div class="soonart hide" id="soon"><div><b>THE HOLLOW CROWN</b><span>COMING SOON</span><small>A roguelike from BKS. It will appear right here and install with one click.</small></div></div>
     </section>
     <section class="below">
       <div class="action">
@@ -211,7 +209,7 @@ L.onProgress(p => {
 });
 L.onGame(g => { if (g.running) { state = 'running'; button('RUNNING', false); show('Game running'); } else check(); });
 
-$('play').onclick = () => { if (canPlay && $('soon').classList.contains('hide')) { button('STARTING', false); L.play(); } };   // only from the B.S.A.S page
+$('play').onclick = () => { if (canPlay && (!$('soon') || $('soon').classList.contains('hide'))) { button('STARTING', false); L.play(); } };   // only from the B.S.A.S page
 $('min').onclick = () => L.win('min'); $('close').onclick = () => L.win('close');
 addEventListener('keydown', e => { if (/INPUT|BUTTON/.test(document.activeElement && document.activeElement.tagName) && document.activeElement !== $('play')) return; if ((e.key === 'Enter' || e.key === ' ') && canPlay) { e.preventDefault(); $('play').click(); } });
 // controller: ✕ / A starts the game
@@ -234,7 +232,7 @@ setInterval(() => { if (state === 'ready' || state === 'offline') check(); }, 30
 document.querySelectorAll('.game').forEach(b => b.onclick = () => {
   document.querySelectorAll('.game').forEach(x => x.classList.toggle('on', x === b));
   const soon = b.dataset.g !== 'bsas';
-  $('soon').classList.toggle('hide', !soon); $('cap').classList.toggle('hide', soon); $('pips').classList.toggle('hide', soon); $('hero').classList.toggle('hide', soon);
+  if ($('soon')) $('soon').classList.toggle('hide', !soon); $('cap').classList.toggle('hide', soon); $('pips').classList.toggle('hide', soon); $('hero').classList.toggle('hide', soon);
   document.querySelector('.below').classList.toggle('hide', soon);
 });
 L.info().then(i => { $('lver').textContent = 'v' + i.launcher; });

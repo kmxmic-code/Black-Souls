@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 14;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 15;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)

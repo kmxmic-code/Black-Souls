@@ -66,7 +66,7 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 14,
+   "version": 15,
    "files": {
     "preload.js": {
      "sha": "c52b284dcf947ca8fe7b22b149854c59ad682a582487d915dfc17aa425fa5d63",
@@ -81,7 +81,7 @@
      "size": 12959
     },
     "version.json": {
-     "sha": "888be414474a9dcba1f8e051ea8cbcfab30272df1ecc52eb0a733b6e5028fbe5",
+     "sha": "9d2f8eda435011e1081ad24abda40b51ddc12ded931fa099a56cad319a2e5e73",
      "size": 15
     },
     "game_preload.js": {
@@ -89,7 +89,7 @@
      "size": 786
     },
     "main.js": {
-     "sha": "e3a2755667ebd43baf9d3b853c1f9fbfc3cfa3346dd746a540abe860294f578d",
+     "sha": "0cd25fb376fd5d113689326ceacd76c0129fc297427eff580926cbd4b84395cb",
      "size": 22637
     },
     "launcher/pixfont.css": {
@@ -117,8 +117,8 @@
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "a2849f45b61a273a13cc6262c6d42c9db3c998f8b5d5a9a1b02760e09613924e",
-     "size": 28133
+     "sha": "ef2c103d9dafeadbedd8396e66ade70167a70e08142e5fb57db15a4201733cf3",
+     "size": 27762
     },
     "launcher/hero2.png": {
      "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
