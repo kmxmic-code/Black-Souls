@@ -103,7 +103,7 @@
   @media (max-width: 1000px) { .below { grid-template-columns: minmax(0, 1fr) 270px; } .cap .gl { font-size: 42px; } }
 </style></head>
 <body>
-  <div class="top"><img src="bks.png" alt="" class="ic"><span class="t">BKS</span><span class="sp"></span><button type="button" id="min" aria-label="Minimize">—</button><button type="button" class="x" id="close" aria-label="Close">✕</button></div>
+  <div class="top"><img src="bks.png" alt="" class="ic"><span class="t">BKS</span><span class="sp"></span><button type="button" id="lfsB" aria-label="Full screen" title="Full screen (F11)">⛶</button><button type="button" id="min" aria-label="Minimize">—</button><button type="button" class="x" id="close" aria-label="Close">✕</button></div>
   <nav class="lib">
     <div class="brand"><img src="bks.png" alt="BKS"><div><b>BKS</b><span>GAMES</span></div></div>
     <h3>LIBRARY</h3>
@@ -113,6 +113,7 @@
       <div class="menu hide" id="lmenu" role="menu">
         <div class="mh">BKS LAUNCHER</div>
         <button type="button" id="lUpd" role="menuitem">Check for launcher updates<small id="lUpdS">Get the newest BKS</small></button>
+        <button type="button" id="lFull" role="menuitemcheckbox" aria-checked="true">Full screen: <b id="lFullV">ON</b><small>The launcher fills the screen · F11 or Alt+Enter switches</small></button>
         <button type="button" id="mShortcut" role="menuitem">Create desktop shortcut<small>Put a BKS icon on your desktop</small></button>
       </div></div>
   </nav>
@@ -253,6 +254,12 @@ $('mFull').onclick = async e => { e.stopPropagation(); showFull(await L.setfs(!f
 $('mFolder').onclick = () => { closeMenu(); L.folder && L.folder(); };
 if (!L.shortcut || !/Windows/.test(navigator.userAgent)) $('mShortcut').classList.add('hide');
 if (!L.lcheck) $('lUpd').classList.add('hide');
+// launcher full screen (its own setting; the game's is in the ⋯ menu)
+let lFullOn = false;
+const showLFull = on => { lFullOn = !!on; $('lFullV').textContent = lFullOn ? 'ON' : 'OFF'; $('lFull').setAttribute('aria-checked', String(lFullOn)); $('lfsB').textContent = lFullOn ? '🗗' : '⛶'; $('lfsB').title = lFullOn ? 'Exit full screen (F11)' : 'Full screen (F11)'; };
+if (L.getlfs) { L.getlfs().then(showLFull); L.onLfs && L.onLfs(showLFull); } else { $('lFull').classList.add('hide'); $('lfsB').classList.add('hide'); }
+$('lFull').onclick = async e => { e.stopPropagation(); showLFull(await L.setlfs(!lFullOn)); };
+$('lfsB').onclick = async () => showLFull(await L.setlfs(!lFullOn));
 // launcher-menu results show inside the launcher menu itself, so they never mix with the game's status line
 const shortS = $('mShortcut').querySelector('small');
 $('mShortcut').onclick = async e => {

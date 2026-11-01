@@ -5,6 +5,14 @@
    "v": "BETA",
    "date": "2026-11-01",
    "items": [
+    "The BKS launcher now opens full screen too: switch it in ⚙ BKS Launcher, with the ⛶ button at the top, or with F11 / Alt+Enter (remembered)",
+    "B.S.A.S keeps its own full-screen setting in the ⋯ menu"
+   ]
+  },
+  {
+   "v": "BETA",
+   "date": "2026-11-01",
+   "items": [
     "B.S.A.S now opens in full screen; turn it off in the ⋯ menu or with F11 / Alt+Enter, and your choice is remembered",
     "The game's own FULLSCREEN option (Display) now controls the whole window and stays in sync"
    ]
@@ -58,11 +66,11 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 13,
+   "version": 14,
    "files": {
     "preload.js": {
-     "sha": "e7d83da299d2ebb7c8dc45550bfd2d1f243cebb85e5b72402e4c50fc9e12e683",
-     "size": 1333
+     "sha": "c52b284dcf947ca8fe7b22b149854c59ad682a582487d915dfc17aa425fa5d63",
+     "size": 1486
     },
     "icon.png": {
      "sha": "7a97fb0daa1ea36053773d55828316bf32a76f06f00f4e61b7bfa00b8acfbf93",
@@ -73,7 +81,7 @@
      "size": 12959
     },
     "version.json": {
-     "sha": "5b983068f30f0ec96fd971e27cf5eb72efed9be015a5384e84feb7e7d49c9139",
+     "sha": "888be414474a9dcba1f8e051ea8cbcfab30272df1ecc52eb0a733b6e5028fbe5",
      "size": 15
     },
     "game_preload.js": {
@@ -81,8 +89,8 @@
      "size": 786
     },
     "main.js": {
-     "sha": "bb264d93ad7803a7b091ffd8823557de269883f53b71067cfc8b32c8dacd0f07",
-     "size": 21575
+     "sha": "e3a2755667ebd43baf9d3b853c1f9fbfc3cfa3346dd746a540abe860294f578d",
+     "size": 22637
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -109,8 +117,8 @@
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "f17e026969e75565ab3d53750f6a793348057f1d5a7b20aafb4532c87fea1b7e",
-     "size": 27146
+     "sha": "a2849f45b61a273a13cc6262c6d42c9db3c998f8b5d5a9a1b02760e09613924e",
+     "size": 28133
     },
     "launcher/hero2.png": {
      "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
