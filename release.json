@@ -5,8 +5,9 @@
    "v": "BETA",
    "date": "2026-11-01",
    "items": [
-    "Launcher settings now live under ⚙ BKS Launcher at the bottom of the sidebar: check for launcher updates, create desktop shortcut",
-    "The ⋯ menu next to PLAY is just for B.S.A.S: game updates, repair, game folder"
+    "Launcher settings now live under \u2699 BKS Launcher at the bottom of the sidebar: check for launcher updates, create desktop shortcut",
+    "The \u22ef menu next to PLAY is just for B.S.A.S: game updates, repair, game folder",
+    "B.S.A.S has a new icon and new PixelLab key art on its launcher page"
    ]
   },
   {
@@ -49,7 +50,7 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 9,
+   "version": 10,
    "files": {
     "preload.js": {
      "sha": "181e4cb5cdc8607ce95241327031e716405727cefb22f1274a642d302e8e3d8a",
@@ -59,17 +60,21 @@
      "sha": "7a97fb0daa1ea36053773d55828316bf32a76f06f00f4e61b7bfa00b8acfbf93",
      "size": 6412
     },
+    "bsas_icon.png": {
+     "sha": "ce0fafd671789e5a043f3dff6056d7e74244701c3096931602518e9ddd6511dc",
+     "size": 12959
+    },
     "version.json": {
-     "sha": "716e125a9f22b369969202bb7ef027a24fcd012996aa8727bd7bcc655cb20891",
-     "size": 14
+     "sha": "5eef17b8bc15ba0fd0d9f710508b85d46886fa853ee0f220648d36551775998d",
+     "size": 15
     },
     "game_preload.js": {
      "sha": "33538cf3cf051c3172c107450db62692261bb8023f24826845e135dc1aa1b244",
      "size": 302
     },
     "main.js": {
-     "sha": "20f519d149ead234261592c8ff0ff69c8baf7aa663623990373a4d3e33403d22",
-     "size": 19493
+     "sha": "33014efc8d26b6579eeb8dca40ac9a6cfe8d7279e3dec01c3fde772f5888961c",
+     "size": 19567
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -87,13 +92,17 @@
      "sha": "3d206c1af4e156b076dfb620ec4a93f7fdfb537716f9ef2449b2f43c486a103b",
      "size": 5570
     },
+    "launcher/bsas_icon.png": {
+     "sha": "242ca97f9f97d5743caa791c062bb2fb93cccdc5bcd4d143e6a46db211263713",
+     "size": 10101
+    },
     "launcher/social.js": {
      "sha": "7cd2073e46cec1881bd100d6dc5e2ca84e744612084eadeff65bbc407a0c992e",
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "41058e16bf887dcfdaac43bf3672640a4b0cdd0f7ebdb0b5970c872318f2c762",
-     "size": 25909
+     "sha": "6599b40635e27f56237be3bfdadbe4aa57027407d2b548fd12dd0c2c7932b005",
+     "size": 26321
     },
     "launcher/hero2.png": {
      "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
@@ -107,9 +116,17 @@
      "sha": "6554b150f8978ae0674b3deca3a295615f73b09e5baf513f71a3e5d50e56e1d6",
      "size": 206421
     },
+    "launcher/key1.png": {
+     "sha": "8f0757fb10ac16e87992b8c2313973cb47918c1818c54e26cba094e2e036b929",
+     "size": 121900
+    },
     "launcher/bks.png": {
      "sha": "824290a3428a07bdf918f591605d5820e8108c9ef318281a238211bd2cf51cca",
      "size": 5160
+    },
+    "launcher/key2.png": {
+     "sha": "319d8e96d3495cb75512c6567176e9cc83d0e5326eed8508bd95ca52b900250f",
+     "size": 144224
     }
    }
   }

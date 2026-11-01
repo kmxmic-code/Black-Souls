@@ -3,7 +3,7 @@
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 9;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 10;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -155,7 +155,7 @@ function createGame() {
   if (game) { game.focus(); return; }
   game = new BrowserWindow({
     width: 1280, height: 720, useContentSize: true, minWidth: 640, minHeight: 360, backgroundColor: '#07040d',
-    title: 'B.S.A.S', icon: path.join(__dirname, 'icon.png'), autoHideMenuBar: true,
+    title: 'B.S.A.S', icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'bsas_icon.png')) ? 'bsas_icon.png' : 'icon.png'), autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: path.join(__dirname, 'game_preload.js') },
   });
   gameReady = false;
