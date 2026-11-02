@@ -1079,7 +1079,7 @@ class Game {
     if (this.sel.online) {   // online host: lock both picks, choose the stage, then the net layer starts the match
       this.p[0].ch = CHAR_ORDER[this.sel.ch[0]]; this.p[0].pal = a; this.p[1].ch = CHAR_ORDER[this.sel.ch[1]];
       this.p[1].pal = b === a && this.p[1].ch === this.p[0].ch ? PAL_ORDER[(this.sel.idx[1] + 1) % PAL_ORDER.length] : b;
-      const net = this.env.online; return this.goStageSelect(() => net && net.startHostingFromSelect());
+      const net = this.env.online; return this.goStageSelect(() => net && net.role === 'host' ? net.startHostingFromSelect() : this.startMatch());
     }
     this.p[0].pal = a; this.p[0].ch = CHAR_ORDER[this.sel.ch[0]];
     if (this.mode === 'versus') {
@@ -1107,6 +1107,7 @@ class Game {
   }
   updateStageSelect() {
     const S = this.ssel, N = ARENAS.length + 1;   // entry 0 is RANDOM
+    if (!S) { this.goTitle(); return; }   // the select was torn down mid-frame (online opponent left): back to the title instead of crashing
     if (S.done) { if (this.pt - S.done > 650 && (!this.env.skinsReady || this.env.skinsReady() || this.pt - S.done > 5000)) { S.done = 0; const f = S.then; this.ssel = null; f(); } return; }
     const ms = this.mode === 'versus' ? [this.mi[0], this.mi[1]] : [this.mi[0]];
     for (const m of ms) {
@@ -15417,7 +15418,7 @@ class Net {
   // why the link is or isn't direct, for the HUD
   linkLabel() {
     if (this.ffaHosting()) return this.ffa.links.length && this.ffa.links.every(l => l.g && l.g.readyState === 'open') ? 'DIRECT' : 'P2P';
-    if (this.direct()) return 'DIRECT';
+    if (this.direct()) return (this.queued || 0) > 8192 ? 'DIRECT · LINK CHOKED' : 'DIRECT';
     const st = this.rtcState || 'connecting';
     return st === 'blocked' ? 'RELAY · P2P BLOCKED' : st === 'error' ? 'RELAY · P2P ERROR' : st === 'failed' ? 'RELAY · NO P2P ROUTE' : 'RELAY · LINKING P2P';
   }
@@ -15660,7 +15661,13 @@ class Net {
     }
     g.netVotes = this.votes;
     // the room carries presence about 30 times a second; sending more only queues frames and adds lag
-    if (this.direct()) { this.sendDirect({ s: this.snapshot() }); if (!this.spectators) return; }   // direct link: every frame, 60 a second (spectators still watch through the room)
+    if (this.direct()) {   // direct link: every frame, 60 a second (spectators still watch through the room)
+      // if the link can't keep up, frames pile up in the channel's send buffer and the ping balloons into seconds: skip frames until it drains
+      const q = this.dc.bufferedAmount || 0; const now0 = performance.now();
+      if (q < 2048 || (q < 16384 && now0 - (this.lastDirectSent || 0) >= 50)) { this.lastDirectSent = now0; this.sendDirect({ s: this.snapshot() }); }
+      this.queued = q;
+      if (!this.spectators) return;
+    }
     const now = performance.now(), gap = now - (this.lastSnapSent || 0); if (gap < (this.urgent ? 24 : 32)) return; this.lastSnapSent = now; this.urgent = false;
     this.gr.presence({ s: this.snapshot() }).catch(() => {});
   }
@@ -15763,7 +15770,7 @@ class Net {
       // send my buttons the moment they change (at most ~30 a second), otherwise a light keepalive every 100 ms
       const now = performance.now(), sig = bits + '|' + JSON.stringify(this.pressCount) + '|' + (this.myVote | 0);
       const msg = () => ({ in: bits, pc: this.pressCount, ack: this.lastPlayed, ts: Math.round(now), pong: this.hostTs, hd: this.hostTsAt ? Math.round(now - this.hostTsAt) : 0, vote: this.myVote | 0 });
-      if (this.direct()) { if (sig !== this.lastSig || now - (this.lastInSent || 0) >= 16) { this.lastSig = sig; this.lastInSent = now; this.sendDirect(msg()); } }
+      if (this.direct()) { const q = this.dc.bufferedAmount || 0; this.queued = q; if ((sig !== this.lastSig && q < 16384) || (now - (this.lastInSent || 0) >= 16 && q < 1024)) { this.lastSig = sig; this.lastInSent = now; this.sendDirect(msg()); } }
       else if (this.gr && ((sig !== this.lastSig && now - (this.lastInSent || 0) >= 25) || now - (this.lastInSent || 0) >= 60)) {
         this.lastSig = sig; this.lastInSent = now;
         this.gr.presence(msg()).catch(() => {});
@@ -16044,7 +16051,8 @@ class OnlineFFA {
     S.tg = this.slots.map((s, i) => (s ? s.name : `CPU ${i + 1}`));
     for (const L of this.links) {
       const own = Object.assign({}, S, { ev: n.events.filter(e => e[0] > L.ack).slice(0, 14), pg: L.echoTs, hd: L.echoAt ? Math.round(performance.now() - L.echoAt) : 0 });
-      this.send(L.g, { s: own });
+      const q = L.g ? L.g.bufferedAmount || 0 : 0;   // same rule as the 1v1 link: never let frames pile up in a slow channel
+      if (q < 2048 || (q < 16384 && performance.now() - (L.lastSent || 0) >= 50)) { L.lastSent = performance.now(); this.send(L.g, { s: own }); }
     }
     n.pingMs = this.links.length ? Math.max(...this.links.map(l => l.ping || 0)) : 0;
   }

@@ -3,62 +3,10 @@
  "notes": [
   {
    "v": "BETA",
-   "date": "2026-11-01",
+   "date": "2026-11-02",
    "items": [
-    "The BKS launcher now opens full screen too: switch it in ⚙ BKS Launcher, with the ⛶ button at the top, or with F11 / Alt+Enter (remembered)",
-    "B.S.A.S keeps its own full-screen setting in the ⋯ menu"
-   ]
-  },
-  {
-   "v": "BETA",
-   "date": "2026-11-01",
-   "items": [
-    "B.S.A.S now opens in full screen; turn it off in the ⋯ menu or with F11 / Alt+Enter, and your choice is remembered",
-    "The game's own FULLSCREEN option (Display) now controls the whole window and stays in sync"
-   ]
-  },
-  {
-   "v": "BETA",
-   "date": "2026-11-01",
-   "items": [
-    "Launcher settings now live under ⚙ BKS Launcher at the bottom of the sidebar: check for launcher updates, create desktop shortcut",
-    "The ⋯ menu next to PLAY is just for B.S.A.S: game updates, repair, game folder",
-    "B.S.A.S has a new icon and new PixelLab key art on its launcher page"
-   ]
-  },
-  {
-   "v": "BETA",
-   "date": "2026-11-01",
-   "items": [
-    "New name: B.S.A.S (Black Souls All Star)",
-    "Full PixelLab overhaul: new fonts, HUD, menus, title, screens and logo",
-    "14 stages with new PixelLab backdrops; new Al Namas, The Pit and desert road",
-    "Rebuilt character select: RANDOM slot, smart colours, remembered picks, move list on SUPER, arcade join-in",
-    "New wind-style hit effects; new Blitzy bullets, element pops, element hits and Elemental Cannon beam",
-    "New cylinder HUD for Blitzy and a new rage bar for Big Rusty; cleaner HUD text",
-    "Readable training panel; portraits fit their frames everywhere"
-   ]
-  },
-  {
-   "v": "BETA",
-   "date": "2026-11-01",
-   "items": [
-    "The launcher is now called BKS and updates itself",
-    "No more admin prompt when the launcher opens"
-   ]
-  },
-  {
-   "v": "BETA",
-   "date": "2026-10-30",
-   "items": [
-    "Dodge is now on the DASH button: dash with no direction = spot dodge, forward = dash, back = back dash",
-    "Dodge cooldown: 1 second, 1.5 seconds after escaping a combo, shown by a ring next to the meter",
-    "True combos: dodge in a gap to escape a combo; long strings get less hitstun",
-    "Matches show only the hit counter and dodge ring; Training shows damage, TRUE / BREAKABLE, escapes and frame gaps",
-    "CPU fighters dodge out of combos and respect the cooldown",
-    "Smooth animation: frames cross-fade (never on hits), toggle in Display settings",
-    "New settings: Display, Audio, Gameplay, Controls, Accessibility, Online and Reset menus",
-    "Balance pass: every fighter tuned toward a 50% win rate; select-screen stats updated"
+    "Online: fixed huge ping (seconds) on a DIRECT link - frames no longer pile up when the connection can't keep up; the HUD says LINK CHOKED while it drains",
+    "Fixed the 'cannot read properties of null (reading done)' crash on the stage select when the online opponent leaves or isn't the host"
    ]
   }
  ],
@@ -66,11 +14,11 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 16,
+   "version": 12,
    "files": {
     "preload.js": {
-     "sha": "c52b284dcf947ca8fe7b22b149854c59ad682a582487d915dfc17aa425fa5d63",
-     "size": 1486
+     "sha": "181e4cb5cdc8607ce95241327031e716405727cefb22f1274a642d302e8e3d8a",
+     "size": 1186
     },
     "icon.png": {
      "sha": "7a97fb0daa1ea36053773d55828316bf32a76f06f00f4e61b7bfa00b8acfbf93",
@@ -81,16 +29,16 @@
      "size": 12959
     },
     "version.json": {
-     "sha": "94ef1640129df63d0de8db502b1a0aeb5bed9afd8ad09d32c4ea285a66b5e50a",
+     "sha": "16a02c65d067da7f2fc07a92423f77ff26bfcb6a00c1f0b9f1e13db6b9022a6e",
      "size": 15
     },
     "game_preload.js": {
-     "sha": "e50e2f313fd19b81fbd579bf3e3e2dee7443cb41fc801a4c6e3c1270e689c296",
-     "size": 786
+     "sha": "33538cf3cf051c3172c107450db62692261bb8023f24826845e135dc1aa1b244",
+     "size": 302
     },
     "main.js": {
-     "sha": "08678a3af1b0f25e1afa34e2ee5c730ee664655b3aafbb37677524f4a3c798b1",
-     "size": 22637
+     "sha": "8e9b286de55ccafa40f8160c77d3af55530403d1ab2e854f99ca72444b4f7fa6",
+     "size": 19567
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -117,8 +65,8 @@
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "7662b04750a347e1901e0ded02513921433cb8d62bd660783b0003f515c7da59",
-     "size": 27871
+     "sha": "a47ed74e7454e17a8e31c068b77e9994bd4d34bff5da4c52fcd6aea00316a32a",
+     "size": 26574
     },
     "launcher/hero2.png": {
      "sha": "10a01fcb409260a0956da589b18f9cfdc9861b75367a26e7b727834ccabe69d9",
@@ -445,8 +393,8 @@
    "size": 41261
   },
   "index.html": {
-   "sha": "5cb9ab91a01f7c1ee7ea76a2206165dcd33f66d67061293051f53ff0796692e5",
-   "size": 1587694
+   "sha": "9cfd88b7f9018df9eb806bc2910a86e2c2403a05dadd9abe7f82181d1f9bbfa2",
+   "size": 1588619
   },
   "kunai_new.png": {
    "sha": "e70042df88bb22a2c89aee4f5245d2cd19be33988f9a5558b3a1783d7aa0609d",
