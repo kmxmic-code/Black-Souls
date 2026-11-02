@@ -39,6 +39,7 @@
   .cap .gl { font: 400 54px/1 var(--game); letter-spacing: .04em; color: #fff; text-shadow: 0 3px 0 #000; }
   .cap .gs { color: var(--gold); font-size: 12px; letter-spacing: .22em; font-weight: 600; margin-top: 8px; }
   .cap .who { margin-top: 14px; color: var(--muted); font-size: 12px; } .cap .who b { color: var(--text); font-weight: 600; }
+  .cap .who, .pips { display: none !important; }   /* no fighter name line or slide dots under the banner */
   .pips { position: absolute; right: 24px; bottom: 26px; display: flex; gap: 6px; z-index: 2; } .pips i { width: 18px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); } .pips i.on { background: var(--accent); }
   .soonart { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 70% 30%, #2a1730, #0b0c11 70%); }
   .soonart div { text-align: center; } .soonart b { display: block; font: 400 46px/1 var(--game); letter-spacing: .05em; } .soonart span { color: var(--muted); letter-spacing: .3em; font-size: 12px; }
