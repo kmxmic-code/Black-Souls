@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld('launcher', {
   info: () => ipcRenderer.invoke('info'),
   check: () => ipcRenderer.invoke('check'),
   update: () => ipcRenderer.invoke('update'),
-  play: () => ipcRenderer.invoke('play'),
+  play: id => ipcRenderer.invoke('play', id || 'tc'),
   verify: () => ipcRenderer.invoke('verify'),
   folder: () => ipcRenderer.invoke('folder'),
   shortcut: () => ipcRenderer.invoke('shortcut'),

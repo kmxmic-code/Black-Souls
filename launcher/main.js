@@ -1,13 +1,18 @@
-// BKS — the launcher for Timberclash and future games. Keeps the game up to date from GitHub (only changed files are
+// BKS — the launcher for Timberclash, BKS After Hours and future games. Keeps the game up to date from GitHub (only changed files are
 // downloaded, each checked against its SHA-256), then runs it in its own window.
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 17;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 18;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
 const UI = path.join(__dirname, 'launcher');
+// the library: every game is an HTML page under game/ (updated from GitHub like the rest); the launcher page asks for one by id
+const GAMES = {
+  tc: { page: 'index.html', title: 'Timberclash', icon: 'tc_icon.png', css: true },
+  afterhours: { page: 'afterhours/index.html', title: 'BKS After Hours', icon: 'icon.png', css: false },
+};
 let GAME, INSTALLED;                                   // the live copy in the user's app data, and its record
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]);
@@ -171,16 +176,17 @@ function createLauncher() {
   launcher.on('closed', () => { launcher = null; if (!game) app.quit(); });
   launcher.loadURL('app://launcher/index.html');
 }
-function createGame() {
+function createGame(id) {
+  const G = GAMES[id] || GAMES.tc;
   if (game) { game.focus(); return; }
   game = new BrowserWindow({
     width: 1280, height: 720, useContentSize: true, minWidth: 640, minHeight: 360, backgroundColor: '#07040d',
-    title: 'Timberclash', icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'tc_icon.png')) ? 'tc_icon.png' : 'icon.png'), autoHideMenuBar: true, fullscreen: fullPref(),
+    title: G.title, icon: path.join(__dirname, fs.existsSync(path.join(__dirname, G.icon)) ? G.icon : 'icon.png'), autoHideMenuBar: true, fullscreen: fullPref(),
     webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: path.join(__dirname, 'game_preload.js') },
   });
   gameReady = false;
   game.setMenuBarVisibility(false);
-  game.webContents.on('did-finish-load', () => game.webContents.insertCSS(GAME_CSS));
+  if (G.css) game.webContents.on('did-finish-load', () => game.webContents.insertCSS(GAME_CSS));   // Timberclash's page chrome is hidden; After Hours already fills the window
   game.webContents.on('dom-ready', () => game.webContents.executeJavaScript(GAME_FS).catch(() => {}));
   const fsChanged = on => { saveFull(on); if (game && !game.isDestroyed()) game.webContents.send('fs', on); if (launcher) launcher.webContents.send('fs', on); };
   game.on('enter-full-screen', () => fsChanged(true)); game.on('leave-full-screen', () => fsChanged(false));
@@ -190,7 +196,7 @@ function createGame() {
   });
   game.webContents.setWindowOpenHandler(({ url }) => { if (/^https:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   game.on('closed', () => { game = null; gameReady = false; toGame = []; if (launcher && !quitting) { launcher.show(); launcher.webContents.send('game', { running: false }); } else if (!launcher) app.quit(); });
-  game.loadURL('app://game/index.html');
+  game.loadURL('app://game/' + G.page);
   if (launcher) { launcher.hide(); launcher.webContents.send('game', { running: true }); }
 }
 
@@ -238,7 +244,7 @@ ipcMain.handle('update', async e => {
   updating = fetchRelease().then(rel => update(BrowserWindow.fromWebContents(e.sender), rel)).finally(() => { updating = null; });
   return updating;
 });
-ipcMain.handle('play', () => { createGame(); });
+ipcMain.handle('play', (e, id) => { createGame(typeof id === 'string' ? id : 'tc'); });
 // repair: hash every installed file again; anything damaged or missing is dropped from the record so the next update re-downloads it
 ipcMain.handle('verify', async () => {
   const inst = readJSON(INSTALLED) || { files: {} }; let bad = 0;
@@ -267,7 +273,7 @@ ipcMain.handle('lcheck', async () => {
 // launcher <-> game messages (friends, invites, connection codes). Messages that need the game start it.
 ipcMain.on('l2g', (e, msg) => {
   if (!msg) return;
-  if (!game && msg.start) createGame();
+  if (!game && msg.start) createGame('tc');
   if (!game) return;
   if (gameReady) game.webContents.send('l2g', msg); else toGame.push(msg);
   if (msg.focus) { if (game.isMinimized()) game.restore(); game.focus(); }

@@ -27,6 +27,15 @@
   .game .th { width: 40px; height: 40px; border-radius: 6px; flex: none; background: #222 center/cover; image-rendering: pixelated; }
   .game b { display: block; font-size: 13px; font-weight: 600; } .game span { font-size: 11px; color: var(--muted); }
   .game.soon b { color: var(--muted); } .game .tag { margin-left: auto; font-size: 9px; letter-spacing: .1em; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
+  .game .th.ah { display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #3a1550, #0d0712 70%); color: #f2bf33; font-weight: 800; font-size: 10px; letter-spacing: .08em; }
+  .game .th.ah::before { content: ''; width: 14px; height: 5px; margin-bottom: 3px; background: radial-gradient(circle at 25% 50%, #f2bf33 0 2px, transparent 2.6px), radial-gradient(circle at 75% 50%, #f2bf33 0 2px, transparent 2.6px); }
+  .ahart { position: absolute; inset: 0; background: radial-gradient(ellipse at 68% 42%, #2a1138 0, #130a1c 45%, #07040d 80%); overflow: hidden; }
+  .ahart i { position: absolute; display: block; border-radius: 50%; background: #f2bf33; box-shadow: 0 0 18px 6px rgba(242,191,51,.55); width: 10px; height: 10px; animation: ahblink 5.2s infinite; }
+  .ahart i.l { left: 64%; top: 40%; } .ahart i.r { left: 67.5%; top: 40%; }
+  .ahart .cab { position: absolute; bottom: 0; width: 70px; height: 150px; background: linear-gradient(#1b0f26, #0b0712); border-top: 4px solid #3a1550; opacity: .8; }
+  .ahart .cab::after { content: ''; position: absolute; left: 10px; top: 18px; width: 50px; height: 36px; background: #0b1a1f; box-shadow: 0 0 12px rgba(51,204,230,.25); }
+  .ahart .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px); }
+  @keyframes ahblink { 0%, 90%, 100% { transform: scaleY(1); } 93% { transform: scaleY(.1); } }
   .lib .foot { padding: 8px; color: var(--dim); font-size: 11px; display: flex; justify-content: space-between; }
   /* game page */
   .page { position: absolute; left: 236px; right: 0; top: 36px; bottom: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
@@ -109,6 +118,7 @@
     <div class="brand"><img src="bks.png" alt="BKS"><div><b>BKS</b><span>GAMES</span></div></div>
     <h3>LIBRARY</h3>
     <button type="button" class="game on" data-g="bsas"><span class="th" style="background-image:url(tc_icon.png);background-color:transparent;background-size:contain;background-repeat:no-repeat"></span><div><b>Timberclash</b><span>Fighting</span></div></button>
+    <button type="button" class="game" data-g="afterhours"><span class="th ah">AH</span><div><b>BKS After Hours</b><span>Survival horror</span></div></button>
     <div class="lset"><button type="button" id="lsetB" aria-haspopup="true" aria-expanded="false" title="BKS launcher settings"><span class="gear">⚙</span><span>BKS Launcher</span><span class="sp"></span><span id="lver"></span></button>
       <div class="menu hide" id="lmenu" role="menu">
         <div class="mh">BKS LAUNCHER</div>
@@ -120,6 +130,7 @@
   <main class="page">
     <section class="banner" id="banner">
       <div id="hero"></div>
+      <div class="ahart hide" id="ahart"><div class="cab" style="left:52%"></div><div class="cab" style="left:78%"></div><div class="cab" style="left:91%;height:120px"></div><i class="l"></i><i class="r"></i><div class="scan"></div></div>
       <div class="cap" id="cap"><div class="gl">TIMBERCLASH</div><div class="gs">THE FOREST FIGHTING TOURNAMENT</div><div class="who"><b id="whoN"></b><span id="whoDot" class="hide"> · </span><span id="whoS">THREE FIGHTERS · 4 STAGES</span></div></div>
       <div class="pips" id="pips"></div>
     </section>
@@ -210,7 +221,7 @@ L.onProgress(p => {
 });
 L.onGame(g => { if (g.running) { state = 'running'; button('RUNNING', false); show('Game running'); } else check(); });
 
-$('play').onclick = () => { if (canPlay && (!$('soon') || $('soon').classList.contains('hide'))) { button('STARTING', false); L.play(); } };   // only from the Timberclash page
+$('play').onclick = () => { if (canPlay) { button('STARTING', false); L.play(current); } };
 $('min').onclick = () => L.win('min'); $('close').onclick = () => L.win('close');
 addEventListener('keydown', e => { if (/INPUT|BUTTON/.test(document.activeElement && document.activeElement.tagName) && document.activeElement !== $('play')) return; if ((e.key === 'Enter' || e.key === ' ') && canPlay) { e.preventDefault(); $('play').click(); } });
 // controller: ✕ / A starts the game
@@ -229,13 +240,25 @@ if (L.onLauncherUpdated) L.onLauncherUpdated(() => { if (state === 'ready' || st
 L.info().then(i => { installed = i.installed; $('ver').textContent = V(installed); check(true); });
 setInterval(() => { if (state === 'ready' || state === 'offline') check(); }, 30 * 60 * 1000);
 
-// ----- BKS library: Timberclash is playable, the next game shows as coming soon -----
-document.querySelectorAll('.game').forEach(b => b.onclick = () => {
-  document.querySelectorAll('.game').forEach(x => x.classList.toggle('on', x === b));
-  const soon = b.dataset.g !== 'bsas';
-  if ($('soon')) $('soon').classList.toggle('hide', !soon); $('cap').classList.toggle('hide', soon); $('pips').classList.toggle('hide', soon); $('hero').classList.toggle('hide', soon);
-  document.querySelector('.below').classList.toggle('hide', soon);
-});
+// ----- BKS library: two games share one updater; picking one swaps the banner, the title and the ⋯ menu -----
+const GAMES = {
+  bsas: { id: 'tc', title: 'TIMBERCLASH', sub: 'THE FOREST FIGHTING TOURNAMENT', name: 'Timberclash', hint: 'Press PLAY or Enter. Controllers work too.' },
+  afterhours: { id: 'afterhours', title: 'AFTER HOURS', sub: 'FIVE NIGHTS AT THE BKS ARCADE', name: 'BKS After Hours', hint: 'Press PLAY or Enter. Headphones recommended.' },
+};
+let current = 'tc';
+function selectGame(key) {
+  const G = GAMES[key]; current = G.id;
+  document.querySelectorAll('.game').forEach(x => x.classList.toggle('on', x.dataset.g === key));
+  const ah = key === 'afterhours';
+  $('hero').classList.toggle('hide', ah); $('ahart').classList.toggle('hide', !ah); $('pips').classList.toggle('hide', ah);
+  $('cap').querySelector('.gl').textContent = G.title; $('cap').querySelector('.gs').textContent = G.sub;
+  $('menu').querySelector('.mh').textContent = G.title; $('moreB').title = $('moreB').ariaLabel = G.name + ' options';
+  $('mCheck').querySelector('small').textContent = 'Look for a new ' + G.name + ' version now';
+  $('mFull').querySelector('small').textContent = G.name + ' opens full screen · F11 or Alt+Enter switches';
+  $('mFolder').querySelector('small').textContent = 'Where ' + G.name + ' is installed';
+  if (state === 'ready' || state === 'offline') $('det').textContent = G.hint;
+}
+document.querySelectorAll('.game').forEach(b => b.onclick = () => selectGame(b.dataset.g));
 L.info().then(i => { $('lver').textContent = 'v' + i.launcher; });
 // ----- more menu: check, repair, open folder -----
 // two separate menus: ⋯ next to PLAY is the game's, ⚙ in the sidebar is the launcher's
