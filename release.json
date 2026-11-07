@@ -1,17 +1,6 @@
 {
- "version": "AFTER HOURS 0.1",
+ "version": "TIMBERCLASH 1.0",
  "notes": [
-  {
-   "v": "AFTER HOURS 0.1",
-   "date": "2026-11-07",
-   "items": [
-    "New game in the library: BKS After Hours, a five-night survival horror in a shut-down arcade",
-    "Real 3D office and camera feeds - move the mouse to look around, flip cameras, mind the power",
-    "Four mascots with their own habits: TILT, GLITCH, COIN and JACKPOT",
-    "Five nights, saved progress and a Custom Night with aggression sliders",
-    "Launcher v18: pick a game in the library, PLAY starts the selected one"
-   ]
-  },
   {
    "v": "TIMBERCLASH 1.0",
    "date": "2026-11-03",
@@ -29,7 +18,7 @@
   "min": 5,
   "url": "https://drive.google.com/file/d/1k0et_IPc5qF_6LLsncIz2pbqyf7TaqDO/view?usp=sharing",
   "core": {
-   "version": 18,
+   "version": 19,
    "files": {
     "preload.js": {
      "sha": "8437d109cb5dca64da494f73a73a2afca921fae1f6feccc90ad24dd3a4a3b9da",
@@ -44,7 +33,7 @@
      "size": 6412
     },
     "version.json": {
-     "sha": "97d74090b0ef289d4a083bc8f89367cc3df55cf453657f7a7c02988a1801fc79",
+     "sha": "8fd231df3cf2cc0344a3bc97a8f6ebeba1419c5e25e3eca8af5f94d74bd9c2cc",
      "size": 15
     },
     "game_preload.js": {
@@ -52,8 +41,8 @@
      "size": 786
     },
     "main.js": {
-     "sha": "0821b3e824eb62ea190a1c452af1313049eeeab0cfb256c0a6914bd3ee707b4f",
-     "size": 23125
+     "sha": "f63233cba96fd4ca7bb36854419cc849aaf27e3bf93fe1e187c24da50f240f3b",
+     "size": 23003
     },
     "launcher/pixfont.css": {
      "sha": "f04b6672b37c18187cf93a50253676b6f59af13e23a465fcc4477acbf731e1e0",
@@ -84,8 +73,8 @@
      "size": 8959
     },
     "launcher/index.html": {
-     "sha": "524014a20b3d4d3dd901691addc7bc82d552ddeb6339e9bfc12b0dc9664b6d73",
-     "size": 30605
+     "sha": "ee86477239d7d3b9caf444b428f2d9039672e731c2417ea46dd6fa1898d7f096",
+     "size": 30446
     },
     "launcher/tc_hero1.png": {
      "sha": "ff377ce579256dd2dce650e785848eb8cd6e12df1c2d1baa421654d379d82fa4",
@@ -578,10 +567,6 @@
   "tc_trophy.png": {
    "sha": "c22675db279b9b81c7e1e7b7aa434fc1afc66fe576951c2548bbfe3644f24bed",
    "size": 12346
-  },
-  "afterhours/index.html": {
-   "sha": "cc93a33a4a31aa7f7124c3055e4dce2547d2be3c7b8fd91899adbb21a65e66b5",
-   "size": 68246
   }
  }
 }

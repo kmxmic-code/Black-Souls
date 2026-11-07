@@ -1,9 +1,9 @@
-// BKS — the launcher for Timberclash, BKS After Hours and future games. Keeps the game up to date from GitHub (only changed files are
+// BKS — the launcher for Timberclash and future games. Keeps the game up to date from GitHub (only changed files are
 // downloaded, each checked against its SHA-256), then runs it in its own window.
 const { app, BrowserWindow, protocol, net, Menu, shell, session, ipcMain } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises, crypto = require('crypto'), { pathToFileURL } = require('url');
 
-const LAUNCHER_VERSION = 18;                            // this launcher code (updates itself from GitHub)
+const LAUNCHER_VERSION = 19;                            // this launcher code (updates itself from GitHub)
 const BOOT = global.BKS_BOOT || { runtime: 4, core: 'bundled' };   // set by the small loader in resources/app/main.js
 const RAW = process.env.BSAS_UPDATE_URL || 'https://raw.githubusercontent.com/kmxmic-code/Black-Souls/main/';
 const BUNDLED = path.join(app.getAppPath(), 'game');   // the game that shipped inside the installer (next to the loader)
@@ -11,7 +11,6 @@ const UI = path.join(__dirname, 'launcher');
 // the library: every game is an HTML page under game/ (updated from GitHub like the rest); the launcher page asks for one by id
 const GAMES = {
   tc: { page: 'index.html', title: 'Timberclash', icon: 'tc_icon.png', css: true },
-  afterhours: { page: 'afterhours/index.html', title: 'BKS After Hours', icon: 'icon.png', css: false },
 };
 let GAME, INSTALLED;                                   // the live copy in the user's app data, and its record
 
